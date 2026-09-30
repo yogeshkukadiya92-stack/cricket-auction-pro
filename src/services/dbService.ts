@@ -14,6 +14,7 @@ export interface BootstrapResponse {
 class DatabaseService {
   private syncTimeout: any = null;
   private pendingPayload: any = {};
+  private inFlight: Promise<void> = Promise.resolve();
   public isConnected = false;
   public dbType = 'PostgreSQL';
 
@@ -65,7 +66,17 @@ class DatabaseService {
   /**
    * Immediately send pending changes to PostgreSQL
    */
-  public async flushSync() {
+  public flushSync(): Promise<void> {
+    this.inFlight = this.inFlight.catch(() => {}).then(() => this.sendPending());
+    return this.inFlight;
+  }
+
+  public clearPending() {
+    if (this.syncTimeout) clearTimeout(this.syncTimeout);
+    this.pendingPayload = {};
+  }
+
+  private async sendPending() {
     if (Object.keys(this.pendingPayload).length === 0) return;
     const toSend = { ...this.pendingPayload };
     this.pendingPayload = {};

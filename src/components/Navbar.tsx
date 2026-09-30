@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ViewMode, Tournament, User } from '../types';
 import { sounds } from '../soundEffects';
 import { TeamLogo } from './TeamLogo';
-import { NetworkStatusBadge } from './NetworkStatusBadge';
 import {
   Tv,
   Mic,
@@ -290,9 +289,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="hidden xl:inline">Fortune Wheel</span>
             </button>
           )}
-
-          {/* Dynamic Network & Local-First Database Status Badge */}
-          <NetworkStatusBadge />
 
           {/* SQLite Database Status & Backup Launcher */}
           {onOpenDatabaseModal && (

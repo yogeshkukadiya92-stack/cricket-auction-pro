@@ -32,10 +32,8 @@ import { AdminPanelView } from './components/AdminPanelView';
 import { FortuneWheelModal } from './components/FortuneWheelModal';
 import { BulkPlayerUploadModal } from './components/BulkPlayerUploadModal';
 import { PublicSpectatorView } from './components/PublicSpectatorView';
-import { OfflineAlertBanner } from './components/OfflineAlertBanner';
 import { syncEngine, SyncAction } from './utils/syncEngine';
 import { dbService } from './services/dbService';
-import { localDb } from './services/localDb';
 import { DatabaseBackupModal } from './components/DatabaseBackupModal';
 import { ArrowLeft } from 'lucide-react';
 
@@ -66,6 +64,7 @@ export function App() {
   };
 
   const handleLogout = () => {
+    dbService.clearPending();
     fetch('/api/auth/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).catch(() => {});
     setDataReady(false);
     setLiveReady(false);
@@ -764,10 +763,6 @@ export function App() {
     ) {
       localStorage.removeItem('cap_players');
       localStorage.removeItem('cap_bids');
-      localDb.clearStore('players');
-      localDb.clearStore('bids');
-      localDb.clearStore('live_state');
-      localDb.clearStore('sync_outbox');
       setPlayers([]);
       setTeams((prev) =>
         prev.map((t) => ({
@@ -1119,7 +1114,6 @@ export function App() {
       />
 
       {/* Offline Alert Network Banner */}
-      <OfflineAlertBanner />
 
       {/* Footer Branding */}
       <footer className="p-4 border-t border-white/5 text-center text-xs text-slate-500 font-medium">
