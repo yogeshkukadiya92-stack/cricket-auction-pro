@@ -25,6 +25,20 @@ export const TeamPaddleView: React.FC<TeamPaddleViewProps> = ({
   const [selectedTeamId, setSelectedTeamId] = useState<string>(allTeams[0]?.id || '');
   const team = allTeams.find((t) => t.id === selectedTeamId) || allTeams[0];
 
+  if (!team) {
+    return (
+      <div className="max-w-md mx-auto p-8 rounded-3xl glass-panel border border-white/10 text-center space-y-4 my-10">
+        <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto text-2xl text-amber-400">
+          🛡️
+        </div>
+        <h3 className="text-xl font-bold text-white">કોઈ ટીમ મળી નથી (No Teams Available)</h3>
+        <p className="text-xs text-slate-400 leading-relaxed">
+          કૃપા કરીને પહેલાં "Franchises" ટેબમાં જઈને તમારી ટીમો બનાવો જેથી પેડલ એક્ટિવેટ થઈ શકે.
+        </p>
+      </div>
+    );
+  }
+
   const teamPlayers = allPlayers.filter((p) => p.soldToTeamId === team?.id);
   const slotsRemaining = rules.minPlayersPerTeam - teamPlayers.length;
 

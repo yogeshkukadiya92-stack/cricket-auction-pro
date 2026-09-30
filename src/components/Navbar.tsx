@@ -14,18 +14,23 @@ import {
   Shield,
   Radio,
   ClipboardList,
+  Trash2,
+  ExternalLink,
+  Sparkles,
 } from 'lucide-react';
 
 interface NavbarProps {
   currentMode: ViewMode;
   onSelectMode: (mode: ViewMode) => void;
   tournament: Tournament;
+  onEraseDemoData?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   currentMode,
   onSelectMode,
   tournament,
+  onEraseDemoData,
 }) => {
   const [soundEnabled, setSoundEnabled] = useState(sounds.enabled);
 
@@ -104,18 +109,36 @@ export const Navbar: React.FC<NavbarProps> = ({
           })}
         </nav>
 
-        {/* Utility Controls (Sound, Fullscreen) */}
+        {/* Utility Controls (Live Sync, Erase Demo Data, Sound, Fullscreen) */}
         <div className="flex items-center gap-2">
+          {/* Live Sync Badge */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-[10px] font-black text-emerald-400 uppercase tracking-wider">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="hidden sm:inline">LIVE SYNC</span>
+          </div>
+
+          {/* Erase All Demo Data Button */}
+          {onEraseDemoData && (
+            <button
+              onClick={onEraseDemoData}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-bold transition-all cursor-pointer"
+              title="બધા જ ડેમો ડેટા ભૂંસી નાખો (Erase All Demo Data)"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-red-400" />
+              <span className="hidden md:inline">Erase Demo Data</span>
+            </button>
+          )}
+
           <button
             onClick={toggleSound}
-            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 transition-all"
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 transition-all cursor-pointer"
             title={soundEnabled ? 'Mute Audio' : 'Unmute Audio'}
           >
             {soundEnabled ? <Volume2 className="w-4 h-4 text-gold-400" /> : <VolumeX className="w-4 h-4 text-slate-500" />}
           </button>
           <button
             onClick={toggleFullScreen}
-            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 transition-all hidden sm:block"
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 transition-all hidden sm:block cursor-pointer"
             title="Toggle Big Screen Fullscreen"
           >
             <Maximize2 className="w-4 h-4" />

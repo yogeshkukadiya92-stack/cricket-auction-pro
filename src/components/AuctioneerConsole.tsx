@@ -120,7 +120,7 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
               </span>
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                 {allTeams.map((team) => {
-                  const isSelected = selectedTeam.id === team.id;
+                  const isSelected = selectedTeam?.id === team.id;
                   const isLeading = leadingTeam?.id === team.id;
                   return (
                     <button
@@ -155,7 +155,7 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
             <div className="p-5 rounded-2xl glass-panel border border-white/10">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                  2. Raise Bid for {selectedTeam.name}
+                  2. Raise Bid for {selectedTeam?.name || 'Selected Team'}
                 </span>
                 <span className="text-xs font-bold text-gold-400">
                   Current: {currentBid > 0 ? formatPrice(currentBid) : `Base ${formatPrice(currentPlayer.basePrice)}`}
@@ -266,14 +266,30 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
           </div>
         </div>
       ) : (
-        <div className="p-12 text-center rounded-2xl glass-panel border border-white/10">
-          <p className="text-slate-400 mb-4">No player is currently on the auction block.</p>
-          <button
-            onClick={onRandomDraw}
-            className="px-6 py-3 rounded-xl bg-gold-500 hover:bg-gold-400 text-black font-extrabold text-sm shadow-glow-gold active:scale-95"
-          >
-            Call First Player to Block
-          </button>
+        <div className="p-12 text-center rounded-3xl glass-panel border border-white/10 space-y-4 max-w-xl mx-auto my-6">
+          <div className="w-16 h-16 rounded-2xl bg-gold-500/10 border border-gold-400/30 flex items-center justify-center text-3xl mx-auto">
+            🎙️
+          </div>
+          <h3 className="text-xl font-black text-white font-display">
+            કોઈ ખેલાડી પોડિયમ પર નથી (Podium is Empty)
+          </h3>
+          <p className="text-xs text-slate-400 leading-relaxed">
+            {allPlayers.length === 0
+              ? 'હજુ સુધી કોઈ ખેલાડી રજીસ્ટર નથી થયો. "Reg. Form" માંથી લિંક શેર કરો અથવા ખેલાડીઓ ઉમેરો.'
+              : 'ઓક્શન શરૂ કરવા માટે નીચે આપેલા બટનથી ખેલાડીને પોડિયમ પર બોલાવો:'}
+          </p>
+          {availablePlayers.length > 0 ? (
+            <button
+              onClick={onRandomDraw}
+              className="px-6 py-3 rounded-2xl bg-gold-500 hover:bg-gold-400 text-black font-black text-xs shadow-glow-gold active:scale-95 transition-all cursor-pointer"
+            >
+              ખેલાડીને પોડિયમ પર બોલાવો (Call First Player to Block)
+            </button>
+          ) : (
+            <p className="text-[11px] text-amber-400 font-semibold">
+              {allPlayers.length > 0 ? 'બધા જ ખેલાડીઓનું ઓક્શન પૂર્ણ થઈ ગયું છે.' : ''}
+            </p>
+          )}
         </div>
       )}
     </div>

@@ -47,7 +47,25 @@ export function App() {
 
   const [players, setPlayers] = useState<Player[]>(() => {
     const saved = localStorage.getItem('cap_players');
-    return saved ? JSON.parse(saved) : initialPlayers;
+    if (saved) {
+      try {
+        const parsed: Player[] = JSON.parse(saved);
+        // If cached players only have the old demo players (ply-1 to ply-14), auto-erase them for fresh live setup!
+        const isOldDemo =
+          parsed.length > 0 &&
+          parsed.every(
+            (p) => p.id.startsWith('ply-') && Number(p.id.replace('ply-', '')) <= 14
+          );
+        if (isOldDemo) {
+          localStorage.removeItem('cap_players');
+          return [];
+        }
+        return parsed;
+      } catch {
+        return [];
+      }
+    }
+    return [];
   });
 
   // Check URL params (?mode=obs for OBS, ?mode=register for public player form)
@@ -63,9 +81,7 @@ export function App() {
   });
 
   // Live Auction State
-  const [currentPlayerId, setCurrentPlayerId] = useState<string>(() => {
-    return initialPlayers[0]?.id || '';
-  });
+  const [currentPlayerId, setCurrentPlayerId] = useState<string>('');
   const [currentBid, setCurrentBid] = useState<number>(0);
   const [leadingTeam, setLeadingTeam] = useState<Team | null>(null);
   const [bidsHistory, setBidsHistory] = useState<BidRecord[]>([]);
@@ -95,7 +111,7 @@ export function App() {
     localStorage.setItem('cap_rules', JSON.stringify(rules));
   }, [rules]);
 
-  // Real-Time BroadcastChannel Synchronization between multiple tabs/windows
+  // Real-Time Cross-Device & Cross-Tab Synchronization
   useEffect(() => {
     const unsubscribe = syncEngine.subscribe((action: SyncAction) => {
       switch (action.type) {
@@ -129,6 +145,38 @@ export function App() {
           break;
         case 'SELECT_PLAYER':
           setCurrentPlayerId(action.payload.player.id);
+          setCurrentBid(0);
+          setLeadingTeam(null);
+          setBidsHistory([]);
+          break;
+        case 'PLAYER_REGISTERED':
+          setPlayers((prev) => {
+            if (prev.some((p) => p.id === action.payload.player.id)) return prev;
+            return [action.payload.player, ...prev];
+          });
+          break;
+        case 'PLAYER_APPROVED':
+          setPlayers((prev) =>
+            prev.map((p) =>
+              p.id === action.payload.playerId
+                ? { ...p, approvalStatus: 'APPROVED', status: 'AVAILABLE' }
+                : p
+            )
+          );
+          break;
+        case 'PLAYER_REJECTED':
+          setPlayers((prev) =>
+            prev.map((p) =>
+              p.id === action.payload.playerId ? { ...p, approvalStatus: 'REJECTED' } : p
+            )
+          );
+          break;
+        case 'CLEAR_ALL_DATA':
+          setPlayers([]);
+          setTeams((prev) =>
+            prev.map((t) => ({ ...t, remainingPurse: t.totalPurse }))
+          );
+          setCurrentPlayerId('');
           setCurrentBid(0);
           setLeadingTeam(null);
           setBidsHistory([]);
@@ -389,6 +437,10 @@ export function App() {
           : p
       )
     );
+    syncEngine.broadcast({
+      type: 'PLAYER_APPROVED',
+      payload: { playerId },
+    });
     alert('✅ Player approved and added to the official auction lot!');
   };
 
@@ -399,11 +451,45 @@ export function App() {
           p.id === playerId ? { ...p, approvalStatus: 'REJECTED' } : p
         )
       );
+      syncEngine.broadcast({
+        type: 'PLAYER_REJECTED',
+        payload: { playerId },
+      });
     }
   };
 
   const handleRegisterPlayer = (newPlayer: Player) => {
     setPlayers((prev) => [newPlayer, ...prev]);
+    syncEngine.broadcast({
+      type: 'PLAYER_REGISTERED',
+      payload: { player: newPlayer },
+    });
+  };
+
+  const handleEraseAllDemoData = () => {
+    if (
+      confirm(
+        '⚠️ શું તમે ખરેખર બધા જ ડેમો પ્લેયર્સ અને ટેસ્ટ ડેટા સાફ કરીને નવું લાઈવ ઓક્શન શરૂ કરવા માંગો છો? (Are you sure you want to erase all demo data and start a clean live tournament?)'
+      )
+    ) {
+      localStorage.removeItem('cap_players');
+      localStorage.removeItem('cap_bids');
+      setPlayers([]);
+      setTeams((prev) =>
+        prev.map((t) => ({
+          ...t,
+          remainingPurse: t.totalPurse,
+        }))
+      );
+      setCurrentPlayerId('');
+      setCurrentBid(0);
+      setLeadingTeam(null);
+      setBidsHistory([]);
+      syncEngine.broadcast({
+        type: 'CLEAR_ALL_DATA',
+      });
+      alert('✨ બધા જ ડેમો ડેટા ભૂંસી નાખ્યા છે! તમારી સિસ્ટમ હવે ૧૦૦% ફ્રેશ અને લાઈવ ઓક્શન માટે તૈયાર છે.');
+    }
   };
 
   // Dedicated clean view for public player registration (?mode=register)
@@ -446,7 +532,12 @@ export function App() {
   return (
     <div className="min-h-screen bg-obsidian-950 text-slate-100 flex flex-col">
       {/* Top Navbar */}
-      <Navbar currentMode={viewMode} onSelectMode={setViewMode} tournament={tournament} />
+      <Navbar
+        currentMode={viewMode}
+        onSelectMode={setViewMode}
+        tournament={tournament}
+        onEraseDemoData={handleEraseAllDemoData}
+      />
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">

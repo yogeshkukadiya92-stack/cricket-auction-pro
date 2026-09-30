@@ -89,14 +89,23 @@ export const StageView: React.FC<StageViewProps> = ({
 
   if (!currentPlayer) {
     return (
-      <div className="min-h-[75vh] flex flex-col items-center justify-center text-center p-8">
-        <div className="w-24 h-24 rounded-3xl bg-gold-500/10 border border-gold-400/20 flex items-center justify-center mb-6 shadow-glow-gold">
-          <Award className="w-12 h-12 text-gold-400 animate-pulse" />
+      <div className="min-h-[75vh] flex flex-col items-center justify-center text-center p-8 glass-panel rounded-3xl border border-white/10 relative overflow-hidden stadium-beam">
+        <div className="w-24 h-24 rounded-3xl bg-gold-500/10 border border-gold-400/30 flex items-center justify-center mb-6 shadow-glow-gold animate-bounce">
+          <Award className="w-12 h-12 text-gold-400" />
         </div>
-        <h2 className="text-4xl font-extrabold text-white font-display mb-2">AUCTION STAGE PAUSED</h2>
-        <p className="text-slate-400 max-w-md text-base">
-          Next player will be called to the podium shortly. Please switch to the Auctioneer Desk to call the next lot.
+        <span className="px-3.5 py-1 rounded-full text-xs font-black tracking-widest uppercase bg-gold-500/20 text-gold-400 border border-gold-400/30 mb-3">
+          ● MEGA AUCTION ARENA LIVE
+        </span>
+        <h2 className="text-3xl sm:text-5xl font-black text-white font-display mb-3">
+          ઓક્શન સ્ટેજ તૈયાર છે (STAGE READY)
+        </h2>
+        <p className="text-slate-300 max-w-lg text-sm sm:text-base leading-relaxed">
+          હવે ઓક્શન શરૂ કરવા માટે <strong>Auctioneer Desk</strong> માંથી ખેલાડીને પોડિયમ પર બોલાવો (Random Draw અથવા Select Player કરો).
         </p>
+        <div className="mt-6 flex items-center gap-2 text-xs font-bold text-slate-400">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span>Real-time Broadcast & Multi-Device Sync Active</span>
+        </div>
       </div>
     );
   }

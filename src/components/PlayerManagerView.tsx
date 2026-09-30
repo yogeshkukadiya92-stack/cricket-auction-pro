@@ -351,9 +351,40 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
         </div>
       </div>
 
-      {/* Players Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {filteredPlayers.map((player) => (
+      {/* Players Grid or Empty State */}
+      {filteredPlayers.length === 0 ? (
+        <div className="p-12 lg:p-16 rounded-3xl glass-panel border border-white/10 text-center space-y-4 max-w-xl mx-auto my-6">
+          <div className="w-20 h-20 rounded-3xl bg-gold-500/10 border border-gold-400/20 mx-auto flex items-center justify-center text-3xl shadow-glow-gold">
+            🏏
+          </div>
+          <h3 className="text-2xl font-black text-white font-display">
+            કોઈ ખેલાડી મળ્યો નથી (No Players Found)
+          </h3>
+          <p className="text-xs text-slate-400 leading-relaxed">
+            તમારા લાઈવ ઓક્શનમાં હજુ સુધી કોઈ ખેલાડી ઉમેરાયા નથી. તમે ખેલાડીઓને રજીસ્ટ્રેશન લિંક મોકલી શકો છો, CSV થી એકસાથે ઈમ્પોર્ટ કરી શકો છો અથવા જાતે ઉમેરી શકો છો.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            {onNavigateToFormBuilder && (
+              <button
+                onClick={onNavigateToFormBuilder}
+                className="px-4 py-2.5 rounded-xl text-xs font-black bg-gold-500 hover:bg-gold-400 text-black shadow-glow-gold active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <Link className="w-3.5 h-3.5" />
+                રજીસ્ટ્રેશન લિંક અને QR કોડ જુઓ
+              </button>
+            )}
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="px-4 py-2.5 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/15 text-white border border-white/10 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              નવો ખેલાડી ઉમેરો
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {filteredPlayers.map((player) => (
           <div
             key={player.id}
             className="rounded-2xl border border-white/10 bg-obsidian-900/80 p-4 flex flex-col justify-between hover:border-gold-400/40 transition-all group"
@@ -512,7 +543,8 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
             </div>
           </div>
         ))}
-      </div>
+        </div>
+      )}
 
       {/* Add New Player Modal */}
       {isAddModalOpen && (
