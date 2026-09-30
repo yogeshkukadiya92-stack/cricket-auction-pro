@@ -21,6 +21,7 @@ import {
   Plus,
   Check,
   Layers,
+  Database,
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -30,6 +31,7 @@ interface NavbarProps {
   tournaments?: Tournament[];
   onSelectTournament?: (id: string) => void;
   onCreateNewTournament?: () => void;
+  onOpenDatabaseModal?: () => void;
   onEraseDemoData?: () => void;
 }
 
@@ -40,6 +42,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   tournaments = [],
   onSelectTournament,
   onCreateNewTournament,
+  onOpenDatabaseModal,
   onEraseDemoData,
 }) => {
   const [soundEnabled, setSoundEnabled] = useState(sounds.enabled);
@@ -215,6 +218,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="hidden sm:inline">LIVE SYNC</span>
           </div>
+
+          {/* SQLite Database Status & Backup Launcher */}
+          {onOpenDatabaseModal && (
+            <button
+              onClick={onOpenDatabaseModal}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-[10px] font-black text-emerald-400 uppercase tracking-wider transition-colors cursor-pointer"
+              title="Native SQLite Database • Click for Backups & Storage Details"
+            >
+              <Database className="w-3 h-3 text-emerald-400" />
+              <span className="hidden sm:inline">SQLITE DB</span>
+            </button>
+          )}
 
           {/* Erase All Demo Data Button */}
           {onEraseDemoData && (

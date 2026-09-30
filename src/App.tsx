@@ -30,9 +30,14 @@ import { SoldPosterModal } from './components/SoldPosterModal';
 import { RegistrationFormBuilder } from './components/RegistrationFormBuilder';
 import { PublicRegistrationView } from './components/PublicRegistrationView';
 import { syncEngine, SyncAction } from './utils/syncEngine';
+import { dbService } from './services/dbService';
+import { DatabaseBackupModal } from './components/DatabaseBackupModal';
 import { ArrowLeft } from 'lucide-react';
 
 export function App() {
+  // SQLite Database status modal state
+  const [isDbModalOpen, setIsDbModalOpen] = useState(false);
+
   // Multiple Tournaments state
   const [tournaments, setTournaments] = useState<Tournament[]>(() => {
     const saved = localStorage.getItem('cap_tournaments');
@@ -129,9 +134,46 @@ export function App() {
   // Social Poster Modal State
   const [posterData, setPosterData] = useState<{ player: Player; team: Team; price: number } | null>(null);
 
-  // Sync Tournaments to LocalStorage
+  // Bootstrap data from SQLite Server Database on startup
+  useEffect(() => {
+    dbService.fetchBootstrapData().then((data) => {
+      if (data && data.success) {
+        if (Array.isArray(data.tournaments) && data.tournaments.length > 0) {
+          setTournaments(data.tournaments);
+        } else {
+          dbService.queueSync({ tournaments });
+        }
+
+        if (Array.isArray(data.teams) && data.teams.length > 0) {
+          setTeams(data.teams);
+        } else {
+          dbService.queueSync({ teams });
+        }
+
+        if (Array.isArray(data.players) && data.players.length > 0) {
+          setPlayers(data.players);
+        }
+
+        if (data.rules) {
+          setRules(data.rules);
+        } else {
+          dbService.queueSync({ rules });
+        }
+
+        if (data.liveState) {
+          if (data.liveState.currentPlayerId) setCurrentPlayerId(data.liveState.currentPlayerId);
+          if (data.liveState.currentBid) setCurrentBid(data.liveState.currentBid);
+          if (data.liveState.leadingTeam) setLeadingTeam(data.liveState.leadingTeam);
+          if (data.liveState.bidsHistory) setBidsHistory(data.liveState.bidsHistory);
+        }
+      }
+    });
+  }, []);
+
+  // Sync Tournaments & Data to LocalStorage & SQLite
   useEffect(() => {
     localStorage.setItem('cap_tournaments', JSON.stringify(tournaments));
+    dbService.queueSync({ tournaments });
   }, [tournaments]);
 
   useEffect(() => {
@@ -140,18 +182,22 @@ export function App() {
 
   useEffect(() => {
     localStorage.setItem('cap_tournament', JSON.stringify(tournament));
+    dbService.queueSync({ tournament });
   }, [tournament]);
 
   useEffect(() => {
     localStorage.setItem('cap_teams', JSON.stringify(teams));
+    dbService.queueSync({ teams });
   }, [teams]);
 
   useEffect(() => {
     localStorage.setItem('cap_players', JSON.stringify(players));
+    dbService.queueSync({ players });
   }, [players]);
 
   useEffect(() => {
     localStorage.setItem('cap_rules', JSON.stringify(rules));
+    dbService.queueSync({ rules });
   }, [rules]);
 
   // Real-Time Cross-Device & Cross-Tab Synchronization
@@ -696,6 +742,7 @@ export function App() {
           setEditingTournamentData(null);
           setIsTournamentModalOpen(true);
         }}
+        onOpenDatabaseModal={() => setIsDbModalOpen(true)}
         onEraseDemoData={handleEraseAllDemoData}
       />
 
@@ -864,6 +911,23 @@ export function App() {
           onClose={() => setPosterData(null)}
         />
       )}
+
+      {/* SQLite Database Backup & Status Modal */}
+      <DatabaseBackupModal
+        isOpen={isDbModalOpen}
+        onClose={() => setIsDbModalOpen(false)}
+        tournamentsCount={tournaments.length}
+        teamsCount={teams.length}
+        playersCount={players.length}
+        onEraseDemoData={handleEraseAllDemoData}
+        onReloadData={() => {
+          dbService.fetchBootstrapData().then((data) => {
+            if (data?.tournaments) setTournaments(data.tournaments);
+            if (data?.teams) setTeams(data.teams);
+            if (data?.players) setPlayers(data.players);
+          });
+        }}
+      />
 
       {/* Footer Branding */}
       <footer className="p-4 border-t border-white/5 text-center text-xs text-slate-500 font-medium">
