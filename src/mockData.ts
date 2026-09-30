@@ -6,6 +6,17 @@ export const initialTournament: Tournament = {
   year: 2026,
   season: 'Season 7 (Live Auction)',
   status: 'LIVE',
+  logoUrl: '',
+  sponsor: 'Tata Projects',
+  coSponsors: 'Dream11, Amul India, CEAT Tyres',
+  defaultBasePrice: 20000,
+  startDate: '2026-11-01',
+  endDate: '2026-11-15',
+  ground: 'Narendra Modi Stadium Ground A',
+  city: 'Ahmedabad',
+  expectedTeamsCount: 8,
+  ballType: 'Heavy Tennis Ball',
+  totalPursePerTeam: 1000000,
   registrationOpen: true,
   registrationFee: 500,
   registrationDeadline: '2026-10-15',
@@ -150,3 +161,5 @@ export const initialTeams: Team[] = [
 
 // Completely clean for Live Production - No Demo Players!
 export const initialPlayers: Player[] = [];
+
+export const initialTournaments: Tournament[] = [initialTournament];

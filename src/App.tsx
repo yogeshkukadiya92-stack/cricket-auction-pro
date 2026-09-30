@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   initialTournament,
+  initialTournaments,
   initialRules,
   initialTeams,
   initialPlayers,
@@ -14,6 +15,9 @@ import {
   ViewMode,
 } from './types';
 import { Navbar } from './components/Navbar';
+import { TournamentDashboardView } from './components/TournamentDashboardView';
+import { TournamentsListView } from './components/TournamentsListView';
+import { TournamentModal } from './components/TournamentModal';
 import { StageView } from './components/StageView';
 import { AuctioneerConsole } from './components/AuctioneerConsole';
 import { TeamPaddleView } from './components/TeamPaddleView';
@@ -29,11 +33,43 @@ import { syncEngine, SyncAction } from './utils/syncEngine';
 import { ArrowLeft } from 'lucide-react';
 
 export function App() {
-  // Persistence with LocalStorage
-  const [tournament, setTournament] = useState<Tournament>(() => {
-    const saved = localStorage.getItem('cap_tournament');
-    return saved ? JSON.parse(saved) : initialTournament;
+  // Multiple Tournaments state
+  const [tournaments, setTournaments] = useState<Tournament[]>(() => {
+    const saved = localStorage.getItem('cap_tournaments');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch {}
+    }
+    const single = localStorage.getItem('cap_tournament');
+    if (single) {
+      try {
+        const parsed = JSON.parse(single);
+        return [parsed];
+      } catch {}
+    }
+    return initialTournaments;
   });
+
+  const [activeTournamentId, setActiveTournamentId] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const urlTourneyId = params.get('tournamentId');
+      if (urlTourneyId) return urlTourneyId;
+    }
+    const saved = localStorage.getItem('cap_active_tournament_id');
+    return saved || initialTournaments[0].id;
+  });
+
+  const tournament =
+    tournaments.find((t) => t.id === activeTournamentId) ||
+    tournaments[0] ||
+    initialTournament;
+
+  // Tournament Create / Edit Modal State
+  const [isTournamentModalOpen, setIsTournamentModalOpen] = useState(false);
+  const [editingTournamentData, setEditingTournamentData] = useState<Tournament | null>(null);
 
   const [rules, setRules] = useState<AuctionRules>(() => {
     const saved = localStorage.getItem('cap_rules');
@@ -50,7 +86,6 @@ export function App() {
     if (saved) {
       try {
         const parsed: Player[] = JSON.parse(saved);
-        // If cached players only have the old demo players (ply-1 to ply-14), auto-erase them for fresh live setup!
         const isOldDemo =
           parsed.length > 0 &&
           parsed.every(
@@ -77,7 +112,7 @@ export function App() {
         return 'PUBLIC_REGISTER';
       }
     }
-    return 'STAGE';
+    return 'TOURNAMENT_OVERVIEW';
   });
 
   // Live Auction State
@@ -94,7 +129,15 @@ export function App() {
   // Social Poster Modal State
   const [posterData, setPosterData] = useState<{ player: Player; team: Team; price: number } | null>(null);
 
-  // Sync to LocalStorage
+  // Sync Tournaments to LocalStorage
+  useEffect(() => {
+    localStorage.setItem('cap_tournaments', JSON.stringify(tournaments));
+  }, [tournaments]);
+
+  useEffect(() => {
+    localStorage.setItem('cap_active_tournament_id', activeTournamentId);
+  }, [activeTournamentId]);
+
   useEffect(() => {
     localStorage.setItem('cap_tournament', JSON.stringify(tournament));
   }, [tournament]);
@@ -171,6 +214,20 @@ export function App() {
             )
           );
           break;
+        case 'TOURNAMENT_CREATED':
+          setTournaments((prev) => {
+            if (prev.some((t) => t.id === action.payload.tournament.id)) return prev;
+            return [action.payload.tournament, ...prev];
+          });
+          break;
+        case 'TOURNAMENT_UPDATED':
+          setTournaments((prev) =>
+            prev.map((t) => (t.id === action.payload.tournament.id ? action.payload.tournament : t))
+          );
+          break;
+        case 'TOURNAMENT_SELECTED':
+          setActiveTournamentId(action.payload.tournamentId);
+          break;
         case 'CLEAR_ALL_DATA':
           setPlayers([]);
           setTeams((prev) =>
@@ -189,7 +246,11 @@ export function App() {
     return () => unsubscribe();
   }, [teams]);
 
-  const currentPlayer = players.find((p) => p.id === currentPlayerId) || null;
+  // Scoped Data for the currently active tournament
+  const activeTeams = teams.filter((t) => !t.tournamentId || t.tournamentId === tournament.id);
+  const activePlayers = players.filter((p) => !p.tournamentId || p.tournamentId === tournament.id);
+
+  const currentPlayer = activePlayers.find((p) => p.id === currentPlayerId) || null;
 
   // Place a Bid
   const handlePlaceBid = (team: Team, newAmount: number) => {
@@ -208,7 +269,6 @@ export function App() {
     };
     setBidsHistory((prev) => [record, ...prev]);
 
-    // Broadcast live across all browser windows
     syncEngine.broadcast({
       type: 'BID_PLACED',
       payload: { team, amount: newAmount, record },
@@ -273,7 +333,7 @@ export function App() {
       setLeadingTeam(null);
       setBidsHistory([]);
 
-      const nextAvail = players.find(
+      const nextAvail = activePlayers.find(
         (p) => p.id !== soldPlayer.id && (p.status === 'AVAILABLE' || p.status === 'IN_AUCTION')
       );
       if (nextAvail) {
@@ -317,7 +377,7 @@ export function App() {
       setLeadingTeam(null);
       setBidsHistory([]);
 
-      const nextAvail = players.find(
+      const nextAvail = activePlayers.find(
         (p) => p.id !== unsoldPlayer.id && (p.status === 'AVAILABLE' || p.status === 'IN_AUCTION')
       );
       if (nextAvail) {
@@ -370,42 +430,124 @@ export function App() {
 
   // Random Draw
   const handleRandomDraw = () => {
-    const unAuctioned = players.filter((p) => p.status === 'AVAILABLE' || p.status === 'IN_AUCTION');
+    const unAuctioned = activePlayers.filter(
+      (p) => p.status === 'AVAILABLE' || p.status === 'IN_AUCTION'
+    );
     if (unAuctioned.length === 0) {
-      alert('All players have been auctioned! Check the Squad Booklet.');
+      alert('All players in this tournament pool have been auctioned! Check the Squad Booklet.');
       return;
     }
     const randomIndex = Math.floor(Math.random() * unAuctioned.length);
     handleSelectPlayer(unAuctioned[randomIndex]);
   };
 
-  // Reset Auction
+  // Reset Auction for current tournament
   const handleResetAuction = () => {
     setPlayers((prev) =>
-      prev.map((p) => ({
-        ...p,
-        status: 'AVAILABLE',
-        soldPrice: undefined,
-        soldToTeamId: undefined,
-      }))
+      prev.map((p) =>
+        (!p.tournamentId || p.tournamentId === tournament.id)
+          ? {
+              ...p,
+              status: 'AVAILABLE',
+              soldPrice: undefined,
+              soldToTeamId: undefined,
+            }
+          : p
+      )
     );
     setTeams((prev) =>
-      prev.map((t) => ({
-        ...t,
-        remainingPurse: t.totalPurse,
-      }))
+      prev.map((t) =>
+        (!t.tournamentId || t.tournamentId === tournament.id)
+          ? {
+              ...t,
+              remainingPurse: t.totalPurse,
+            }
+          : t
+      )
     );
     setCurrentBid(0);
     setLeadingTeam(null);
     setBidsHistory([]);
-    if (players[0]) {
-      setCurrentPlayerId(players[0].id);
+    if (activePlayers[0]) {
+      setCurrentPlayerId(activePlayers[0].id);
     }
+  };
+
+  // Tournament Management Handlers
+  const handleCreateTournament = (data: Partial<Tournament>) => {
+    const newTourney: Tournament = {
+      id: `tourney-${Date.now()}`,
+      name: data.name || 'New Tournament',
+      season: data.season || 'Season 1',
+      year: data.year || 2026,
+      status: data.status || 'UPCOMING',
+      logoUrl: data.logoUrl || '🏆',
+      sponsor: data.sponsor || '',
+      coSponsors: data.coSponsors || '',
+      defaultBasePrice: data.defaultBasePrice || 20000,
+      totalPursePerTeam: data.totalPursePerTeam || 1000000,
+      expectedTeamsCount: data.expectedTeamsCount || 8,
+      ground: data.ground || '',
+      city: data.city || '',
+      startDate: data.startDate || '',
+      endDate: data.endDate || '',
+      ballType: data.ballType || 'Heavy Tennis Ball',
+      registrationOpen: data.registrationOpen ?? true,
+      registrationFee: data.registrationFee || 500,
+      registrationDeadline: data.registrationDeadline || '',
+      upiId: data.upiId || '',
+      gpayNumber: data.gpayNumber || '',
+      gpayName: data.gpayName || '',
+      paymentMandatory: true,
+      customFields: data.customFields || initialTournament.customFields,
+    };
+
+    setTournaments((prev) => [newTourney, ...prev]);
+    setActiveTournamentId(newTourney.id);
+    setViewMode('TOURNAMENT_OVERVIEW');
+
+    syncEngine.broadcast({
+      type: 'TOURNAMENT_CREATED',
+      payload: { tournament: newTourney },
+    });
+  };
+
+  const handleUpdateTournament = (updated: Tournament) => {
+    setTournaments((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+    syncEngine.broadcast({
+      type: 'TOURNAMENT_UPDATED',
+      payload: { tournament: updated },
+    });
+  };
+
+  const handleDeleteTournament = (tourneyId: string) => {
+    if (tournaments.length <= 1) {
+      alert('Cannot delete the only tournament. At least one tournament is required.');
+      return;
+    }
+    const remaining = tournaments.filter((t) => t.id !== tourneyId);
+    setTournaments(remaining);
+    if (activeTournamentId === tourneyId) {
+      setActiveTournamentId(remaining[0].id);
+    }
+  };
+
+  const handleSelectTournament = (tourneyId: string) => {
+    setActiveTournamentId(tourneyId);
+    setViewMode('TOURNAMENT_OVERVIEW');
+    syncEngine.broadcast({
+      type: 'TOURNAMENT_SELECTED',
+      payload: { tournamentId: tourneyId },
+    });
   };
 
   // Team Management Handlers
   const handleAddTeam = (newTeam: Team) => {
-    setTeams((prev) => [...prev, newTeam]);
+    const teamWithTourney: Team = {
+      ...newTeam,
+      tournamentId: tournament.id,
+    };
+    setTeams((prev) => [...prev, teamWithTourney]);
   };
 
   const handleUpdateTeam = (updated: Team) => {
@@ -418,11 +560,19 @@ export function App() {
 
   // Player Management Handlers
   const handleAddPlayer = (newPlayer: Player) => {
-    setPlayers((prev) => [...prev, newPlayer]);
+    const playerWithTourney: Player = {
+      ...newPlayer,
+      tournamentId: tournament.id,
+    };
+    setPlayers((prev) => [...prev, playerWithTourney]);
   };
 
   const handleBulkAddPlayers = (newPlayers: Player[]) => {
-    setPlayers((prev) => [...prev, ...newPlayers]);
+    const mapped = newPlayers.map((p) => ({
+      ...p,
+      tournamentId: tournament.id,
+    }));
+    setPlayers((prev) => [...prev, ...mapped]);
   };
 
   const handleDeletePlayer = (playerId: string) => {
@@ -459,10 +609,14 @@ export function App() {
   };
 
   const handleRegisterPlayer = (newPlayer: Player) => {
-    setPlayers((prev) => [newPlayer, ...prev]);
+    const playerWithTourney: Player = {
+      ...newPlayer,
+      tournamentId: tournament.id,
+    };
+    setPlayers((prev) => [playerWithTourney, ...prev]);
     syncEngine.broadcast({
       type: 'PLAYER_REGISTERED',
-      payload: { player: newPlayer },
+      payload: { player: playerWithTourney },
     });
   };
 
@@ -498,7 +652,7 @@ export function App() {
       <PublicRegistrationView
         tournament={tournament}
         onRegisterPlayer={handleRegisterPlayer}
-        onBackToDashboard={() => setViewMode('STAGE')}
+        onBackToDashboard={() => setViewMode('TOURNAMENT_OVERVIEW')}
       />
     );
   }
@@ -509,7 +663,7 @@ export function App() {
       <div className="relative min-h-screen bg-transparent">
         {/* Floating Back to App Button */}
         <button
-          onClick={() => setViewMode('STAGE')}
+          onClick={() => setViewMode('TOURNAMENT_OVERVIEW')}
           className="fixed top-4 right-4 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-obsidian-900/90 text-white border border-white/20 hover:bg-obsidian-850 shadow-lg pointer-events-auto"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
@@ -536,18 +690,64 @@ export function App() {
         currentMode={viewMode}
         onSelectMode={setViewMode}
         tournament={tournament}
+        tournaments={tournaments}
+        onSelectTournament={handleSelectTournament}
+        onCreateNewTournament={() => {
+          setEditingTournamentData(null);
+          setIsTournamentModalOpen(true);
+        }}
         onEraseDemoData={handleEraseAllDemoData}
       />
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+        {viewMode === 'TOURNAMENT_OVERVIEW' && (
+          <TournamentDashboardView
+            tournament={tournament}
+            allTournaments={tournaments}
+            teams={activeTeams}
+            players={activePlayers}
+            onSelectViewMode={setViewMode}
+            onEditTournament={() => {
+              setEditingTournamentData(tournament);
+              setIsTournamentModalOpen(true);
+            }}
+            onSwitchTournament={() => setViewMode('TOURNAMENTS')}
+            onCreateNewTournament={() => {
+              setEditingTournamentData(null);
+              setIsTournamentModalOpen(true);
+            }}
+            onApprovePlayer={handleApprovePlayer}
+            onRejectPlayer={handleRejectPlayer}
+          />
+        )}
+
+        {viewMode === 'TOURNAMENTS' && (
+          <TournamentsListView
+            tournaments={tournaments}
+            activeTournamentId={activeTournamentId}
+            teams={teams}
+            players={players}
+            onSelectTournament={handleSelectTournament}
+            onEditTournament={(t) => {
+              setEditingTournamentData(t);
+              setIsTournamentModalOpen(true);
+            }}
+            onDeleteTournament={handleDeleteTournament}
+            onCreateNewTournament={() => {
+              setEditingTournamentData(null);
+              setIsTournamentModalOpen(true);
+            }}
+          />
+        )}
+
         {viewMode === 'STAGE' && (
           <StageView
             currentPlayer={currentPlayer}
             currentBid={currentBid}
             leadingTeam={leadingTeam}
             bidsHistory={bidsHistory}
-            allTeams={teams}
+            allTeams={activeTeams}
             isSold={isSold}
             isUnsold={isUnsold}
             lastSoldInfo={lastSoldInfo}
@@ -560,8 +760,8 @@ export function App() {
             currentPlayer={currentPlayer}
             currentBid={currentBid}
             leadingTeam={leadingTeam}
-            allTeams={teams}
-            allPlayers={players}
+            allTeams={activeTeams}
+            allPlayers={activePlayers}
             rules={rules}
             onPlaceBid={handlePlaceBid}
             onSold={handleSold}
@@ -574,11 +774,11 @@ export function App() {
 
         {viewMode === 'PADDLE' && (
           <TeamPaddleView
-            allTeams={teams}
+            allTeams={activeTeams}
             currentPlayer={currentPlayer}
             currentBid={currentBid}
             leadingTeam={leadingTeam}
-            allPlayers={players}
+            allPlayers={activePlayers}
             rules={rules}
             onPlaceBid={handlePlaceBid}
           />
@@ -586,7 +786,7 @@ export function App() {
 
         {viewMode === 'PLAYERS' && (
           <PlayerManagerView
-            players={players}
+            players={activePlayers}
             onAddPlayer={handleAddPlayer}
             onBulkAddPlayers={handleBulkAddPlayers}
             onDeletePlayer={handleDeletePlayer}
@@ -599,26 +799,30 @@ export function App() {
         {viewMode === 'FORM_BUILDER' && (
           <RegistrationFormBuilder
             tournament={tournament}
-            onUpdateTournament={setTournament}
+            onUpdateTournament={handleUpdateTournament}
             onPreviewPublicForm={() => setViewMode('PUBLIC_REGISTER')}
           />
         )}
 
         {viewMode === 'TEAMS' && (
           <TeamsManagerView
-            teams={teams}
+            teams={activeTeams}
             tournament={tournament}
             onAddTeam={handleAddTeam}
             onUpdateTeam={handleUpdateTeam}
             onDeleteTeam={handleDeleteTeam}
-            onUpdateTournament={setTournament}
+            onUpdateTournament={handleUpdateTournament}
+            onOpenTournamentModal={() => {
+              setEditingTournamentData(tournament);
+              setIsTournamentModalOpen(true);
+            }}
           />
         )}
 
         {viewMode === 'SQUADS' && (
           <SquadSummaryView
-            teams={teams}
-            players={players}
+            teams={activeTeams}
+            players={activePlayers}
             rules={rules}
             onOpenPoster={(player, team, price) => setPosterData({ player, team, price })}
           />
@@ -632,6 +836,23 @@ export function App() {
           />
         )}
       </main>
+
+      {/* Create / Edit Tournament Modal */}
+      <TournamentModal
+        isOpen={isTournamentModalOpen}
+        initialData={editingTournamentData}
+        onSave={(data) => {
+          if (editingTournamentData) {
+            handleUpdateTournament(data as Tournament);
+          } else {
+            handleCreateTournament(data);
+          }
+        }}
+        onClose={() => {
+          setIsTournamentModalOpen(false);
+          setEditingTournamentData(null);
+        }}
+      />
 
       {/* Social Media Poster Modal */}
       {posterData && (

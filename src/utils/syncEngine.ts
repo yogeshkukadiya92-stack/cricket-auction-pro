@@ -1,5 +1,4 @@
-// Multi-Device & Cross-Network Real-Time Broadcast Bus for Cricket Auction Pro
-import { Player, Team, BidRecord } from '../types';
+import { Player, Team, BidRecord, Tournament } from '../types';
 
 export type SyncAction =
   | { type: 'BID_PLACED'; payload: { team: Team; amount: number; record: BidRecord } }
@@ -10,6 +9,9 @@ export type SyncAction =
   | { type: 'PLAYER_REGISTERED'; payload: { player: Player } }
   | { type: 'PLAYER_APPROVED'; payload: { playerId: string } }
   | { type: 'PLAYER_REJECTED'; payload: { playerId: string } }
+  | { type: 'TOURNAMENT_CREATED'; payload: { tournament: Tournament } }
+  | { type: 'TOURNAMENT_UPDATED'; payload: { tournament: Tournament } }
+  | { type: 'TOURNAMENT_SELECTED'; payload: { tournamentId: string } }
   | { type: 'CLEAR_ALL_DATA' }
   | { type: 'RESET_AUCTION' };
 

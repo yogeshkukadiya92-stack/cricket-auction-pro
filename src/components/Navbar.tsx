@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ViewMode, Tournament } from '../types';
 import { sounds } from '../soundEffects';
+import { TeamLogo } from './TeamLogo';
 import {
   Tv,
   Mic,
@@ -15,14 +16,20 @@ import {
   Radio,
   ClipboardList,
   Trash2,
-  ExternalLink,
-  Sparkles,
+  Trophy,
+  ChevronDown,
+  Plus,
+  Check,
+  Layers,
 } from 'lucide-react';
 
 interface NavbarProps {
   currentMode: ViewMode;
   onSelectMode: (mode: ViewMode) => void;
   tournament: Tournament;
+  tournaments?: Tournament[];
+  onSelectTournament?: (id: string) => void;
+  onCreateNewTournament?: () => void;
   onEraseDemoData?: () => void;
 }
 
@@ -30,9 +37,25 @@ export const Navbar: React.FC<NavbarProps> = ({
   currentMode,
   onSelectMode,
   tournament,
+  tournaments = [],
+  onSelectTournament,
+  onCreateNewTournament,
   onEraseDemoData,
 }) => {
   const [soundEnabled, setSoundEnabled] = useState(sounds.enabled);
+  const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
+  const switcherRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (switcherRef.current && !switcherRef.current.contains(event.target as Node)) {
+        setIsSwitcherOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const toggleSound = () => {
     sounds.enabled = !soundEnabled;
@@ -48,6 +71,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   const navItems = [
+    { mode: 'TOURNAMENT_OVERVIEW' as ViewMode, label: 'Tournament Hub', icon: Trophy },
     { mode: 'STAGE' as ViewMode, label: 'Stage View', icon: Tv, highlight: true },
     { mode: 'AUCTIONEER' as ViewMode, label: 'Auctioneer Desk', icon: Mic },
     { mode: 'PADDLE' as ViewMode, label: 'Team Paddle', icon: Hand },
@@ -62,26 +86,101 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <header className="sticky top-0 z-40 w-full glass-panel border-b border-white/10 px-4 lg:px-8 py-3.5 select-none">
       <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
-        {/* Tournament Brand Logo */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-gold-500 to-amber-300 p-0.5 shadow-glow-gold flex items-center justify-center">
-            <div className="w-full h-full bg-obsidian-950 rounded-[14px] flex items-center justify-center text-lg">
-              🏏
+        {/* Tournament Brand & Quick Switcher Dropdown */}
+        <div className="relative" ref={switcherRef}>
+          <button
+            onClick={() => setIsSwitcherOpen(!isSwitcherOpen)}
+            className="flex items-center gap-3 text-left hover:opacity-90 transition-opacity p-1 -m-1 rounded-2xl group"
+          >
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-gold-500 to-amber-300 p-0.5 shadow-glow-gold flex items-center justify-center shrink-0">
+              <div className="w-full h-full bg-obsidian-950 rounded-[14px] flex items-center justify-center p-1 overflow-hidden">
+                <TeamLogo logo={tournament.logoUrl || '🏆'} name={tournament.name} className="w-full h-full text-lg" />
+              </div>
             </div>
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-base font-black text-white font-display tracking-tight leading-none">
-                {tournament.name}
-              </h1>
-              <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-gold-500/20 text-gold-400 border border-gold-400/30">
-                PRO 2026
-              </span>
+
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-base font-black text-white font-display tracking-tight leading-none group-hover:text-gold-400 transition-colors">
+                  {tournament.name}
+                </h1>
+                <ChevronDown className="w-3.5 h-3.5 text-gold-400 transition-transform group-hover:rotate-180" />
+                <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-gold-500/20 text-gold-400 border border-gold-400/30">
+                  {tournament.year}
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                {tournament.season} • Switch Tournament
+              </p>
             </div>
-            <p className="text-[10px] text-slate-400 font-semibold mt-0.5">
-              {tournament.season} • Realtime Auction Engine
-            </p>
-          </div>
+          </button>
+
+          {/* Tournament Switcher Menu Modal */}
+          {isSwitcherOpen && (
+            <div className="absolute top-full left-0 mt-3 w-80 rounded-2xl bg-obsidian-900 border border-white/15 shadow-2xl p-3 z-50 animate-in fade-in zoom-in-95 duration-150">
+              <div className="flex items-center justify-between px-2 pb-2 mb-2 border-b border-white/10 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                <span>Select Tournament</span>
+                <span className="text-gold-400 font-mono text-[10px]">{tournaments.length} Created</span>
+              </div>
+
+              <div className="space-y-1 max-h-56 overflow-y-auto pr-1">
+                {tournaments.map((t) => {
+                  const isCurrent = t.id === tournament.id;
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => {
+                        if (onSelectTournament) onSelectTournament(t.id);
+                        onSelectMode('TOURNAMENT_OVERVIEW');
+                        setIsSwitcherOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition-all ${
+                        isCurrent
+                          ? 'bg-gold-500/15 border border-gold-400/40 text-white font-bold'
+                          : 'hover:bg-white/5 text-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 truncate">
+                        <div className="w-7 h-7 rounded-lg bg-obsidian-950 p-1 border border-white/10 shrink-0 flex items-center justify-center">
+                          <TeamLogo logo={t.logoUrl || '🏆'} name={t.name} className="w-full h-full text-xs" />
+                        </div>
+                        <div className="truncate">
+                          <span className="text-xs font-bold block truncate">{t.name}</span>
+                          <span className="text-[10px] text-slate-400">{t.season}</span>
+                        </div>
+                      </div>
+                      {isCurrent && <Check className="w-4 h-4 text-gold-400 shrink-0 ml-2" />}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mt-2 pt-2 border-t border-white/10 flex flex-col gap-1.5">
+                {onCreateNewTournament && (
+                  <button
+                    onClick={() => {
+                      setIsSwitcherOpen(false);
+                      onCreateNewTournament();
+                    }}
+                    className="w-full py-2 px-3 rounded-xl text-xs font-black bg-gradient-to-r from-gold-500 to-amber-400 text-black shadow-glow-gold hover:from-gold-400 hover:to-amber-300 flex items-center justify-center gap-1.5 transition-all"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Create New Tournament</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => {
+                    setIsSwitcherOpen(false);
+                    onSelectMode('TOURNAMENTS');
+                  }}
+                  className="w-full py-1.5 px-3 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/5 flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>View All Tournaments Hub</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* View Mode Switcher Pills */}
@@ -96,7 +195,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   sounds.playTick();
                   onSelectMode(item.mode);
                 }}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                   isActive
                     ? 'bg-gradient-to-r from-gold-500 to-amber-400 text-black shadow-glow-gold font-black'
                     : 'text-slate-400 hover:text-white hover:bg-white/5'

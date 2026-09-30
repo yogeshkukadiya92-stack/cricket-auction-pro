@@ -35,6 +35,7 @@ export interface PlayerStats {
 
 export interface Player {
   id: string;
+  tournamentId?: string;
   name: string;
   photoUrl: string;
   mobile?: string;
@@ -61,6 +62,7 @@ export interface Player {
 
 export interface Team {
   id: string;
+  tournamentId?: string;
   name: string;
   shortCode: string;
   logo: string;
@@ -104,6 +106,16 @@ export interface Tournament {
   year: number;
   season: string;
   logoUrl?: string;
+  sponsor?: string;
+  coSponsors?: string;
+  defaultBasePrice: number;
+  startDate?: string;
+  endDate?: string;
+  ground?: string;
+  city?: string;
+  expectedTeamsCount?: number;
+  ballType?: string;
+  totalPursePerTeam?: number;
   status: 'UPCOMING' | 'LIVE' | 'COMPLETED';
   registrationOpen?: boolean;
   registrationFee?: number;
@@ -118,6 +130,8 @@ export interface Tournament {
 }
 
 export type ViewMode =
+  | 'TOURNAMENT_OVERVIEW'
+  | 'TOURNAMENTS'
   | 'STAGE'
   | 'AUCTIONEER'
   | 'PADDLE'

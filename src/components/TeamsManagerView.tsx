@@ -10,6 +10,7 @@ interface TeamsManagerViewProps {
   onUpdateTeam: (team: Team) => void;
   onDeleteTeam: (teamId: string) => void;
   onUpdateTournament: (tourney: Tournament) => void;
+  onOpenTournamentModal?: () => void;
 }
 
 export const TeamsManagerView: React.FC<TeamsManagerViewProps> = ({
@@ -19,6 +20,7 @@ export const TeamsManagerView: React.FC<TeamsManagerViewProps> = ({
   onUpdateTeam,
   onDeleteTeam,
   onUpdateTournament,
+  onOpenTournamentModal,
 }) => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
@@ -136,6 +138,7 @@ export const TeamsManagerView: React.FC<TeamsManagerViewProps> = ({
 
     const newTeam: Team = {
       id: `team-${Date.now()}`,
+      tournamentId: tournament.id,
       name: name.trim(),
       shortCode: shortCode.trim().toUpperCase() || name.substring(0, 3).toUpperCase(),
       logo: logo.trim() || '🏏',
@@ -180,9 +183,21 @@ export const TeamsManagerView: React.FC<TeamsManagerViewProps> = ({
     <div className="space-y-8">
       {/* Tournament Identity Form */}
       <div className="p-6 rounded-3xl glass-panel border border-white/10">
-        <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-gold-400 mb-3">
-          <Trophy className="w-4 h-4" />
-          TOURNAMENT BRAND IDENTITY
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-gold-400">
+            <Trophy className="w-4 h-4" />
+            TOURNAMENT BRAND IDENTITY
+          </div>
+          {onOpenTournamentModal && (
+            <button
+              type="button"
+              onClick={onOpenTournamentModal}
+              className="text-xs font-bold text-gold-400 hover:text-amber-300 flex items-center gap-1.5 transition-colors"
+            >
+              <span>Edit Full Settings, Sponsors & Venue</span>
+              <Edit3 className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
         <form onSubmit={handleSaveTourney} className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
           <div>

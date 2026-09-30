@@ -54,7 +54,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
   const [runs, setRuns] = useState(320);
   const [wickets, setWickets] = useState(14);
   const [strikeRate, setStrikeRate] = useState(142.5);
-  const [basePrice, setBasePrice] = useState(30000);
+  const [basePrice, setBasePrice] = useState(tournament.defaultBasePrice || 20000);
   const [photoUrl, setPhotoUrl] = useState(
     'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80'
   );
@@ -145,6 +145,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
 
     const newPlayer: Player = {
       id: `ply-reg-${Date.now()}`,
+      tournamentId: tournament.id,
       name: fullName.trim(),
       mobile: mobile.trim(),
       email: email.trim(),
