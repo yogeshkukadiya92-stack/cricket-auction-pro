@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
 import { Player, Team, BidRecord } from '../types';
 import { Timer, Flame, CheckCircle2 } from 'lucide-react';
+import { TeamLogo, isImageLogo } from './TeamLogo';
 
 interface ObsOverlayViewProps {
   currentPlayer: Player | null;
@@ -132,9 +133,9 @@ export const ObsOverlayView: React.FC<ObsOverlayViewProps> = ({
                     <h4 className="text-lg font-black text-white font-display">{leadingTeam.name}</h4>
                     <span className="text-xs text-slate-400 font-medium">{leadingTeam.ownerName}</span>
                   </div>
-                  <span className="text-3xl p-2 rounded-xl bg-obsidian-950 border border-white/10">
-                    {leadingTeam.logo}
-                  </span>
+                  <div className="w-12 h-12 p-1.5 rounded-xl bg-obsidian-950 border border-white/10 flex items-center justify-center shrink-0">
+                    <TeamLogo logo={leadingTeam.logo} name={leadingTeam.name} className="w-full h-full text-2xl" />
+                  </div>
                 </div>
               ) : (
                 <span className="text-xs text-slate-500 font-medium italic">Opening bid awaited...</span>
@@ -152,8 +153,14 @@ export const ObsOverlayView: React.FC<ObsOverlayViewProps> = ({
               OFFICIALLY SOLD!
             </span>
             <h2 className="text-3xl font-black font-display mt-2">{lastSoldInfo.player.name}</h2>
-            <div className="text-xl font-bold mt-1">
-              BOUGHT BY {lastSoldInfo.team.logo} {lastSoldInfo.team.name.toUpperCase()} FOR {formatPrice(lastSoldInfo.price)}
+            <div className="text-xl font-bold mt-2 flex items-center justify-center gap-2 flex-wrap">
+              <span>BOUGHT BY</span>
+              <div className="w-8 h-8 rounded-lg bg-black/30 border border-white/20 p-1 inline-flex items-center justify-center">
+                <TeamLogo logo={lastSoldInfo.team.logo} name={lastSoldInfo.team.name} className="w-full h-full text-base" />
+              </div>
+              <span className="tracking-wide">{lastSoldInfo.team.name.toUpperCase()}</span>
+              <span>FOR</span>
+              <span className="text-gold-300 font-mono font-black">{formatPrice(lastSoldInfo.price)}</span>
             </div>
           </div>
         </div>

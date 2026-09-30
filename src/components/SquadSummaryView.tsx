@@ -1,6 +1,7 @@
 import React from 'react';
 import { Player, Team, AuctionRules } from '../types';
 import { Printer, Trophy, Users, Wallet, Zap, Shield, Sparkles } from 'lucide-react';
+import { TeamLogo } from './TeamLogo';
 
 interface SquadSummaryViewProps {
   teams: Team[];
@@ -96,9 +97,9 @@ export const SquadSummaryView: React.FC<SquadSummaryViewProps> = ({
                 {/* Team Card Header */}
                 <div className="flex items-center justify-between pb-4 border-b border-white/10">
                   <div className="flex items-center gap-3">
-                    <span className="text-3xl p-2 rounded-xl bg-obsidian-950/80 border border-white/10">
-                      {team.logo}
-                    </span>
+                    <div className="w-12 h-12 p-1.5 rounded-xl bg-obsidian-950/80 border border-white/10 flex items-center justify-center shrink-0">
+                      <TeamLogo logo={team.logo} name={team.name} className="w-full h-full text-2xl" />
+                    </div>
                     <div>
                       <h3 className="text-lg font-black text-white font-display">{team.name}</h3>
                       <p className="text-[11px] text-slate-400">{team.ownerName}</p>

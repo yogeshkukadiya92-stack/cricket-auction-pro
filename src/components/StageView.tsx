@@ -4,6 +4,7 @@ import { Player, Team, BidRecord } from '../types';
 import { PlayerCard3D } from './PlayerCard3D';
 import { sounds } from '../soundEffects';
 import { Timer, TrendingUp, DollarSign, Award, Flame, UserCheck, ShieldAlert } from 'lucide-react';
+import { TeamLogo } from './TeamLogo';
 
 interface StageViewProps {
   currentPlayer: Player | null;
@@ -196,9 +197,9 @@ export const StageView: React.FC<StageViewProps> = ({
                   }}
                 >
                   <div className="flex items-center gap-3.5">
-                    <span className="text-4xl p-2 rounded-xl bg-obsidian-950/80 border border-white/10">
-                      {leadingTeam.logo}
-                    </span>
+                    <div className="w-14 h-14 p-1.5 rounded-xl bg-obsidian-950/80 border border-white/10 flex items-center justify-center overflow-hidden shrink-0 shadow-md">
+                      <TeamLogo logo={leadingTeam.logo} name={leadingTeam.name} className="w-full h-full text-4xl" />
+                    </div>
                     <div>
                       <h4 className="text-xl font-black text-white font-display flex items-center gap-2">
                         {leadingTeam.name}
@@ -275,7 +276,9 @@ export const StageView: React.FC<StageViewProps> = ({
                     : 'border-white/5 bg-white/[0.02]'
                 }`}
               >
-                <div className="text-xl mb-0.5">{team.logo}</div>
+                <div className="w-8 h-8 mx-auto mb-1 flex items-center justify-center overflow-hidden">
+                  <TeamLogo logo={team.logo} name={team.name} className="w-full h-full text-xl" />
+                </div>
                 <div className="text-xs font-bold text-white truncate">{team.shortCode}</div>
                 <div className="text-[10px] text-slate-400 font-medium">
                   {Math.round(team.remainingPurse / 1000)}k
@@ -300,7 +303,9 @@ export const StageView: React.FC<StageViewProps> = ({
               {lastSoldInfo.player.name}
             </h2>
             <div className="my-5 p-4 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center gap-3">
-              <span className="text-3xl">{lastSoldInfo.team.logo}</span>
+              <div className="w-14 h-14 p-1.5 rounded-xl bg-obsidian-950/80 border border-white/10 flex items-center justify-center overflow-hidden shrink-0 shadow-md">
+                <TeamLogo logo={lastSoldInfo.team.logo} name={lastSoldInfo.team.name} className="w-full h-full text-3xl" />
+              </div>
               <div className="text-left">
                 <span className="text-[10px] uppercase font-bold text-slate-400 block">Bought by</span>
                 <span className="text-xl font-black text-white">{lastSoldInfo.team.name}</span>

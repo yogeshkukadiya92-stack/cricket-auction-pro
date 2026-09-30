@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Player, Team, AuctionRules } from '../types';
 import { sounds } from '../soundEffects';
 import { Gavel, Undo2, Ban, ChevronRight, Shuffle, AlertCircle, ArrowUpRight } from 'lucide-react';
+import { TeamLogo } from './TeamLogo';
 
 interface AuctioneerConsoleProps {
   currentPlayer: Player | null;
@@ -140,7 +141,9 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
                           HIGHEST
                         </span>
                       )}
-                      <div className="text-2xl mb-1">{team.logo}</div>
+                      <div className="w-10 h-10 mx-auto mb-1 flex items-center justify-center overflow-hidden">
+                        <TeamLogo logo={team.logo} name={team.name} className="w-full h-full text-2xl" />
+                      </div>
                       <div className="text-sm font-extrabold text-white truncate">{team.name}</div>
                       <div className="text-[11px] text-slate-400 font-medium">
                         Purse: {formatPrice(team.remainingPurse)}

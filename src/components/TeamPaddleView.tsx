@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Player, Team, AuctionRules } from '../types';
 import { sounds } from '../soundEffects';
 import { Hand, Wallet, Users, AlertTriangle, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { TeamLogo, isImageLogo } from './TeamLogo';
 
 interface TeamPaddleViewProps {
   allTeams: Team[];
@@ -85,7 +86,7 @@ export const TeamPaddleView: React.FC<TeamPaddleViewProps> = ({
         >
           {allTeams.map((t) => (
             <option key={t.id} value={t.id}>
-              {t.logo} {t.name} ({t.shortCode})
+              {isImageLogo(t.logo) ? '🛡️' : t.logo} {t.name} ({t.shortCode})
             </option>
           ))}
         </select>
@@ -102,7 +103,9 @@ export const TeamPaddleView: React.FC<TeamPaddleViewProps> = ({
       >
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <span className="text-4xl p-2 rounded-2xl bg-obsidian-950/80 border border-white/10">{team.logo}</span>
+            <div className="w-14 h-14 p-1.5 rounded-2xl bg-obsidian-950/80 border border-white/10 flex items-center justify-center shrink-0">
+              <TeamLogo logo={team.logo} name={team.name} className="w-full h-full text-3xl" />
+            </div>
             <div>
               <h3 className="text-2xl font-black text-white font-display">{team.name}</h3>
               <p className="text-xs text-slate-400">Owner: {team.ownerName}</p>
