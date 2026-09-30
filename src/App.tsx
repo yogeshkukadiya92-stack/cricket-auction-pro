@@ -1,0 +1,512 @@
+import React, { useState, useEffect } from 'react';
+import {
+  initialTournament,
+  initialRules,
+  initialTeams,
+  initialPlayers,
+} from './mockData';
+import {
+  Tournament,
+  AuctionRules,
+  Team,
+  Player,
+  BidRecord,
+  ViewMode,
+} from './types';
+import { Navbar } from './components/Navbar';
+import { StageView } from './components/StageView';
+import { AuctioneerConsole } from './components/AuctioneerConsole';
+import { TeamPaddleView } from './components/TeamPaddleView';
+import { PlayerManagerView } from './components/PlayerManagerView';
+import { TeamsManagerView } from './components/TeamsManagerView';
+import { RulesSettingsView } from './components/RulesSettingsView';
+import { SquadSummaryView } from './components/SquadSummaryView';
+import { ObsOverlayView } from './components/ObsOverlayView';
+import { SoldPosterModal } from './components/SoldPosterModal';
+import { syncEngine, SyncAction } from './utils/syncEngine';
+import { ArrowLeft } from 'lucide-react';
+
+export function App() {
+  // Persistence with LocalStorage
+  const [tournament, setTournament] = useState<Tournament>(() => {
+    const saved = localStorage.getItem('cap_tournament');
+    return saved ? JSON.parse(saved) : initialTournament;
+  });
+
+  const [rules, setRules] = useState<AuctionRules>(() => {
+    const saved = localStorage.getItem('cap_rules');
+    return saved ? JSON.parse(saved) : initialRules;
+  });
+
+  const [teams, setTeams] = useState<Team[]>(() => {
+    const saved = localStorage.getItem('cap_teams');
+    return saved ? JSON.parse(saved) : initialTeams;
+  });
+
+  const [players, setPlayers] = useState<Player[]>(() => {
+    const saved = localStorage.getItem('cap_players');
+    return saved ? JSON.parse(saved) : initialPlayers;
+  });
+
+  // Check URL param ?mode=obs for direct OBS streaming link
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('mode') === 'obs') return 'OBS';
+    }
+    return 'STAGE';
+  });
+
+  // Live Auction State
+  const [currentPlayerId, setCurrentPlayerId] = useState<string>(() => {
+    return initialPlayers[0]?.id || '';
+  });
+  const [currentBid, setCurrentBid] = useState<number>(0);
+  const [leadingTeam, setLeadingTeam] = useState<Team | null>(null);
+  const [bidsHistory, setBidsHistory] = useState<BidRecord[]>([]);
+
+  // Overlays
+  const [isSold, setIsSold] = useState(false);
+  const [isUnsold, setIsUnsold] = useState(false);
+  const [lastSoldInfo, setLastSoldInfo] = useState<{ player: Player; team: Team; price: number } | null>(null);
+
+  // Social Poster Modal State
+  const [posterData, setPosterData] = useState<{ player: Player; team: Team; price: number } | null>(null);
+
+  // Sync to LocalStorage
+  useEffect(() => {
+    localStorage.setItem('cap_tournament', JSON.stringify(tournament));
+  }, [tournament]);
+
+  useEffect(() => {
+    localStorage.setItem('cap_teams', JSON.stringify(teams));
+  }, [teams]);
+
+  useEffect(() => {
+    localStorage.setItem('cap_players', JSON.stringify(players));
+  }, [players]);
+
+  useEffect(() => {
+    localStorage.setItem('cap_rules', JSON.stringify(rules));
+  }, [rules]);
+
+  // Real-Time BroadcastChannel Synchronization between multiple tabs/windows
+  useEffect(() => {
+    const unsubscribe = syncEngine.subscribe((action: SyncAction) => {
+      switch (action.type) {
+        case 'BID_PLACED':
+          setCurrentBid(action.payload.amount);
+          setLeadingTeam(action.payload.team);
+          setBidsHistory((prev) => [action.payload.record, ...prev]);
+          break;
+        case 'HAMMER_SOLD':
+          setLastSoldInfo({
+            player: action.payload.player,
+            team: action.payload.team,
+            price: action.payload.price,
+          });
+          setIsSold(true);
+          setTimeout(() => setIsSold(false), 3800);
+          break;
+        case 'MARK_UNSOLD':
+          setIsUnsold(true);
+          setTimeout(() => setIsUnsold(false), 2800);
+          break;
+        case 'UNDO_BID':
+          if (action.payload.prevBid) {
+            setCurrentBid(action.payload.prevBid.amount);
+            const t = teams.find((item) => item.id === action.payload.prevBid?.teamId) || null;
+            setLeadingTeam(t);
+          } else {
+            setCurrentBid(0);
+            setLeadingTeam(null);
+          }
+          break;
+        case 'SELECT_PLAYER':
+          setCurrentPlayerId(action.payload.player.id);
+          setCurrentBid(0);
+          setLeadingTeam(null);
+          setBidsHistory([]);
+          break;
+        case 'RESET_AUCTION':
+          handleResetAuction();
+          break;
+      }
+    });
+    return () => unsubscribe();
+  }, [teams]);
+
+  const currentPlayer = players.find((p) => p.id === currentPlayerId) || null;
+
+  // Place a Bid
+  const handlePlaceBid = (team: Team, newAmount: number) => {
+    if (!currentPlayer) return;
+
+    setCurrentBid(newAmount);
+    setLeadingTeam(team);
+
+    const record: BidRecord = {
+      id: `bid-${Date.now()}`,
+      playerId: currentPlayer.id,
+      teamId: team.id,
+      teamName: team.name,
+      amount: newAmount,
+      timestamp: Date.now(),
+    };
+    setBidsHistory((prev) => [record, ...prev]);
+
+    // Broadcast live across all browser windows
+    syncEngine.broadcast({
+      type: 'BID_PLACED',
+      payload: { team, amount: newAmount, record },
+    });
+  };
+
+  // Hammer SOLD
+  const handleSold = () => {
+    if (!currentPlayer || !leadingTeam || currentBid === 0) return;
+
+    const soldPlayer = currentPlayer;
+    const winningTeam = leadingTeam;
+    const finalPrice = currentBid;
+
+    // Deduct purse from team
+    setTeams((prevTeams) =>
+      prevTeams.map((t) => {
+        if (t.id === winningTeam.id) {
+          return {
+            ...t,
+            remainingPurse: t.remainingPurse - finalPrice,
+          };
+        }
+        return t;
+      })
+    );
+
+    // Update player record
+    setPlayers((prevPlayers) =>
+      prevPlayers.map((p) => {
+        if (p.id === soldPlayer.id) {
+          return {
+            ...p,
+            status: 'SOLD',
+            soldToTeamId: winningTeam.id,
+            soldPrice: finalPrice,
+          };
+        }
+        return p;
+      })
+    );
+
+    const soldInfo = {
+      player: soldPlayer,
+      team: winningTeam,
+      price: finalPrice,
+    };
+
+    setLastSoldInfo(soldInfo);
+    setIsSold(true);
+
+    syncEngine.broadcast({
+      type: 'HAMMER_SOLD',
+      payload: soldInfo,
+    });
+
+    // Automatically transition to next available player after 3.8s celebration
+    setTimeout(() => {
+      setIsSold(false);
+      setLastSoldInfo(null);
+      setCurrentBid(0);
+      setLeadingTeam(null);
+      setBidsHistory([]);
+
+      const nextAvail = players.find(
+        (p) => p.id !== soldPlayer.id && (p.status === 'AVAILABLE' || p.status === 'IN_AUCTION')
+      );
+      if (nextAvail) {
+        setCurrentPlayerId(nextAvail.id);
+        syncEngine.broadcast({
+          type: 'SELECT_PLAYER',
+          payload: { player: nextAvail },
+        });
+      }
+    }, 3800);
+  };
+
+  // Mark UNSOLD
+  const handleUnsold = () => {
+    if (!currentPlayer) return;
+
+    const unsoldPlayer = currentPlayer;
+
+    setPlayers((prevPlayers) =>
+      prevPlayers.map((p) => {
+        if (p.id === unsoldPlayer.id) {
+          return {
+            ...p,
+            status: 'UNSOLD',
+          };
+        }
+        return p;
+      })
+    );
+
+    setIsUnsold(true);
+
+    syncEngine.broadcast({
+      type: 'MARK_UNSOLD',
+      payload: { player: unsoldPlayer },
+    });
+
+    setTimeout(() => {
+      setIsUnsold(false);
+      setCurrentBid(0);
+      setLeadingTeam(null);
+      setBidsHistory([]);
+
+      const nextAvail = players.find(
+        (p) => p.id !== unsoldPlayer.id && (p.status === 'AVAILABLE' || p.status === 'IN_AUCTION')
+      );
+      if (nextAvail) {
+        setCurrentPlayerId(nextAvail.id);
+        syncEngine.broadcast({
+          type: 'SELECT_PLAYER',
+          payload: { player: nextAvail },
+        });
+      }
+    }, 2800);
+  };
+
+  // Undo Bid
+  const handleUndoBid = () => {
+    if (bidsHistory.length <= 1) {
+      setCurrentBid(0);
+      setLeadingTeam(null);
+      setBidsHistory([]);
+      syncEngine.broadcast({
+        type: 'UNDO_BID',
+        payload: { prevBid: null },
+      });
+      return;
+    }
+
+    const newHistory = bidsHistory.slice(1);
+    setBidsHistory(newHistory);
+    const prevBid = newHistory[0];
+    setCurrentBid(prevBid.amount);
+    const prevTeam = teams.find((t) => t.id === prevBid.teamId) || null;
+    setLeadingTeam(prevTeam);
+
+    syncEngine.broadcast({
+      type: 'UNDO_BID',
+      payload: { prevBid },
+    });
+  };
+
+  // Select Player
+  const handleSelectPlayer = (player: Player) => {
+    setCurrentPlayerId(player.id);
+    setCurrentBid(0);
+    setLeadingTeam(null);
+    setBidsHistory([]);
+    syncEngine.broadcast({
+      type: 'SELECT_PLAYER',
+      payload: { player },
+    });
+  };
+
+  // Random Draw
+  const handleRandomDraw = () => {
+    const unAuctioned = players.filter((p) => p.status === 'AVAILABLE' || p.status === 'IN_AUCTION');
+    if (unAuctioned.length === 0) {
+      alert('All players have been auctioned! Check the Squad Booklet.');
+      return;
+    }
+    const randomIndex = Math.floor(Math.random() * unAuctioned.length);
+    handleSelectPlayer(unAuctioned[randomIndex]);
+  };
+
+  // Reset Auction
+  const handleResetAuction = () => {
+    setPlayers((prev) =>
+      prev.map((p) => ({
+        ...p,
+        status: 'AVAILABLE',
+        soldPrice: undefined,
+        soldToTeamId: undefined,
+      }))
+    );
+    setTeams((prev) =>
+      prev.map((t) => ({
+        ...t,
+        remainingPurse: t.totalPurse,
+      }))
+    );
+    setCurrentBid(0);
+    setLeadingTeam(null);
+    setBidsHistory([]);
+    if (players[0]) {
+      setCurrentPlayerId(players[0].id);
+    }
+  };
+
+  // Team Management Handlers
+  const handleAddTeam = (newTeam: Team) => {
+    setTeams((prev) => [...prev, newTeam]);
+  };
+
+  const handleUpdateTeam = (updated: Team) => {
+    setTeams((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+  };
+
+  const handleDeleteTeam = (teamId: string) => {
+    setTeams((prev) => prev.filter((t) => t.id !== teamId));
+  };
+
+  // Player Management Handlers
+  const handleAddPlayer = (newPlayer: Player) => {
+    setPlayers((prev) => [...prev, newPlayer]);
+  };
+
+  const handleBulkAddPlayers = (newPlayers: Player[]) => {
+    setPlayers((prev) => [...prev, ...newPlayers]);
+  };
+
+  const handleDeletePlayer = (playerId: string) => {
+    setPlayers((prev) => prev.filter((p) => p.id !== playerId));
+  };
+
+  // Special full-screen transparent view for OBS Studio
+  if (viewMode === 'OBS') {
+    return (
+      <div className="relative min-h-screen bg-transparent">
+        {/* Floating Back to App Button */}
+        <button
+          onClick={() => setViewMode('STAGE')}
+          className="fixed top-4 right-4 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-obsidian-900/90 text-white border border-white/20 hover:bg-obsidian-850 shadow-lg pointer-events-auto"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          Exit OBS View
+        </button>
+
+        <ObsOverlayView
+          currentPlayer={currentPlayer}
+          currentBid={currentBid}
+          leadingTeam={leadingTeam}
+          bidsHistory={bidsHistory}
+          isSold={isSold}
+          isUnsold={isUnsold}
+          lastSoldInfo={lastSoldInfo}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-obsidian-950 text-slate-100 flex flex-col">
+      {/* Top Navbar */}
+      <Navbar currentMode={viewMode} onSelectMode={setViewMode} tournament={tournament} />
+
+      {/* Main Container */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+        {viewMode === 'STAGE' && (
+          <StageView
+            currentPlayer={currentPlayer}
+            currentBid={currentBid}
+            leadingTeam={leadingTeam}
+            bidsHistory={bidsHistory}
+            allTeams={teams}
+            isSold={isSold}
+            isUnsold={isUnsold}
+            lastSoldInfo={lastSoldInfo}
+            onNextPlayer={handleRandomDraw}
+          />
+        )}
+
+        {viewMode === 'AUCTIONEER' && (
+          <AuctioneerConsole
+            currentPlayer={currentPlayer}
+            currentBid={currentBid}
+            leadingTeam={leadingTeam}
+            allTeams={teams}
+            allPlayers={players}
+            rules={rules}
+            onPlaceBid={handlePlaceBid}
+            onSold={handleSold}
+            onUnsold={handleUnsold}
+            onUndoBid={handleUndoBid}
+            onSelectPlayer={handleSelectPlayer}
+            onRandomDraw={handleRandomDraw}
+          />
+        )}
+
+        {viewMode === 'PADDLE' && (
+          <TeamPaddleView
+            allTeams={teams}
+            currentPlayer={currentPlayer}
+            currentBid={currentBid}
+            leadingTeam={leadingTeam}
+            allPlayers={players}
+            rules={rules}
+            onPlaceBid={handlePlaceBid}
+          />
+        )}
+
+        {viewMode === 'PLAYERS' && (
+          <PlayerManagerView
+            players={players}
+            onAddPlayer={handleAddPlayer}
+            onBulkAddPlayers={handleBulkAddPlayers}
+            onDeletePlayer={handleDeletePlayer}
+          />
+        )}
+
+        {viewMode === 'TEAMS' && (
+          <TeamsManagerView
+            teams={teams}
+            tournament={tournament}
+            onAddTeam={handleAddTeam}
+            onUpdateTeam={handleUpdateTeam}
+            onDeleteTeam={handleDeleteTeam}
+            onUpdateTournament={setTournament}
+          />
+        )}
+
+        {viewMode === 'SQUADS' && (
+          <SquadSummaryView
+            teams={teams}
+            players={players}
+            rules={rules}
+            onOpenPoster={(player, team, price) => setPosterData({ player, team, price })}
+          />
+        )}
+
+        {viewMode === 'RULES' && (
+          <RulesSettingsView
+            rules={rules}
+            onUpdateRules={setRules}
+            onResetAuction={handleResetAuction}
+          />
+        )}
+      </main>
+
+      {/* Social Media Poster Modal */}
+      {posterData && (
+        <SoldPosterModal
+          player={posterData.player}
+          team={posterData.team}
+          price={posterData.price}
+          tournament={tournament}
+          onClose={() => setPosterData(null)}
+        />
+      )}
+
+      {/* Footer Branding */}
+      <footer className="p-4 border-t border-white/5 text-center text-xs text-slate-500 font-medium">
+        Cricket Auction Pro 2026 • Designed with Ultra-Luxury IPL Broadcast Experience
+      </footer>
+    </div>
+  );
+}
+
+export default App;
