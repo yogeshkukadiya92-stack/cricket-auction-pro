@@ -83,6 +83,16 @@ Visit `http://localhost:5174/` in your browser.
 - **Canvas-Confetti** (Celebrations)
 - **Web Audio API** (Zero-dependency sound synthesis)
 
+## Administrator account on Coolify
+
+Open the application's **Terminal** in Coolify and run:
+
+```bash
+npm run admin:create -- you@example.com "Your Name"
+```
+
+Enter and confirm a password of 12–128 characters when prompted. The input is hidden. This command creates an administrator or resets the password of an account with that email, promotes it to administrator, and signs out its existing sessions. Sign in at the normal application URL with that email and password to open the Admin Panel. Run the same command again to change the password. Do not pass the password on the command line or store it in the repository.
+
 ---
 
 ## 📄 License

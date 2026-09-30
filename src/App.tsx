@@ -88,7 +88,7 @@ export function App() {
 
   // Filter tournaments visible to current user (organizer vs super admin)
   const visibleTournaments = tournaments.filter((t) => {
-    return !!currentUser && t.userId === currentUser.id;
+    return !!currentUser && (currentUser.role === 'ADMIN' || t.userId === currentUser.id);
   });
 
   // Tournament Create / Edit Modal State
@@ -153,15 +153,15 @@ export function App() {
   }, [viewMode]);
 
   useEffect(() => {
-    if (viewMode !== 'PUBLIC_SUMMARY' || currentUser) return;
+    if (viewMode !== 'PUBLIC_SUMMARY') return;
     const id = new URLSearchParams(window.location.search).get('tournamentId');
-    if (!id) { setDataError('Tournament link is missing its ID.'); return; }
+    if (!id) return;
     fetch(`/api/public/tournaments/${encodeURIComponent(id)}/summary`).then(async res => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Tournament unavailable');
       setPublicSummary(data);
     }).catch(err => setDataError(err.message));
-  }, [viewMode, currentUser?.id]);
+  }, [viewMode]);
 
   // Load only the signed-in organizer's records from the server.
   useEffect(() => {
@@ -173,16 +173,18 @@ export function App() {
       setTeams(data.teams || []);
       setPlayers(data.players || []);
       setRules(data.rules || initialRules);
-      setActiveTournamentId(data.tournaments?.[0]?.id || '');
-      setViewMode('TOURNAMENTS');
+      setActiveTournamentId(currentUser.role === 'ADMIN' ? '' : data.tournaments?.[0]?.id || '');
+      if (new URLSearchParams(window.location.search).get('mode') !== 'summary') {
+        setViewMode(currentUser.role === 'ADMIN' ? 'ADMIN_PANEL' : 'TOURNAMENTS');
+      }
       setDataReady(true);
     }).catch((err) => setDataError(err.message));
   }, [currentUser?.id]);
 
   // Persist changes only after the organizer's server data has loaded.
   useEffect(() => {
-    if (dataReady) dbService.queueSync({ tournaments });
-  }, [tournaments, dataReady]);
+    if (dataReady && currentUser?.role !== 'ADMIN') dbService.queueSync({ tournaments });
+  }, [tournaments, dataReady, currentUser?.role]);
 
   useEffect(() => {
     if (activeTournamentId) syncEngine.setScope(activeTournamentId);
@@ -793,13 +795,21 @@ export function App() {
     );
   }
 
-  if (viewMode === 'PUBLIC_SUMMARY' && !currentUser) {
+  if (viewMode === 'PUBLIC_SUMMARY' && new URLSearchParams(window.location.search).has('tournamentId')) {
     if (!publicSummary) return <main className="min-h-screen bg-obsidian-950 text-white grid place-items-center">{dataError || 'Loading tournament…'}</main>;
     return <PublicSpectatorView tournament={publicSummary.tournament} teams={publicSummary.teams} players={publicSummary.players} />;
   }
   if (!authChecked) return <main className="min-h-screen bg-obsidian-950 text-white grid place-items-center">Loading…</main>;
   if (!currentUser) return <main className="min-h-screen bg-obsidian-950 text-white grid place-items-center"><div className="text-center"><h1 className="text-3xl font-bold text-amber-300 mb-5">Cricket Auction Pro</h1><button onClick={() => setIsAuthModalOpen(true)} className="rounded-xl bg-amber-400 text-slate-950 px-8 py-3 font-bold">Organizer sign in or register</button></div><AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onSuccess={handleLoginSuccess} /></main>;
   if (!dataReady) return <main className="min-h-screen bg-obsidian-950 text-white grid place-items-center">{dataError || 'Loading your tournaments…'}</main>;
+
+  if (currentUser.role === 'ADMIN') return <AdminPanelView
+    currentUser={currentUser}
+    tournaments={tournaments}
+    onSelectTournament={(t) => window.open(`/?mode=summary&tournamentId=${encodeURIComponent(t.id)}`, '_blank', 'noopener,noreferrer')}
+    onBackToApp={handleLogout}
+    onRefreshData={() => dbService.fetchBootstrapData().then((data) => { if (data?.tournaments) setTournaments(data.tournaments); })}
+  />;
 
   // Dedicated clean view for public live spectator summary (?mode=summary)
   if (viewMode === 'PUBLIC_SUMMARY') {
@@ -866,39 +876,6 @@ export function App() {
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
-        {viewMode === 'ADMIN_PANEL' && (
-          currentUser?.role === 'ADMIN' ? (
-            <AdminPanelView
-              currentUser={currentUser}
-              tournaments={tournaments}
-              onSelectTournament={(t) => {
-                handleSelectTournament(t.id);
-              }}
-              onBackToApp={() => setViewMode('TOURNAMENT_OVERVIEW')}
-              onRefreshData={() => {
-                dbService.fetchBootstrapData().then((data) => {
-                  if (data?.tournaments) setTournaments(data.tournaments);
-                  if (data?.teams) setTeams(data.teams);
-                  if (data?.players) setPlayers(data.players);
-                });
-              }}
-            />
-          ) : (
-            <div className="p-8 text-center space-y-4 max-w-md mx-auto my-12 bg-slate-900/60 border border-slate-800 rounded-3xl">
-              <h3 className="text-xl font-bold text-rose-400">Super Admin Access Required</h3>
-              <p className="text-xs text-slate-400">
-                You must be signed in with a Super Administrator account to view and manage platform data.
-              </p>
-              <button
-                onClick={() => setIsAuthModalOpen(true)}
-                className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold rounded-xl text-xs shadow-lg shadow-amber-500/20"
-              >
-                Sign In as Admin
-              </button>
-            </div>
-          )
-        )}
-
         {viewMode === 'TOURNAMENT_OVERVIEW' && (
           <TournamentDashboardView
             tournament={tournament}

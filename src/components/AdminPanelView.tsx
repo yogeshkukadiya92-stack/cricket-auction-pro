@@ -168,7 +168,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
               className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-amber-500/20"
             >
               <Trophy className="w-3.5 h-3.5" />
-              <span>Back to Tournaments</span>
+              <span>Sign out</span>
             </button>
           </div>
         </div>
@@ -207,17 +207,6 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
           >
             <Trophy className="w-3.5 h-3.5" />
             All Tournaments ({tournaments.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('DATABASE')}
-            className={`px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-2 ${
-              activeTab === 'DATABASE'
-                ? 'bg-amber-500 text-slate-950 shadow-md font-extrabold'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-            }`}
-          >
-            <Database className="w-3.5 h-3.5" />
-            Database & Backups
           </button>
         </div>
       </div>
@@ -352,15 +341,15 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
                 <div className="p-4 bg-slate-950/80 border border-slate-800 rounded-2xl space-y-3">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-slate-400">Database Engine:</span>
-                    <span className="font-mono text-emerald-400 font-bold">Node.js Native SQLite 3 (ACID)</span>
+                    <span className="font-mono text-emerald-400 font-bold">PostgreSQL</span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-slate-400">File Location:</span>
-                    <span className="font-mono text-slate-300 text-[11px]">database/cricket_auction.db</span>
+                    <span className="font-mono text-slate-300 text-[11px]">Coolify managed database</span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-slate-400">Journal Mode:</span>
-                    <span className="font-mono text-cyan-400 font-semibold">WAL (Write-Ahead Logging)</span>
+                    <span className="font-mono text-cyan-400 font-semibold">Daily Coolify backup</span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-slate-400">Multi-Organizer Isolation:</span>
@@ -372,21 +361,6 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
                   </div>
                 </div>
 
-                <div className="pt-2 flex gap-3">
-                  <button
-                    onClick={handleExportBackup}
-                    className="flex-1 py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2"
-                  >
-                    <Download className="w-3.5 h-3.5 text-amber-400" />
-                    Download JSON Backup
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('DATABASE')}
-                    className="py-2.5 px-4 bg-slate-800/50 hover:bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold transition"
-                  >
-                    Manage &rarr;
-                  </button>
-                </div>
               </div>
             </div>
           </div>
@@ -568,11 +542,10 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
                     <button
                       onClick={() => {
                         onSelectTournament(tourney);
-                        onBackToApp();
                       }}
                       className="w-full py-2 bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5"
                     >
-                      <span>Open Tournament Workspace</span>
+                      <span>View Public Summary</span>
                       <ExternalLink className="w-3.5 h-3.5" />
                     </button>
                   </div>

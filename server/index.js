@@ -90,6 +90,11 @@ async function requireUser(req, res, next) {
   next();
 }
 
+function requireAdmin(req, res, next) {
+  if (req.user.role !== 'ADMIN') return bad(res, 403, 'Administrator access required');
+  next();
+}
+
 async function owns(tournamentId, userId, client = pool) {
   const result = await client.query('SELECT id FROM tournaments WHERE id=$1 AND organizer_id=$2', [tournamentId, userId]);
   return result.rowCount > 0;
@@ -124,8 +129,40 @@ app.post('/api/auth/logout', requireUser, async (req, res) => {
   res.json({ success: true });
 });
 
+app.get('/api/admin/users', requireUser, requireAdmin, async (_req, res) => {
+  const result = await pool.query(`SELECT o.id,o.name,o.email,o.role,o.status,o.created_at,
+    count(t.id)::integer AS tournaments_count FROM organizers o
+    LEFT JOIN tournaments t ON t.organizer_id=o.id
+    GROUP BY o.id ORDER BY o.created_at DESC`);
+  res.json({ success: true, users: result.rows.map(({ created_at, tournaments_count, ...user }) => ({ ...user, createdAt: created_at, tournamentsCount: tournaments_count })) });
+});
+
+app.get('/api/admin/stats', requireUser, requireAdmin, async (_req, res) => {
+  const result = await pool.query(`SELECT
+    (SELECT count(*)::integer FROM organizers WHERE role='ORGANIZER') AS users_count,
+    (SELECT count(*)::integer FROM tournaments) AS tournaments_count,
+    (SELECT count(*)::integer FROM tournaments WHERE data->>'status'='LIVE') AS live_tournaments_count,
+    (SELECT count(*)::integer FROM teams) AS teams_count,
+    (SELECT count(*)::integer FROM players) AS players_count,
+    (SELECT count(*)::integer FROM players WHERE data->>'status'='SOLD') AS sold_players_count`);
+  const { users_count, tournaments_count, live_tournaments_count, teams_count, players_count, sold_players_count } = result.rows[0];
+  res.json({ success: true, stats: { usersCount: users_count, tournamentsCount: tournaments_count, liveTournamentsCount: live_tournaments_count, teamsCount: teams_count, playersCount: players_count, soldPlayersCount: sold_players_count } });
+});
+
+app.post('/api/admin/toggle-user', requireUser, requireAdmin, async (req, res) => {
+  const result = await pool.query(`UPDATE organizers SET status=CASE WHEN status='ACTIVE' THEN 'BLOCKED' ELSE 'ACTIVE' END
+    WHERE id=$1 AND role='ORGANIZER' RETURNING status`, [req.body?.userId]);
+  if (!result.rowCount) return bad(res, 404, 'Organizer not found');
+  if (result.rows[0].status === 'BLOCKED') await pool.query('DELETE FROM sessions WHERE organizer_id=$1', [req.body.userId]);
+  res.json({ success: true, status: result.rows[0].status });
+});
+
 app.get('/api/db/bootstrap', requireUser, async (req, res) => {
   const id = req.user.id;
+  if (req.user.role === 'ADMIN') {
+    const tournaments = await pool.query('SELECT data FROM tournaments ORDER BY updated_at DESC');
+    return res.json({ success: true, dbType: 'PostgreSQL', tournaments: tournaments.rows.map(x => x.data), teams: [], players: [], rules: null, liveState: null });
+  }
   const [tournaments, teams, players, settings] = await Promise.all([
     pool.query('SELECT data FROM tournaments WHERE organizer_id=$1 ORDER BY updated_at DESC', [id]),
     pool.query('SELECT tm.data FROM teams tm JOIN tournaments t ON t.id=tm.tournament_id WHERE t.organizer_id=$1', [id]),
