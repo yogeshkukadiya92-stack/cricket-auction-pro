@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   initialTournament,
-  initialTournaments,
   initialRules,
-  initialTeams,
-  initialPlayers,
 } from './mockData';
 import {
   Tournament,
@@ -45,8 +42,12 @@ import { ArrowLeft } from 'lucide-react';
 export function App() {
   const [authChecked, setAuthChecked] = useState(false);
   const [dataReady, setDataReady] = useState(false);
+  const [liveReady, setLiveReady] = useState(false);
+  const [loadedLiveTournamentId, setLoadedLiveTournamentId] = useState('');
   const [dataError, setDataError] = useState('');
   const [publicTournament, setPublicTournament] = useState<Tournament | null>(null);
+  const [publicSummary, setPublicSummary] = useState<{ tournament: Tournament; teams: Team[]; players: Player[] } | null>(null);
+  const [legacyAvailable, setLegacyAvailable] = useState(() => !!(localStorage.getItem('cap_tournaments') || localStorage.getItem('cap_tournament')));
   // Database status modal state
   const [isDbModalOpen, setIsDbModalOpen] = useState(false);
 
@@ -67,6 +68,8 @@ export function App() {
   const handleLogout = () => {
     fetch('/api/auth/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).catch(() => {});
     setDataReady(false);
+    setLiveReady(false);
+    setLoadedLiveTournamentId('');
     setCurrentUser(null);
     setTournaments([]);
     setTeams([]);
@@ -82,7 +85,7 @@ export function App() {
   const tournament =
     tournaments.find((t) => t.id === activeTournamentId) ||
     tournaments[0] ||
-    initialTournament;
+    { ...initialTournament, id: '', name: 'My Tournaments', year: new Date().getFullYear(), season: '', status: 'UPCOMING' as const };
 
   // Filter tournaments visible to current user (organizer vs super admin)
   const visibleTournaments = tournaments.filter((t) => {
@@ -150,6 +153,17 @@ export function App() {
     }).catch((err) => setDataError(err.message));
   }, [viewMode]);
 
+  useEffect(() => {
+    if (viewMode !== 'PUBLIC_SUMMARY' || currentUser) return;
+    const id = new URLSearchParams(window.location.search).get('tournamentId');
+    if (!id) { setDataError('Tournament link is missing its ID.'); return; }
+    fetch(`/api/public/tournaments/${encodeURIComponent(id)}/summary`).then(async res => {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Tournament unavailable');
+      setPublicSummary(data);
+    }).catch(err => setDataError(err.message));
+  }, [viewMode, currentUser?.id]);
+
   // Load only the signed-in organizer's records from the server.
   useEffect(() => {
     if (!currentUser || viewMode === 'PUBLIC_REGISTER') return;
@@ -161,12 +175,6 @@ export function App() {
       setPlayers(data.players || []);
       setRules(data.rules || initialRules);
       setActiveTournamentId(data.tournaments?.[0]?.id || '');
-      if (data.liveState) {
-        setCurrentPlayerId(data.liveState.currentPlayerId || '');
-        setCurrentBid(data.liveState.currentBid || 0);
-        setLeadingTeam(data.liveState.leadingTeam || null);
-        setBidsHistory(data.liveState.bidsHistory || []);
-      }
       setViewMode('TOURNAMENTS');
       setDataReady(true);
     }).catch((err) => setDataError(err.message));
@@ -180,6 +188,27 @@ export function App() {
   useEffect(() => {
     if (activeTournamentId) syncEngine.setScope(activeTournamentId);
   }, [activeTournamentId]);
+
+  useEffect(() => {
+    if (!dataReady || !activeTournamentId) return;
+    setLiveReady(false);
+    setLoadedLiveTournamentId('');
+    fetch(`/api/tournaments/${encodeURIComponent(activeTournamentId)}/live`).then(async res => {
+      if (!res.ok) throw new Error('Could not load live auction');
+      return (await res.json()).liveState;
+    }).then(state => {
+      setCurrentPlayerId(state.currentPlayerId || '');
+      setCurrentBid(state.currentBid || 0);
+      setLeadingTeam(state.leadingTeam || null);
+      setBidsHistory(state.bidsHistory || []);
+      setLoadedLiveTournamentId(activeTournamentId);
+      setLiveReady(true);
+    }).catch(err => setDataError(err.message));
+  }, [activeTournamentId, dataReady]);
+
+  useEffect(() => {
+    if (dataReady && liveReady && activeTournamentId && loadedLiveTournamentId === activeTournamentId) dbService.queueSync({ liveState: { tournamentId: activeTournamentId, currentPlayerId, currentBid, leadingTeam, bidsHistory } });
+  }, [currentPlayerId, currentBid, leadingTeam, bidsHistory, activeTournamentId, dataReady, liveReady, loadedLiveTournamentId]);
 
   useEffect(() => {
     if (dataReady && tournaments.some(t => t.id === tournament.id)) dbService.queueSync({ tournament });
@@ -541,12 +570,12 @@ export function App() {
       endDate: data.endDate || '',
       ballType: data.ballType || 'Heavy Tennis Ball',
       registrationOpen: data.registrationOpen ?? true,
-      registrationFee: data.registrationFee || 500,
+      registrationFee: data.registrationFee ?? 0,
       registrationDeadline: data.registrationDeadline || '',
       upiId: data.upiId || '',
       gpayNumber: data.gpayNumber || '',
       gpayName: data.gpayName || '',
-      paymentMandatory: true,
+      paymentMandatory: data.paymentMandatory ?? false,
       customFields: data.customFields || initialTournament.customFields,
     };
 
@@ -708,6 +737,25 @@ export function App() {
     return data.player;
   };
 
+  const importBrowserData = () => {
+    if (!currentUser) return;
+    try {
+      const saved = JSON.parse(localStorage.getItem('cap_tournaments') || 'null');
+      const single = JSON.parse(localStorage.getItem('cap_tournament') || 'null');
+      const oldTournaments: Tournament[] = Array.isArray(saved) && saved.length ? saved : single ? [single] : [];
+      if (!oldTournaments.length) throw new Error('No browser tournaments found');
+      const owned = oldTournaments.map(t => ({ ...t, userId: currentUser.id, creatorEmail: currentUser.email }));
+      const firstId = owned[0].id;
+      const oldTeams = JSON.parse(localStorage.getItem('cap_teams') || '[]');
+      const oldPlayers = JSON.parse(localStorage.getItem('cap_players') || '[]');
+      setTournaments(owned);
+      setTeams((Array.isArray(oldTeams) ? oldTeams : []).map((t: Team) => ({ ...t, tournamentId: t.tournamentId || firstId })));
+      setPlayers((Array.isArray(oldPlayers) ? oldPlayers : []).map((p: Player) => ({ ...p, tournamentId: p.tournamentId || firstId })));
+      setActiveTournamentId(firstId);
+      setLegacyAvailable(false);
+    } catch (error) { alert((error as Error).message); }
+  };
+
   const handleEraseAllDemoData = () => {
     if (
       confirm(
@@ -750,6 +798,10 @@ export function App() {
     );
   }
 
+  if (viewMode === 'PUBLIC_SUMMARY' && !currentUser) {
+    if (!publicSummary) return <main className="min-h-screen bg-obsidian-950 text-white grid place-items-center">{dataError || 'Loading tournament…'}</main>;
+    return <PublicSpectatorView tournament={publicSummary.tournament} teams={publicSummary.teams} players={publicSummary.players} />;
+  }
   if (!authChecked) return <main className="min-h-screen bg-obsidian-950 text-white grid place-items-center">Loading…</main>;
   if (!currentUser) return <main className="min-h-screen bg-obsidian-950 text-white grid place-items-center"><div className="text-center"><h1 className="text-3xl font-bold text-amber-300 mb-5">Cricket Auction Pro</h1><button onClick={() => setIsAuthModalOpen(true)} className="rounded-xl bg-amber-400 text-slate-950 px-8 py-3 font-bold">Organizer sign in or register</button></div><AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onSuccess={handleLoginSuccess} /></main>;
   if (!dataReady) return <main className="min-h-screen bg-obsidian-950 text-white grid place-items-center">{dataError || 'Loading your tournaments…'}</main>;
@@ -876,6 +928,8 @@ export function App() {
         )}
 
         {viewMode === 'TOURNAMENTS' && (
+          <>
+          {legacyAvailable && tournaments.length === 0 && <button onClick={importBrowserData} className="mb-5 rounded-xl bg-amber-400 px-5 py-3 font-bold text-slate-950">Import this browser’s previous tournaments</button>}
           <TournamentsListView
             tournaments={visibleTournaments}
             activeTournamentId={activeTournamentId}
@@ -892,6 +946,7 @@ export function App() {
               setIsTournamentModalOpen(true);
             }}
           />
+          </>
         )}
 
         {viewMode === 'STAGE' && (

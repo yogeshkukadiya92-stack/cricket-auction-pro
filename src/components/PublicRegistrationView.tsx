@@ -99,11 +99,11 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
     }
   };
 
-  const gpayNumber = tournament.gpayNumber || '+91 98250 12345';
-  const upiId = tournament.upiId || 'cricket.committee@okhdfcbank';
+  const gpayNumber = tournament.gpayNumber || '';
+  const upiId = tournament.upiId || '';
   const gpayName = tournament.gpayName || tournament.name || 'GPL Cricket Committee';
-  const regFee = tournament.registrationFee !== undefined ? tournament.registrationFee : 500;
-  const isPaymentRequired = regFee > 0 || tournament.paymentMandatory;
+  const regFee = tournament.registrationFee ?? 0;
+  const isPaymentRequired = (regFee > 0 || tournament.paymentMandatory) && !!(upiId || gpayNumber);
 
   // UPI deep link
   const cleanUpi = upiId.trim();
@@ -164,7 +164,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
       paymentScreenshotUrl,
       paymentUtr: paymentUtr.trim(),
       paymentStatus: paymentScreenshotUrl ? 'PAID' : 'PENDING',
-      paymentAmount: tournament.registrationFee || 500,
+      paymentAmount: tournament.registrationFee ?? 0,
     };
 
     setSubmitting(true);

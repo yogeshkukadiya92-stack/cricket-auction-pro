@@ -49,6 +49,10 @@ async function migrate() {
       organizer_id uuid PRIMARY KEY REFERENCES organizers(id) ON DELETE CASCADE,
       rules jsonb, live_state jsonb
     );
+    CREATE TABLE IF NOT EXISTS tournament_live_state (
+      tournament_id text PRIMARY KEY REFERENCES tournaments(id) ON DELETE CASCADE,
+      data jsonb NOT NULL
+    );
   `);
 }
 
@@ -131,6 +135,12 @@ app.get('/api/db/bootstrap', requireUser, async (req, res) => {
   res.json({ success: true, dbType: 'PostgreSQL', tournaments: tournaments.rows.map(x => x.data), teams: teams.rows.map(x => x.data), players: players.rows.map(x => x.data), rules: settings.rows[0]?.rules || null, liveState: settings.rows[0]?.live_state || null });
 });
 
+app.get('/api/tournaments/:id/live', requireUser, async (req, res) => {
+  if (!await owns(req.params.id, req.user.id)) return bad(res, 404, 'Tournament not found');
+  const result = await pool.query('SELECT data FROM tournament_live_state WHERE tournament_id=$1', [req.params.id]);
+  res.json({ success: true, liveState: result.rows[0]?.data || { currentPlayerId: '', currentBid: 0, leadingTeam: null, bidsHistory: [] } });
+});
+
 async function saveTournament(client, tournament, user) {
   if (!object(tournament) || typeof tournament.id !== 'string' || !tournament.id || tournament.id.length > 160 || typeof tournament.name !== 'string' || !tournament.name.trim()) throw Object.assign(new Error('Invalid tournament'), { status: 400 });
   const data = { ...tournament, userId: user.id, creatorEmail: user.email };
@@ -155,8 +165,13 @@ app.post('/api/db/sync', requireUser, async (req, res) => {
     for (const item of tournaments) await saveTournament(client, item, req.user);
     await saveEntries(client, 'teams', [...(Array.isArray(body.teams) ? body.teams : []), ...(body.team ? [body.team] : [])], req.user.id);
     await saveEntries(client, 'players', [...(Array.isArray(body.players) ? body.players : []), ...(body.player ? [body.player] : [])], req.user.id);
-    if (body.rules || body.liveState) {
-      await client.query('INSERT INTO organizer_settings(organizer_id,rules,live_state) VALUES($1,$2,$3) ON CONFLICT(organizer_id) DO UPDATE SET rules=COALESCE(excluded.rules,organizer_settings.rules),live_state=COALESCE(excluded.live_state,organizer_settings.live_state)', [req.user.id, body.rules || null, body.liveState || null]);
+    if (body.rules) {
+      await client.query('INSERT INTO organizer_settings(organizer_id,rules) VALUES($1,$2) ON CONFLICT(organizer_id) DO UPDATE SET rules=excluded.rules', [req.user.id, body.rules]);
+    }
+    if (body.liveState) {
+      const tournamentId = body.liveState.tournamentId;
+      if (!await owns(tournamentId, req.user.id, client)) throw Object.assign(new Error('Live state is outside your tournament'), { status: 403 });
+      await client.query('INSERT INTO tournament_live_state(tournament_id,data) VALUES($1,$2) ON CONFLICT(tournament_id) DO UPDATE SET data=excluded.data', [tournamentId, body.liveState]);
     }
     await client.query('COMMIT');
     res.json({ success: true });
@@ -180,6 +195,18 @@ app.get('/api/public/tournaments/:id', async (req, res) => {
   if (!result.rowCount) return bad(res, 404, 'Tournament not found');
   const { userId, creatorEmail, ...tournament } = result.rows[0].data;
   res.json({ success: true, tournament });
+});
+app.get('/api/public/tournaments/:id/summary', async (req, res) => {
+  const result = await pool.query('SELECT data FROM tournaments WHERE id=$1', [req.params.id]);
+  if (!result.rowCount) return bad(res, 404, 'Tournament not found');
+  const { userId, creatorEmail, customFields, gpayNumber, upiId, gpayQrUrl, ...tournament } = result.rows[0].data;
+  const [teamRows, playerRows] = await Promise.all([
+    pool.query('SELECT data FROM teams WHERE tournament_id=$1', [req.params.id]),
+    pool.query('SELECT data FROM players WHERE tournament_id=$1', [req.params.id]),
+  ]);
+  const teams = teamRows.rows.map(({ data: t }) => ({ id: t.id, name: t.name, shortCode: t.shortCode, logo: t.logo, colorHex: t.colorHex, totalPurse: t.totalPurse, remainingPurse: t.remainingPurse }));
+  const players = playerRows.rows.filter(({ data: p }) => p.approvalStatus === 'APPROVED').map(({ data: p }) => ({ id: p.id, name: p.name, photoUrl: p.photoUrl, role: p.role, status: p.status, soldToTeamId: p.soldToTeamId, soldPrice: p.soldPrice, basePrice: p.basePrice }));
+  res.json({ success: true, tournament, teams, players });
 });
 app.post('/api/public/tournaments/:id/register', limit, async (req, res) => {
   const result = await pool.query('SELECT data FROM tournaments WHERE id=$1', [req.params.id]);

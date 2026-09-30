@@ -42,7 +42,7 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
   const [registrationOpen, setRegistrationOpen] = useState(
     tournament.registrationOpen ?? true
   );
-  const [fee, setFee] = useState(tournament.registrationFee ?? 500);
+  const [fee, setFee] = useState(tournament.registrationFee ?? 0);
   const [deadline, setDeadline] = useState(
     tournament.registrationDeadline || '2026-10-15'
   );
@@ -50,11 +50,11 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
     tournament.instructions ||
       'Please provide a valid WhatsApp number and upload a clear passport-size photo.'
   );
-  const [upiId, setUpiId] = useState(tournament.upiId || 'cricketgpl@oksbi');
-  const [gpayNumber, setGpayNumber] = useState(tournament.gpayNumber || '+91 98250 12345');
+  const [upiId, setUpiId] = useState(tournament.upiId || '');
+  const [gpayNumber, setGpayNumber] = useState(tournament.gpayNumber || '');
   const [gpayName, setGpayName] = useState(tournament.gpayName || 'GPL Cricket Committee');
   const [gpayQrUrl, setGpayQrUrl] = useState(tournament.gpayQrUrl || '');
-  const [paymentMandatory, setPaymentMandatory] = useState(tournament.paymentMandatory ?? true);
+  const [paymentMandatory, setPaymentMandatory] = useState(tournament.paymentMandatory ?? false);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   // New Question Form state

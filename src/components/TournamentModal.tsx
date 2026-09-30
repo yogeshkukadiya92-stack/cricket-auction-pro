@@ -57,7 +57,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
 
   // Registration & UPI
   const [registrationOpen, setRegistrationOpen] = useState(true);
-  const [registrationFee, setRegistrationFee] = useState(500);
+  const [registrationFee, setRegistrationFee] = useState(0);
   const [registrationDeadline, setRegistrationDeadline] = useState('');
   const [upiId, setUpiId] = useState('');
   const [gpayNumber, setGpayNumber] = useState('');
@@ -83,7 +83,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
       setEndDate(initialData.endDate || '');
       setBallType(initialData.ballType || 'Heavy Tennis Ball');
       setRegistrationOpen(initialData.registrationOpen ?? true);
-      setRegistrationFee(initialData.registrationFee || 500);
+      setRegistrationFee(initialData.registrationFee ?? 0);
       setRegistrationDeadline(initialData.registrationDeadline || '');
       setUpiId(initialData.upiId || '');
       setGpayNumber(initialData.gpayNumber || '');

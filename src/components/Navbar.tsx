@@ -299,10 +299,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               onClick={onOpenDatabaseModal}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-[10px] font-black text-emerald-400 uppercase tracking-wider transition-colors cursor-pointer"
-              title="Native SQLite Database • Click for Backups & Storage Details"
+              title="PostgreSQL Database • Click for Backups & Storage Details"
             >
               <Database className="w-3 h-3 text-emerald-400" />
-              <span className="hidden sm:inline">SQLITE DB</span>
+              <span className="hidden sm:inline">POSTGRES DB</span>
             </button>
           )}
 

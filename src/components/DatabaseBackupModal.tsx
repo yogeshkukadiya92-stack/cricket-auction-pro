@@ -93,7 +93,7 @@ export const DatabaseBackupModal: React.FC<DatabaseBackupModalProps> = ({
             </div>
             <div>
               <h3 className="text-xl font-black text-white font-display">
-                SQLITE DATABASE STORAGE
+                POSTGRESQL DATABASE STORAGE
               </h3>
               <p className="text-xs text-slate-400">
                 Native ACID persistent storage engine & auto-backup
