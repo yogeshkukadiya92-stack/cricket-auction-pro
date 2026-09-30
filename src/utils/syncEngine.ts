@@ -18,14 +18,17 @@ export type SyncAction =
 
 class SyncEngine {
   private channel: BroadcastChannel | null = null;
-  private sse: EventSource | null = null;
   private listeners: ((action: SyncAction) => void)[] = [];
 
   constructor() {
-    // 1. Local Browser Tab Sync via BroadcastChannel
+  }
+
+  public setScope(tournamentId: string) {
+    this.channel?.close();
+    this.channel = null;
     if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
       try {
-        this.channel = new BroadcastChannel('cricket_auction_sync_bus');
+        this.channel = new BroadcastChannel(`cricket_auction_${tournamentId}`);
         this.channel.onmessage = (event) => {
           if (event.data) {
             this.notify(event.data as SyncAction);
@@ -36,27 +39,6 @@ class SyncEngine {
       }
     }
 
-    // 2. Cross-Device Network SSE Sync via /api/live-stream
-    if (typeof window !== 'undefined' && 'EventSource' in window) {
-      try {
-        this.sse = new EventSource('/api/live-stream');
-        this.sse.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            if (data && data.type && data.type !== 'INIT') {
-              this.notify(data as SyncAction);
-            }
-          } catch {
-            // Ignore malformed heartbeats
-          }
-        };
-        this.sse.onerror = () => {
-          // Graceful fallback to local BroadcastChannel if offline / static mode
-        };
-      } catch {
-        // SSE unsupported or offline
-      }
-    }
   }
 
   public subscribe(cb: (action: SyncAction) => void) {
@@ -77,7 +59,7 @@ class SyncEngine {
   }
 
   public async broadcast(action: SyncAction) {
-    // 1. Broadcast to local tabs on this device
+    // Sync only tabs showing the same tournament.
     if (this.channel) {
       try {
         this.channel.postMessage(action);
@@ -88,32 +70,6 @@ class SyncEngine {
     // Also dispatch to local component listeners
     this.notify(action);
 
-    // 2. Broadcast across all network devices via server API
-    if (typeof window !== 'undefined' && typeof fetch === 'function') {
-      try {
-        if (action.type === 'BID_PLACED') {
-          fetch('/api/place-bid', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(action.payload),
-          }).catch(() => {});
-        } else if (action.type === 'PLAYER_REGISTERED') {
-          fetch('/api/register-player', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(action.payload),
-          }).catch(() => {});
-        } else {
-          fetch('/api/action', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(action),
-          }).catch(() => {});
-        }
-      } catch {
-        // Offline or static server
-      }
-    }
   }
 }
 

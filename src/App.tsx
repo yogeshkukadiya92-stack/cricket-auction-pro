@@ -43,19 +43,15 @@ import { DatabaseBackupModal } from './components/DatabaseBackupModal';
 import { ArrowLeft } from 'lucide-react';
 
 export function App() {
-  // SQLite Database status modal state
+  const [authChecked, setAuthChecked] = useState(false);
+  const [dataReady, setDataReady] = useState(false);
+  const [dataError, setDataError] = useState('');
+  const [publicTournament, setPublicTournament] = useState<Tournament | null>(null);
+  // Database status modal state
   const [isDbModalOpen, setIsDbModalOpen] = useState(false);
 
   // Authentication & Current User State
-  const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('cap_current_user');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {}
-    }
-    return null;
-  });
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   const handleLoginSuccess = (user: User) => {
@@ -69,39 +65,19 @@ export function App() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('cap_current_user');
+    fetch('/api/auth/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).catch(() => {});
+    setDataReady(false);
     setCurrentUser(null);
-    setViewMode('TOURNAMENT_OVERVIEW');
+    setTournaments([]);
+    setTeams([]);
+    setPlayers([]);
+    setViewMode('TOURNAMENTS');
   };
 
   // Multiple Tournaments state
-  const [tournaments, setTournaments] = useState<Tournament[]>(() => {
-    const saved = localStorage.getItem('cap_tournaments');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch {}
-    }
-    const single = localStorage.getItem('cap_tournament');
-    if (single) {
-      try {
-        const parsed = JSON.parse(single);
-        return [parsed];
-      } catch {}
-    }
-    return initialTournaments;
-  });
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
 
-  const [activeTournamentId, setActiveTournamentId] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const urlTourneyId = params.get('tournamentId');
-      if (urlTourneyId) return urlTourneyId;
-    }
-    const saved = localStorage.getItem('cap_active_tournament_id');
-    return saved || initialTournaments[0].id;
-  });
+  const [activeTournamentId, setActiveTournamentId] = useState<string>('');
 
   const tournament =
     tournaments.find((t) => t.id === activeTournamentId) ||
@@ -110,45 +86,18 @@ export function App() {
 
   // Filter tournaments visible to current user (organizer vs super admin)
   const visibleTournaments = tournaments.filter((t) => {
-    if (!currentUser || currentUser.role === 'ADMIN') return true;
-    return !t.userId || t.userId === currentUser.id || t.creatorEmail === currentUser.email;
+    return !!currentUser && t.userId === currentUser.id;
   });
 
   // Tournament Create / Edit Modal State
   const [isTournamentModalOpen, setIsTournamentModalOpen] = useState(false);
   const [editingTournamentData, setEditingTournamentData] = useState<Tournament | null>(null);
 
-  const [rules, setRules] = useState<AuctionRules>(() => {
-    const saved = localStorage.getItem('cap_rules');
-    return saved ? JSON.parse(saved) : initialRules;
-  });
+  const [rules, setRules] = useState<AuctionRules>(initialRules);
 
-  const [teams, setTeams] = useState<Team[]>(() => {
-    const saved = localStorage.getItem('cap_teams');
-    return saved ? JSON.parse(saved) : initialTeams;
-  });
+  const [teams, setTeams] = useState<Team[]>([]);
 
-  const [players, setPlayers] = useState<Player[]>(() => {
-    const saved = localStorage.getItem('cap_players');
-    if (saved) {
-      try {
-        const parsed: Player[] = JSON.parse(saved);
-        const isOldDemo =
-          parsed.length > 0 &&
-          parsed.every(
-            (p) => p.id.startsWith('ply-') && Number(p.id.replace('ply-', '')) <= 14
-          );
-        if (isOldDemo) {
-          localStorage.removeItem('cap_players');
-          return [];
-        }
-        return parsed;
-      } catch {
-        return [];
-      }
-    }
-    return [];
-  });
+  const [players, setPlayers] = useState<Player[]>([]);
 
   // Check URL params (?mode=obs for OBS, ?mode=register for public player form, ?mode=summary for live spectators)
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
@@ -183,83 +132,70 @@ export function App() {
   // Social Poster Modal State
   const [posterData, setPosterData] = useState<{ player: Player; team: Team; price: number } | null>(null);
 
-  // Bootstrap data from SQLite Server Database on startup
   useEffect(() => {
-    dbService.fetchBootstrapData().then((data) => {
-      if (data && data.success) {
-        if (Array.isArray(data.tournaments) && data.tournaments.length > 0) {
-          setTournaments(data.tournaments);
-        } else {
-          dbService.queueSync({ tournaments });
-        }
-
-        if (Array.isArray(data.teams) && data.teams.length > 0) {
-          setTeams(data.teams);
-        } else {
-          dbService.queueSync({ teams });
-        }
-
-        if (Array.isArray(data.players) && data.players.length > 0) {
-          setPlayers(data.players);
-        }
-
-        if (data.rules) {
-          setRules(data.rules);
-        } else {
-          dbService.queueSync({ rules });
-        }
-
-        if (data.liveState) {
-          if (data.liveState.currentPlayerId) setCurrentPlayerId(data.liveState.currentPlayerId);
-          if (data.liveState.currentBid) setCurrentBid(data.liveState.currentBid);
-          if (data.liveState.leadingTeam) setLeadingTeam(data.liveState.leadingTeam);
-          if (data.liveState.bidsHistory) setBidsHistory(data.liveState.bidsHistory);
-        }
-      }
-    });
+    fetch('/api/auth/me').then(async (res) => {
+      if (!res.ok) return null;
+      return (await res.json()).user as User;
+    }).then(setCurrentUser).catch(() => setCurrentUser(null)).finally(() => setAuthChecked(true));
   }, []);
 
-  // Sync Tournaments & Data to Local-First IndexedDB & SQLite
   useEffect(() => {
-    try {
-      localStorage.setItem('cap_tournaments', JSON.stringify(tournaments));
-    } catch {}
-    dbService.queueSync({ tournaments });
-  }, [tournaments]);
+    if (viewMode !== 'PUBLIC_REGISTER') return;
+    const id = new URLSearchParams(window.location.search).get('tournamentId');
+    if (!id) { setDataError('Tournament link is missing its ID.'); return; }
+    fetch(`/api/public/tournaments/${encodeURIComponent(id)}`).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Tournament unavailable');
+      setPublicTournament(data.tournament);
+    }).catch((err) => setDataError(err.message));
+  }, [viewMode]);
+
+  // Load only the signed-in organizer's records from the server.
+  useEffect(() => {
+    if (!currentUser || viewMode === 'PUBLIC_REGISTER') return;
+    setDataReady(false);
+    dbService.fetchBootstrapData().then((data) => {
+      if (!data?.success) throw new Error('Could not load your tournaments');
+      setTournaments(data.tournaments || []);
+      setTeams(data.teams || []);
+      setPlayers(data.players || []);
+      setRules(data.rules || initialRules);
+      setActiveTournamentId(data.tournaments?.[0]?.id || '');
+      if (data.liveState) {
+        setCurrentPlayerId(data.liveState.currentPlayerId || '');
+        setCurrentBid(data.liveState.currentBid || 0);
+        setLeadingTeam(data.liveState.leadingTeam || null);
+        setBidsHistory(data.liveState.bidsHistory || []);
+      }
+      setViewMode('TOURNAMENTS');
+      setDataReady(true);
+    }).catch((err) => setDataError(err.message));
+  }, [currentUser?.id]);
+
+  // Persist changes only after the organizer's server data has loaded.
+  useEffect(() => {
+    if (dataReady) dbService.queueSync({ tournaments });
+  }, [tournaments, dataReady]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem('cap_active_tournament_id', activeTournamentId);
-    } catch {}
+    if (activeTournamentId) syncEngine.setScope(activeTournamentId);
   }, [activeTournamentId]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem('cap_tournament', JSON.stringify(tournament));
-    } catch {}
-    dbService.queueSync({ tournament });
-  }, [tournament]);
+    if (dataReady && tournaments.some(t => t.id === tournament.id)) dbService.queueSync({ tournament });
+  }, [tournament, dataReady]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem('cap_teams', JSON.stringify(teams));
-    } catch {}
-    dbService.queueSync({ teams });
-  }, [teams]);
+    if (dataReady) dbService.queueSync({ teams });
+  }, [teams, dataReady]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem('cap_players', JSON.stringify(players));
-    } catch {}
-    dbService.queueSync({ players });
-  }, [players]);
+    if (dataReady) dbService.queueSync({ players });
+  }, [players, dataReady]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem('cap_rules', JSON.stringify(rules));
-    } catch {}
-    dbService.queueSync({ rules });
-  }, [rules]);
+    if (dataReady) dbService.queueSync({ rules });
+  }, [rules, dataReady]);
 
   // Real-Time Cross-Device & Cross-Tab Synchronization
   useEffect(() => {
@@ -642,6 +578,7 @@ export function App() {
     if (activeTournamentId === tourneyId) {
       setActiveTournamentId(remaining[0].id);
     }
+    dbService.flushSync().then(() => fetch(`/api/tournaments/${encodeURIComponent(tourneyId)}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: '{}' }));
   };
 
   const handleSelectTournament = (tourneyId: string) => {
@@ -668,6 +605,7 @@ export function App() {
 
   const handleDeleteTeam = (teamId: string) => {
     setTeams((prev) => prev.filter((t) => t.id !== teamId));
+    dbService.flushSync().then(() => fetch(`/api/teams/${encodeURIComponent(teamId)}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: '{}' }));
   };
 
   // Player Management Handlers
@@ -728,6 +666,7 @@ export function App() {
 
   const handleDeletePlayer = (playerId: string) => {
     setPlayers((prev) => prev.filter((p) => p.id !== playerId));
+    dbService.flushSync().then(() => fetch(`/api/players/${encodeURIComponent(playerId)}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: '{}' }));
   };
 
   const handleApprovePlayer = (playerId: string) => {
@@ -759,16 +698,14 @@ export function App() {
     }
   };
 
-  const handleRegisterPlayer = (newPlayer: Player) => {
-    const playerWithTourney: Player = {
-      ...newPlayer,
-      tournamentId: tournament.id,
-    };
-    setPlayers((prev) => [playerWithTourney, ...prev]);
-    syncEngine.broadcast({
-      type: 'PLAYER_REGISTERED',
-      payload: { player: playerWithTourney },
+  const handleRegisterPlayer = async (newPlayer: Player): Promise<Player> => {
+    if (!publicTournament) throw new Error('Tournament is unavailable');
+    const response = await fetch(`/api/public/tournaments/${encodeURIComponent(publicTournament.id)}/register`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ player: newPlayer }),
     });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Registration failed');
+    return data.player;
   };
 
   const handleEraseAllDemoData = () => {
@@ -803,14 +740,19 @@ export function App() {
 
   // Dedicated clean view for public player registration (?mode=register)
   if (viewMode === 'PUBLIC_REGISTER') {
+    if (!publicTournament) return <main className="min-h-screen bg-obsidian-950 text-white grid place-items-center">{dataError || 'Loading tournament…'}</main>;
     return (
       <PublicRegistrationView
-        tournament={tournament}
+        tournament={publicTournament}
         onRegisterPlayer={handleRegisterPlayer}
         onBackToDashboard={() => setViewMode('TOURNAMENT_OVERVIEW')}
       />
     );
   }
+
+  if (!authChecked) return <main className="min-h-screen bg-obsidian-950 text-white grid place-items-center">Loading…</main>;
+  if (!currentUser) return <main className="min-h-screen bg-obsidian-950 text-white grid place-items-center"><div className="text-center"><h1 className="text-3xl font-bold text-amber-300 mb-5">Cricket Auction Pro</h1><button onClick={() => setIsAuthModalOpen(true)} className="rounded-xl bg-amber-400 text-slate-950 px-8 py-3 font-bold">Organizer sign in or register</button></div><AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onSuccess={handleLoginSuccess} /></main>;
+  if (!dataReady) return <main className="min-h-screen bg-obsidian-950 text-white grid place-items-center">{dataError || 'Loading your tournaments…'}</main>;
 
   // Dedicated clean view for public live spectator summary (?mode=summary)
   if (viewMode === 'PUBLIC_SUMMARY') {
@@ -999,6 +941,7 @@ export function App() {
 
         {viewMode === 'PLAYERS' && (
           <PlayerManagerView
+            tournamentId={tournament.id}
             players={activePlayers}
             onAddPlayer={handleAddPlayer}
             onBulkAddPlayers={handleBulkAddPlayers}

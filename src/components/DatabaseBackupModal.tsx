@@ -124,7 +124,7 @@ export const DatabaseBackupModal: React.FC<DatabaseBackupModalProps> = ({
           <div className="text-xs text-slate-300 font-mono bg-obsidian-950 p-2.5 rounded-xl border border-white/5 space-y-1">
             <div className="flex items-center justify-between">
               <span className="text-slate-400">Database Engine:</span>
-              <span className="text-white font-bold">SQLite 3 (Node.js Native)</span>
+              <span className="text-white font-bold">PostgreSQL</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-slate-400">Disk File:</span>

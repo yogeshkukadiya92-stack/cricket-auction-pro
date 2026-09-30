@@ -35,7 +35,7 @@ import {
 
 interface PublicRegistrationViewProps {
   tournament: Tournament;
-  onRegisterPlayer: (player: Player) => void;
+  onRegisterPlayer: (player: Player) => Promise<Player>;
   onBackToDashboard?: () => void;
 }
 
@@ -72,6 +72,8 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
   // Submission State
   const [submitted, setSubmitted] = useState(false);
   const [registeredPlayer, setRegisteredPlayer] = useState<Player | null>(null);
+  const [submitError, setSubmitError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const customFields: CustomFormField[] = tournament.customFields || [];
 
@@ -122,7 +124,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName.trim() || !mobile.trim()) {
       alert('Please enter your full name and valid mobile number.');
@@ -165,9 +167,15 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
       paymentAmount: tournament.registrationFee || 500,
     };
 
-    onRegisterPlayer(newPlayer);
-    setRegisteredPlayer(newPlayer);
-    setSubmitted(true);
+    setSubmitting(true);
+    setSubmitError('');
+    try {
+      const saved = await onRegisterPlayer(newPlayer);
+      setRegisteredPlayer(saved);
+      setSubmitted(true);
+    } catch (error) {
+      setSubmitError((error as Error).message);
+    } finally { setSubmitting(false); }
   };
 
   // Preview Player object for the live 3D card
@@ -923,6 +931,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
 
               {/* Submit Button */}
               <div className="pt-4 border-t border-white/10 space-y-3">
+                {submitError && <p role="alert" className="text-sm text-rose-400">{submitError}</p>}
                 {tournament.paymentMandatory && !paymentScreenshotUrl && (
                   <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-2.5 text-xs text-amber-300">
                     <AlertCircle className="w-5 h-5 text-amber-400 shrink-0" />
@@ -934,7 +943,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
 
                 <button
                   type="submit"
-                  disabled={tournament.paymentMandatory && !paymentScreenshotUrl}
+                  disabled={submitting || (tournament.paymentMandatory && !paymentScreenshotUrl)}
                   className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
                     tournament.paymentMandatory && !paymentScreenshotUrl
                       ? 'bg-white/10 text-slate-500 cursor-not-allowed border border-white/10 opacity-70'
@@ -948,7 +957,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                     </>
                   ) : (
                     <>
-                      <span>Submit Official Registration</span>
+                      <span>{submitting ? 'Saving registration…' : 'Submit Official Registration'}</span>
                       <ArrowRight className="w-4 h-4" />
                     </>
                   )}

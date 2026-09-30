@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 
 interface PlayerManagerViewProps {
+  tournamentId: string;
   players: Player[];
   onAddPlayer: (newPlayer: Player) => void;
   onBulkAddPlayers?: (newPlayers: Player[]) => void;
@@ -41,6 +42,7 @@ interface PlayerManagerViewProps {
 }
 
 export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
+  tournamentId,
   players,
   onAddPlayer,
   onBulkAddPlayers,
@@ -251,7 +253,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => {
-              const url = `${window.location.origin}${window.location.pathname}?mode=register`;
+              const url = `${window.location.origin}${window.location.pathname}?mode=register&tournamentId=${encodeURIComponent(tournamentId)}`;
               navigator.clipboard.writeText(url);
               alert('✅ Player registration link copied to clipboard!');
             }}

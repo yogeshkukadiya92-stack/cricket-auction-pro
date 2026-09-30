@@ -4,14 +4,12 @@ import {
   Mail,
   Lock,
   User as UserIcon,
-  Shield,
   Trophy,
   ArrowRight,
-  Sparkles,
   AlertCircle,
   CheckCircle2,
 } from 'lucide-react';
-import { User, UserRole } from '../types';
+import { User } from '../types';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -30,7 +28,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<UserRole>('ORGANIZER');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -54,7 +51,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         if (!res.ok || !data.success) {
           throw new Error(data.error || 'Login failed. Please check your credentials.');
         }
-        localStorage.setItem('cap_current_user', JSON.stringify(data.user));
         setSuccessMsg(`Welcome back, ${data.user.name}!`);
         setTimeout(() => {
           onSuccess(data.user);
@@ -62,7 +58,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }, 600);
       } else {
         if (!name.trim()) throw new Error('Please enter your full name or organizer name.');
-        if (password.length < 6) throw new Error('Password must be at least 6 characters.');
+        if (password.length < 12) throw new Error('Password must be at least 12 characters.');
 
         const res = await fetch('/api/auth/register', {
           method: 'POST',
@@ -71,14 +67,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             name: name.trim(),
             email: email.trim(),
             password,
-            role,
           }),
         });
         const data = await res.json();
         if (!res.ok || !data.success) {
           throw new Error(data.error || 'Registration failed. Please try again.');
         }
-        localStorage.setItem('cap_current_user', JSON.stringify(data.user));
         setSuccessMsg('Account created successfully! Logging you in...');
         setTimeout(() => {
           onSuccess(data.user);
@@ -90,35 +84,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleQuickLogin = (demoEmail: string, demoPass: string) => {
-    setEmail(demoEmail);
-    setPassword(demoPass);
-    setMode('LOGIN');
-    setError(null);
-    // Direct submission trigger
-    setLoading(true);
-    fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: demoEmail, password: demoPass }),
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.success && data.user) {
-          localStorage.setItem('cap_current_user', JSON.stringify(data.user));
-          setSuccessMsg(`Logged in as ${data.user.name}!`);
-          setTimeout(() => {
-            onSuccess(data.user);
-            onClose();
-          }, 500);
-        } else {
-          setError(data.error || 'Quick login failed.');
-        }
-      })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
   };
 
   return (
@@ -244,7 +209,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 Password <span className="text-amber-400">*</span>
               </label>
               {mode === 'LOGIN' && (
-                <span className="text-[11px] text-slate-500">Min 6 characters</span>
+                <span className="text-[11px] text-slate-500">Use your account password</span>
               )}
             </div>
             <div className="relative">
@@ -276,40 +241,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </button>
         </form>
 
-        {/* Quick Demo Access Section */}
-        <div className="p-6 pt-2 border-t border-slate-800/80 bg-slate-950/40">
-          <div className="flex items-center gap-2 mb-3">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span className="text-[11px] uppercase tracking-wider font-bold text-slate-400">
-              Quick 1-Click Demo Login
-            </span>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('admin@cricketauction.pro', 'admin123')}
-              className="p-2.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-xl text-left transition group"
-            >
-              <div className="flex items-center gap-1.5 text-amber-400 text-xs font-bold mb-0.5">
-                <Shield className="w-3.5 h-3.5" />
-                <span>Super Admin</span>
-              </div>
-              <p className="text-[10px] text-slate-400 truncate">admin@cricketauction.pro</p>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('organizer@cricketauction.pro', 'user123')}
-              className="p-2.5 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 rounded-xl text-left transition group"
-            >
-              <div className="flex items-center gap-1.5 text-cyan-400 text-xs font-bold mb-0.5">
-                <Trophy className="w-3.5 h-3.5" />
-                <span>Organizer</span>
-              </div>
-              <p className="text-[10px] text-slate-400 truncate">organizer@cricketauction.pro</p>
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );

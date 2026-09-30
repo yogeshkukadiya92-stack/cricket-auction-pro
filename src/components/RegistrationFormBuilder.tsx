@@ -66,8 +66,8 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
   // Public URL
   const publicUrl =
     typeof window !== 'undefined'
-      ? `${window.location.origin}${window.location.pathname}?mode=register`
-      : 'http://localhost:5174/?mode=register';
+      ? `${window.location.origin}${window.location.pathname}?mode=register&tournamentId=${encodeURIComponent(tournament.id)}`
+      : `http://localhost:5174/?mode=register&tournamentId=${encodeURIComponent(tournament.id)}`;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(publicUrl);
