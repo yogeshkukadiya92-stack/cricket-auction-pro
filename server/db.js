@@ -625,3 +625,58 @@ export function seedInitialDataIfEmpty(initialTournaments, initialTeams, initial
     saveAuctionRules(initialRules);
   }
 }
+
+export function processDeltaSyncTasks(tasks) {
+  if (!Array.isArray(tasks) || tasks.length === 0) return [];
+  const db = getDb();
+  const processedIds = [];
+
+  db.exec('BEGIN TRANSACTION;');
+  try {
+    for (const task of tasks) {
+      const { id, action, payload } = task;
+      switch (action) {
+        case 'UPSERT_TOURNAMENT':
+          saveTournament(payload);
+          break;
+        case 'DELETE_TOURNAMENT':
+          deleteTournament(payload.id);
+          break;
+        case 'UPSERT_TEAM':
+          saveTeam(payload);
+          break;
+        case 'DELETE_TEAM':
+          deleteTeam(payload.id);
+          break;
+        case 'UPSERT_PLAYER':
+          savePlayer(payload);
+          break;
+        case 'DELETE_PLAYER':
+          deletePlayer(payload.id);
+          break;
+        case 'BULK_PLAYERS':
+          if (Array.isArray(payload)) {
+            for (const p of payload) savePlayer(p);
+          }
+          break;
+        case 'RECORD_BID':
+          recordBid(payload);
+          break;
+        case 'UPDATE_LIVE_STATE':
+          saveLiveAuctionState(payload);
+          break;
+        case 'UPDATE_RULES':
+          saveAuctionRules(payload);
+          break;
+      }
+      processedIds.push(id);
+    }
+    db.exec('COMMIT;');
+  } catch (err) {
+    db.exec('ROLLBACK;');
+    throw err;
+  }
+
+  return processedIds;
+}
+

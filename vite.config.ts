@@ -26,6 +26,7 @@ import {
   getAllUsers,
   toggleUserStatus,
   getAdminPlatformStats,
+  processDeltaSyncTasks,
 } from './server/db.js';
 
 function liveAuctionDatabasePlugin(): Plugin {
@@ -77,6 +78,16 @@ function liveAuctionDatabasePlugin(): Plugin {
         if (req.method === 'OPTIONS') {
           res.writeHead(200);
           res.end();
+          return;
+        }
+
+        // 0. Lightweight Ping / Network Latency Health Check (<40 bytes)
+        if (url === '/api/ping') {
+          res.writeHead(200, {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-store, no-cache, must-revalidate',
+          });
+          res.end(JSON.stringify({ pong: true, ts: Date.now() }));
           return;
         }
 
@@ -166,6 +177,27 @@ function liveAuctionDatabasePlugin(): Plugin {
 
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: true, syncedAt: new Date().toISOString() }));
+          } catch (err: any) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+          return;
+        }
+
+        // 3.1 High-Performance Delta Sync (for 2G / low-bandwidth connections)
+        if (url === '/api/db/delta-sync' && req.method === 'POST') {
+          try {
+            const body = await readBody(req);
+            const processedIds = processDeltaSyncTasks(body.tasks || []);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(
+              JSON.stringify({
+                success: true,
+                processedIds,
+                count: processedIds.length,
+                syncedAt: new Date().toISOString(),
+              })
+            );
           } catch (err: any) {
             res.writeHead(500, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: false, error: err.message }));

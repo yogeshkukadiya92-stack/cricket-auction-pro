@@ -38,6 +38,7 @@ import { PublicSpectatorView } from './components/PublicSpectatorView';
 import { OfflineAlertBanner } from './components/OfflineAlertBanner';
 import { syncEngine, SyncAction } from './utils/syncEngine';
 import { dbService } from './services/dbService';
+import { localDb } from './services/localDb';
 import { DatabaseBackupModal } from './components/DatabaseBackupModal';
 import { ArrowLeft } from 'lucide-react';
 
@@ -218,33 +219,45 @@ export function App() {
     });
   }, []);
 
-  // Sync Tournaments & Data to LocalStorage & SQLite
+  // Sync Tournaments & Data to Local-First IndexedDB & SQLite
   useEffect(() => {
-    localStorage.setItem('cap_tournaments', JSON.stringify(tournaments));
+    try {
+      localStorage.setItem('cap_tournaments', JSON.stringify(tournaments));
+    } catch {}
     dbService.queueSync({ tournaments });
   }, [tournaments]);
 
   useEffect(() => {
-    localStorage.setItem('cap_active_tournament_id', activeTournamentId);
+    try {
+      localStorage.setItem('cap_active_tournament_id', activeTournamentId);
+    } catch {}
   }, [activeTournamentId]);
 
   useEffect(() => {
-    localStorage.setItem('cap_tournament', JSON.stringify(tournament));
+    try {
+      localStorage.setItem('cap_tournament', JSON.stringify(tournament));
+    } catch {}
     dbService.queueSync({ tournament });
   }, [tournament]);
 
   useEffect(() => {
-    localStorage.setItem('cap_teams', JSON.stringify(teams));
+    try {
+      localStorage.setItem('cap_teams', JSON.stringify(teams));
+    } catch {}
     dbService.queueSync({ teams });
   }, [teams]);
 
   useEffect(() => {
-    localStorage.setItem('cap_players', JSON.stringify(players));
+    try {
+      localStorage.setItem('cap_players', JSON.stringify(players));
+    } catch {}
     dbService.queueSync({ players });
   }, [players]);
 
   useEffect(() => {
-    localStorage.setItem('cap_rules', JSON.stringify(rules));
+    try {
+      localStorage.setItem('cap_rules', JSON.stringify(rules));
+    } catch {}
     dbService.queueSync({ rules });
   }, [rules]);
 
@@ -766,6 +779,10 @@ export function App() {
     ) {
       localStorage.removeItem('cap_players');
       localStorage.removeItem('cap_bids');
+      localDb.clearStore('players');
+      localDb.clearStore('bids');
+      localDb.clearStore('live_state');
+      localDb.clearStore('sync_outbox');
       setPlayers([]);
       setTeams((prev) =>
         prev.map((t) => ({

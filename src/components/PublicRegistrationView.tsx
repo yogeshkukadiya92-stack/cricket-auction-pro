@@ -7,6 +7,7 @@ import {
   CustomFormField,
 } from '../types';
 import { PlayerCard3D } from './PlayerCard3D';
+import { compressForLowBandwidth } from '../utils/imageUtils';
 import {
   CheckCircle2,
   Upload,
@@ -81,26 +82,18 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          setPhotoUrl(reader.result);
-        }
-      };
-      reader.readAsDataURL(file);
+      compressForLowBandwidth(file, (compressedUrl) => {
+        setPhotoUrl(compressedUrl);
+      });
     }
   };
 
   const handlePaymentScreenshotUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          setPaymentScreenshotUrl(reader.result);
-        }
-      };
-      reader.readAsDataURL(file);
+      compressForLowBandwidth(file, (compressedUrl) => {
+        setPaymentScreenshotUrl(compressedUrl);
+      });
     }
   };
 

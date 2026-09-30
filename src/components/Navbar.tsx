@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ViewMode, Tournament, User } from '../types';
 import { sounds } from '../soundEffects';
 import { TeamLogo } from './TeamLogo';
+import { NetworkStatusBadge } from './NetworkStatusBadge';
 import {
   Tv,
   Mic,
@@ -290,11 +291,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           )}
 
-          {/* Live Sync Badge */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-[10px] font-black text-emerald-400 uppercase tracking-wider">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="hidden sm:inline">LIVE SYNC</span>
-          </div>
+          {/* Dynamic Network & Local-First Database Status Badge */}
+          <NetworkStatusBadge />
 
           {/* SQLite Database Status & Backup Launcher */}
           {onOpenDatabaseModal && (

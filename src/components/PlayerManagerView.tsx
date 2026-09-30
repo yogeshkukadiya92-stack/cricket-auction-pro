@@ -5,6 +5,7 @@ import {
   exportPlayersToCsv,
   parseCsvToPlayers,
 } from '../utils/csvHelper';
+import { compressForLowBandwidth } from '../utils/imageUtils';
 import {
   Plus,
   Search,
@@ -101,13 +102,9 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          setPhotoUrl(reader.result);
-        }
-      };
-      reader.readAsDataURL(file);
+      compressForLowBandwidth(file, (compressedUrl) => {
+        setPhotoUrl(compressedUrl);
+      });
     }
   };
 
