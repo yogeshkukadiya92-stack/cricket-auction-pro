@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ViewMode, Tournament } from '../types';
+import { ViewMode, Tournament, User } from '../types';
 import { sounds } from '../soundEffects';
 import { TeamLogo } from './TeamLogo';
 import {
@@ -22,6 +22,9 @@ import {
   Check,
   Layers,
   Database,
+  User as UserIcon,
+  LogOut,
+  Sparkles,
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -33,6 +36,9 @@ interface NavbarProps {
   onCreateNewTournament?: () => void;
   onOpenDatabaseModal?: () => void;
   onEraseDemoData?: () => void;
+  currentUser?: User | null;
+  onOpenAuthModal?: () => void;
+  onLogout?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -44,6 +50,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   onCreateNewTournament,
   onOpenDatabaseModal,
   onEraseDemoData,
+  currentUser,
+  onOpenAuthModal,
+  onLogout,
 }) => {
   const [soundEnabled, setSoundEnabled] = useState(sounds.enabled);
   const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
@@ -211,8 +220,60 @@ export const Navbar: React.FC<NavbarProps> = ({
           })}
         </nav>
 
-        {/* Utility Controls (Live Sync, Erase Demo Data, Sound, Fullscreen) */}
+        {/* Utility Controls (Live Sync, Erase Demo Data, Sound, Fullscreen, User / Auth) */}
         <div className="flex items-center gap-2">
+          {/* Admin Panel Button (Exclusive to ADMIN role) */}
+          {currentUser?.role === 'ADMIN' && (
+            <button
+              onClick={() => onSelectMode('ADMIN_PANEL')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                currentMode === 'ADMIN_PANEL'
+                  ? 'bg-amber-500 text-slate-950 border-amber-400 font-extrabold shadow-glow-gold'
+                  : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border-amber-500/30'
+              }`}
+              title="Super Administrator Control Panel"
+            >
+              <Shield className="w-3.5 h-3.5" />
+              <span>Admin Panel</span>
+            </button>
+          )}
+
+          {/* User Account / Sign In Pill */}
+          {currentUser ? (
+            <div className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-xl bg-obsidian-950/80 border border-white/10">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-amber-500 to-amber-300 text-slate-950 flex items-center justify-center font-black text-xs">
+                {currentUser.name.charAt(0).toUpperCase()}
+              </div>
+              <div className="hidden md:block text-left">
+                <p className="text-xs font-bold text-white leading-tight truncate max-w-[120px]">
+                  {currentUser.name}
+                </p>
+                <span className="text-[9px] font-mono text-gold-400 leading-none block">
+                  {currentUser.role}
+                </span>
+              </div>
+              {onLogout && (
+                <button
+                  onClick={onLogout}
+                  className="p-1 text-slate-400 hover:text-red-400 rounded-lg hover:bg-white/5 transition"
+                  title="Log Out of Account"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          ) : (
+            onOpenAuthModal && (
+              <button
+                onClick={onOpenAuthModal}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-gold-500 to-amber-400 text-black text-xs font-bold hover:from-gold-400 hover:to-amber-300 shadow-glow-gold transition-all"
+              >
+                <UserIcon className="w-3.5 h-3.5" />
+                <span>Sign In / Register</span>
+              </button>
+            )
+          )}
+
           {/* Live Sync Badge */}
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-[10px] font-black text-emerald-400 uppercase tracking-wider">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />

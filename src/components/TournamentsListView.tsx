@@ -144,7 +144,13 @@ export const TournamentsListView: React.FC<TournamentsListViewProps> = ({
                   </div>
                 )}
 
-                {/* Sponsors */}
+                {/* Sponsors & Organizer */}
+                {tourney.creatorEmail && (
+                  <div className="text-[11px] p-2 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-1.5 text-slate-300 truncate">
+                    <Users className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                    <span>Host: <strong className="text-white">{tourney.creatorEmail}</strong></span>
+                  </div>
+                )}
                 {tourney.sponsor && (
                   <div className="text-[11px] p-2 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-1.5 text-slate-300 truncate">
                     <Award className="w-3.5 h-3.5 text-gold-400 shrink-0" />

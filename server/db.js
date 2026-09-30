@@ -27,6 +27,8 @@ function initTables(db) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS tournaments (
       id TEXT PRIMARY KEY,
+      user_id TEXT,
+      creator_email TEXT,
       name TEXT NOT NULL,
       year INTEGER,
       season TEXT,
@@ -47,6 +49,13 @@ function initTables(db) {
       updated_at TEXT
     );
   `);
+
+  try {
+    db.exec('ALTER TABLE tournaments ADD COLUMN user_id TEXT;');
+  } catch {}
+  try {
+    db.exec('ALTER TABLE tournaments ADD COLUMN creator_email TEXT;');
+  } catch {}
 
   // 2. Teams Table
   db.exec(`
@@ -134,6 +143,146 @@ function initTables(db) {
       updated_at TEXT
     );
   `);
+
+  // 7. Users & Organizers Table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      email TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'ORGANIZER',
+      status TEXT NOT NULL DEFAULT 'ACTIVE',
+      created_at TEXT,
+      updated_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+  `);
+
+  seedDefaultUsersIfEmpty(db);
+}
+
+function seedDefaultUsersIfEmpty(db) {
+  try {
+    const row = db.prepare('SELECT count(*) as cnt FROM users').get();
+    if (!row || row.cnt === 0) {
+      const now = new Date().toISOString();
+      // Default Super Admin
+      db.prepare(`
+        INSERT INTO users (id, name, email, password, role, status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run('user-admin-1', 'Super Administrator', 'admin@cricketauction.pro', 'admin123', 'ADMIN', 'ACTIVE', now, now);
+
+      // Default Organizer
+      db.prepare(`
+        INSERT INTO users (id, name, email, password, role, status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run('user-org-1', 'Cricket League Organizer', 'organizer@cricketauction.pro', 'user123', 'ORGANIZER', 'ACTIVE', now, now);
+    }
+  } catch (e) {
+    console.error('Error seeding default users:', e);
+  }
+}
+
+// User Authentication & Management Helpers
+export function registerUser({ name, email, password, role = 'ORGANIZER' }) {
+  const db = getDb();
+  const cleanEmail = email.trim().toLowerCase();
+  const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(cleanEmail);
+  if (existing) {
+    throw new Error('An account with this email already exists.');
+  }
+
+  const userId = `usr-${Date.now()}`;
+  const now = new Date().toISOString();
+  db.prepare(`
+    INSERT INTO users (id, name, email, password, role, status, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(userId, name.trim(), cleanEmail, password, role, 'ACTIVE', now, now);
+
+  return {
+    id: userId,
+    name: name.trim(),
+    email: cleanEmail,
+    role,
+    status: 'ACTIVE',
+    createdAt: now,
+  };
+}
+
+export function loginUser({ email, password }) {
+  const db = getDb();
+  const cleanEmail = email.trim().toLowerCase();
+  const user = db.prepare('SELECT * FROM users WHERE email = ?').get(cleanEmail);
+  if (!user) {
+    throw new Error('Invalid email or password.');
+  }
+
+  if (user.password !== password) {
+    throw new Error('Invalid email or password.');
+  }
+
+  if (user.status === 'BLOCKED') {
+    throw new Error('Your account has been suspended by the platform administrator.');
+  }
+
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    status: user.status,
+    createdAt: user.created_at,
+  };
+}
+
+export function getAllUsers() {
+  const db = getDb();
+  const users = db.prepare('SELECT id, name, email, role, status, created_at FROM users ORDER BY created_at DESC').all();
+  return users.map((u) => {
+    const tourneyCount = db.prepare('SELECT count(*) as cnt FROM tournaments WHERE user_id = ? OR creator_email = ?').get(u.id, u.email)?.cnt || 0;
+    return {
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      role: u.role,
+      status: u.status,
+      createdAt: u.created_at,
+      tournamentsCount: tourneyCount,
+    };
+  });
+}
+
+export function toggleUserStatus(userId) {
+  const db = getDb();
+  const user = db.prepare('SELECT status, role FROM users WHERE id = ?').get(userId);
+  if (!user) throw new Error('User not found');
+  if (user.role === 'ADMIN') throw new Error('Cannot block Super Admin');
+
+  const newStatus = user.status === 'ACTIVE' ? 'BLOCKED' : 'ACTIVE';
+  db.prepare('UPDATE users SET status = ? WHERE id = ?').run(newStatus, userId);
+  return newStatus;
+}
+
+export function getAdminPlatformStats() {
+  const db = getDb();
+  const usersCount = db.prepare('SELECT count(*) as cnt FROM users').get().cnt;
+  const tournamentsCount = db.prepare('SELECT count(*) as cnt FROM tournaments').get().cnt;
+  const liveTournamentsCount = db.prepare("SELECT count(*) as cnt FROM tournaments WHERE status = 'LIVE'").get().cnt;
+  const teamsCount = db.prepare('SELECT count(*) as cnt FROM teams').get().cnt;
+  const playersCount = db.prepare('SELECT count(*) as cnt FROM players').get().cnt;
+  const soldPlayersCount = db.prepare("SELECT count(*) as cnt FROM players WHERE status = 'SOLD'").get().cnt;
+  const totalAuctionVolume = db.prepare("SELECT COALESCE(SUM(sold_price), 0) as total FROM players WHERE status = 'SOLD'").get().total;
+
+  return {
+    usersCount,
+    tournamentsCount,
+    liveTournamentsCount,
+    teamsCount,
+    playersCount,
+    soldPlayersCount,
+    totalAuctionVolume,
+  };
 }
 
 // Data Access Helpers
@@ -148,12 +297,14 @@ export function saveTournament(tournament) {
   const now = new Date().toISOString();
   const stmt = db.prepare(`
     INSERT INTO tournaments (
-      id, name, year, season, logo_url, sponsor, co_sponsors,
+      id, user_id, creator_email, name, year, season, logo_url, sponsor, co_sponsors,
       default_base_price, total_purse_per_team, expected_teams_count,
       ground, city, start_date, end_date, ball_type, status,
       data_json, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
+      user_id = excluded.user_id,
+      creator_email = excluded.creator_email,
       name = excluded.name,
       year = excluded.year,
       season = excluded.season,
@@ -175,6 +326,8 @@ export function saveTournament(tournament) {
 
   stmt.run(
     tournament.id,
+    tournament.userId || '',
+    tournament.creatorEmail || '',
     tournament.name,
     tournament.year || 2026,
     tournament.season || 'Season 1',
@@ -421,6 +574,7 @@ export function getFullDatabaseBackup() {
     exportedAt: new Date().toISOString(),
     engine: 'SQLite3 (Node.js Native)',
     version: '1.0.0',
+    users: getAllUsers(),
     tournaments: getAllTournaments(),
     teams: getAllTeams(),
     players: getAllPlayers(),

@@ -102,6 +102,8 @@ export interface BidRecord {
 
 export interface Tournament {
   id: string;
+  userId?: string;
+  creatorEmail?: string;
   name: string;
   year: number;
   season: string;
@@ -129,6 +131,18 @@ export interface Tournament {
   customFields?: CustomFormField[];
 }
 
+export type UserRole = 'ADMIN' | 'ORGANIZER';
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  status: 'ACTIVE' | 'BLOCKED';
+  createdAt?: string;
+  tournamentsCount?: number;
+}
+
 export type ViewMode =
   | 'TOURNAMENT_OVERVIEW'
   | 'TOURNAMENTS'
@@ -141,4 +155,5 @@ export type ViewMode =
   | 'SQUADS'
   | 'OBS'
   | 'FORM_BUILDER'
-  | 'PUBLIC_REGISTER';
+  | 'PUBLIC_REGISTER'
+  | 'ADMIN_PANEL';

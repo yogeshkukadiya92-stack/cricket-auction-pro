@@ -21,6 +21,11 @@ import {
   getFullDatabaseBackup,
   restoreDatabaseBackup,
   seedInitialDataIfEmpty,
+  registerUser,
+  loginUser,
+  getAllUsers,
+  toggleUserStatus,
+  getAdminPlatformStats,
 } from './server/db.js';
 
 function liveAuctionDatabasePlugin(): Plugin {
@@ -298,6 +303,74 @@ function liveAuctionDatabasePlugin(): Plugin {
           } else {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: false, message: 'Invalid backup format' }));
+          }
+          return;
+        }
+
+        // 9. Auth: User Registration
+        if (url === '/api/auth/register' && req.method === 'POST') {
+          try {
+            const body = await readBody(req);
+            const user = registerUser(body);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true, user }));
+          } catch (err: any) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+          return;
+        }
+
+        // 10. Auth: User Login
+        if (url === '/api/auth/login' && req.method === 'POST') {
+          try {
+            const body = await readBody(req);
+            const user = loginUser(body);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true, user }));
+          } catch (err: any) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+          return;
+        }
+
+        // 11. Admin: Get all users & organizers
+        if (url === '/api/admin/users' && req.method === 'GET') {
+          try {
+            const users = getAllUsers();
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true, users }));
+          } catch (err: any) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+          return;
+        }
+
+        // 12. Admin: Toggle user active / blocked status
+        if (url === '/api/admin/toggle-user' && req.method === 'POST') {
+          try {
+            const body = await readBody(req);
+            const status = toggleUserStatus(body.userId);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true, status }));
+          } catch (err: any) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+          return;
+        }
+
+        // 13. Admin: Platform Stats
+        if (url === '/api/admin/stats' && req.method === 'GET') {
+          try {
+            const stats = getAdminPlatformStats();
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true, stats }));
+          } catch (err: any) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: err.message }));
           }
           return;
         }

@@ -13,6 +13,7 @@ import {
   Player,
   BidRecord,
   ViewMode,
+  User,
 } from './types';
 import { Navbar } from './components/Navbar';
 import { TournamentDashboardView } from './components/TournamentDashboardView';
@@ -29,6 +30,8 @@ import { ObsOverlayView } from './components/ObsOverlayView';
 import { SoldPosterModal } from './components/SoldPosterModal';
 import { RegistrationFormBuilder } from './components/RegistrationFormBuilder';
 import { PublicRegistrationView } from './components/PublicRegistrationView';
+import { AuthModal } from './components/AuthModal';
+import { AdminPanelView } from './components/AdminPanelView';
 import { syncEngine, SyncAction } from './utils/syncEngine';
 import { dbService } from './services/dbService';
 import { DatabaseBackupModal } from './components/DatabaseBackupModal';
@@ -37,6 +40,34 @@ import { ArrowLeft } from 'lucide-react';
 export function App() {
   // SQLite Database status modal state
   const [isDbModalOpen, setIsDbModalOpen] = useState(false);
+
+  // Authentication & Current User State
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    const saved = localStorage.getItem('cap_current_user');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {}
+    }
+    return null;
+  });
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  const handleLoginSuccess = (user: User) => {
+    setCurrentUser(user);
+    setIsAuthModalOpen(false);
+    if (user.role === 'ADMIN') {
+      setViewMode('ADMIN_PANEL');
+    } else {
+      setViewMode('TOURNAMENTS');
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('cap_current_user');
+    setCurrentUser(null);
+    setViewMode('TOURNAMENT_OVERVIEW');
+  };
 
   // Multiple Tournaments state
   const [tournaments, setTournaments] = useState<Tournament[]>(() => {
@@ -71,6 +102,12 @@ export function App() {
     tournaments.find((t) => t.id === activeTournamentId) ||
     tournaments[0] ||
     initialTournament;
+
+  // Filter tournaments visible to current user (organizer vs super admin)
+  const visibleTournaments = tournaments.filter((t) => {
+    if (!currentUser || currentUser.role === 'ADMIN') return true;
+    return !t.userId || t.userId === currentUser.id || t.creatorEmail === currentUser.email;
+  });
 
   // Tournament Create / Edit Modal State
   const [isTournamentModalOpen, setIsTournamentModalOpen] = useState(false);
@@ -523,6 +560,8 @@ export function App() {
   const handleCreateTournament = (data: Partial<Tournament>) => {
     const newTourney: Tournament = {
       id: `tourney-${Date.now()}`,
+      userId: currentUser?.id,
+      creatorEmail: currentUser?.email,
       name: data.name || 'New Tournament',
       season: data.season || 'Season 1',
       year: data.year || 2026,
@@ -736,7 +775,7 @@ export function App() {
         currentMode={viewMode}
         onSelectMode={setViewMode}
         tournament={tournament}
-        tournaments={tournaments}
+        tournaments={visibleTournaments}
         onSelectTournament={handleSelectTournament}
         onCreateNewTournament={() => {
           setEditingTournamentData(null);
@@ -744,14 +783,50 @@ export function App() {
         }}
         onOpenDatabaseModal={() => setIsDbModalOpen(true)}
         onEraseDemoData={handleEraseAllDemoData}
+        currentUser={currentUser}
+        onOpenAuthModal={() => setIsAuthModalOpen(true)}
+        onLogout={handleLogout}
       />
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+        {viewMode === 'ADMIN_PANEL' && (
+          currentUser?.role === 'ADMIN' ? (
+            <AdminPanelView
+              currentUser={currentUser}
+              tournaments={tournaments}
+              onSelectTournament={(t) => {
+                handleSelectTournament(t.id);
+              }}
+              onBackToApp={() => setViewMode('TOURNAMENT_OVERVIEW')}
+              onRefreshData={() => {
+                dbService.fetchBootstrapData().then((data) => {
+                  if (data?.tournaments) setTournaments(data.tournaments);
+                  if (data?.teams) setTeams(data.teams);
+                  if (data?.players) setPlayers(data.players);
+                });
+              }}
+            />
+          ) : (
+            <div className="p-8 text-center space-y-4 max-w-md mx-auto my-12 bg-slate-900/60 border border-slate-800 rounded-3xl">
+              <h3 className="text-xl font-bold text-rose-400">Super Admin Access Required</h3>
+              <p className="text-xs text-slate-400">
+                You must be signed in with a Super Administrator account to view and manage platform data.
+              </p>
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold rounded-xl text-xs shadow-lg shadow-amber-500/20"
+              >
+                Sign In as Admin
+              </button>
+            </div>
+          )
+        )}
+
         {viewMode === 'TOURNAMENT_OVERVIEW' && (
           <TournamentDashboardView
             tournament={tournament}
-            allTournaments={tournaments}
+            allTournaments={visibleTournaments}
             teams={activeTeams}
             players={activePlayers}
             onSelectViewMode={setViewMode}
@@ -771,7 +846,7 @@ export function App() {
 
         {viewMode === 'TOURNAMENTS' && (
           <TournamentsListView
-            tournaments={tournaments}
+            tournaments={visibleTournaments}
             activeTournamentId={activeTournamentId}
             teams={teams}
             players={players}
@@ -927,6 +1002,13 @@ export function App() {
             if (data?.players) setPlayers(data.players);
           });
         }}
+      />
+
+      {/* Auth Modal (Sign In / Register / Quick 1-Click Demo) */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onSuccess={handleLoginSuccess}
       />
 
       {/* Footer Branding */}
