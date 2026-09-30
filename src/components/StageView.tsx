@@ -97,10 +97,10 @@ export const StageView: React.FC<StageViewProps> = ({
           ● MEGA AUCTION ARENA LIVE
         </span>
         <h2 className="text-3xl sm:text-5xl font-black text-white font-display mb-3">
-          ઓક્શન સ્ટેજ તૈયાર છે (STAGE READY)
+          AUCTION STAGE READY
         </h2>
         <p className="text-slate-300 max-w-lg text-sm sm:text-base leading-relaxed">
-          હવે ઓક્શન શરૂ કરવા માટે <strong>Auctioneer Desk</strong> માંથી ખેલાડીને પોડિયમ પર બોલાવો (Random Draw અથવા Select Player કરો).
+          To begin bidding, summon a player to the podium from the <strong>Auctioneer Desk</strong> (use Random Draw or select a player).
         </p>
         <div className="mt-6 flex items-center gap-2 text-xs font-bold text-slate-400">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />

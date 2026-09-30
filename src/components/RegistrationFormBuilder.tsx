@@ -48,7 +48,7 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
   );
   const [instructions, setInstructions] = useState(
     tournament.instructions ||
-      'કૃપા કરીને સાચો WhatsApp નંબર અને પાસપોર્ટ સાઈઝનો સ્પષ્ટ ફોટો અપલોડ કરો.'
+      'Please provide a valid WhatsApp number and upload a clear passport-size photo.'
   );
   const [upiId, setUpiId] = useState(tournament.upiId || 'cricketgpl@oksbi');
   const [gpayNumber, setGpayNumber] = useState(tournament.gpayNumber || '+91 98250 12345');
@@ -76,7 +76,7 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
   };
 
   const handleShareWhatsApp = () => {
-    const text = `🏏 *${tournament.name} • ${tournament.season}*\n\n🔥 પ્લેયર રજીસ્ટ્રેશન શરૂ થઈ ગયું છે! તમારો ફોટો, ક્રિકેટ સ્ટેટ્સ અને વિગતો ભરીને ટુર્નામેન્ટ ઓક્શનમાં સામેલ થવા માટે નીચેની લિંક પર ક્લિક કરો:\n\n👉 ${publicUrl}\n\n📌 છેલ્લી તારીખ: ${deadline}\n💰 એન્ટ્રી ફી: ₹${fee}`;
+    const text = `🏏 *${tournament.name} • ${tournament.season}*\n\n🔥 Player Registration is NOW OPEN! Fill your cricket stats, photo, and details to enter the auction pool:\n\n👉 ${publicUrl}\n\n📌 Deadline: ${deadline}\n💰 Entry Fee: ₹${fee}`;
     const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
   };
@@ -192,10 +192,10 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
           </div>
 
           <h2 className="text-2xl lg:text-3xl font-black text-white font-display">
-            પ્લેયર રજીસ્ટ્રેશન લિંક શેર કરો
+            Share Player Registration Link
           </h2>
           <p className="text-xs lg:text-sm text-slate-300 max-w-2xl leading-relaxed">
-            આ લિંક તમે WhatsApp ગ્રૂપ, ઇન્સ્ટાગ્રામ કે સોશિયલ મીડિયા પર શેર કરી શકો છો. ખેલાડીઓ પોતાના મોબાઈલમાંથી જ આ ફોર્મ ખોલીને નામ, ફોટો, અને તમારી માંગેલી બધી જ વિગતો ભરી શકશે.
+            Share this link via WhatsApp, Instagram, or social media. Players can open the form on mobile devices, upload photos, provide stats, and submit required information directly.
           </p>
 
           {/* Link Box with Copy Button */}
@@ -248,7 +248,7 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
                 </svg>
               </div>
               <p className="text-xs text-slate-300 font-bold">
-                પ્લેયર્સ મોબાઈલ કેમેરાથી આ QR સ્કેન કરીને સીધું રજીસ્ટ્રેશન ફોર્મ ખોલી શકે છે.
+                Players can scan this QR code with their mobile camera to open the registration form directly.
               </p>
             </div>
           )}
@@ -260,7 +260,7 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
               className="flex items-center gap-2 text-xs font-bold text-gold-400 hover:text-gold-300 underline underline-offset-4"
             >
               <Eye className="w-4 h-4" />
-              પ્લેયર રજીસ્ટ્રેશન ફોર્મ કેવું દેખાશે તે જુઓ (Live Preview)
+              Live Preview: View Player Registration Form
             </button>
           </div>
         </div>
@@ -271,7 +271,7 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
         <div className="flex items-center justify-between pb-3 border-b border-white/10">
           <div className="flex items-center gap-2 text-sm font-black uppercase tracking-wider text-slate-300">
             <Sliders className="w-4 h-4 text-electric-cyan" />
-            રજીસ્ટ્રેશન નિયમો અને સેટિંગ્સ
+            Registration Rules & Settings
           </div>
           <button
             onClick={() => setRegistrationOpen(!registrationOpen)}
@@ -294,7 +294,7 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <label className="text-xs font-bold text-slate-300 block mb-1">
-              એન્ટ્રી / રજીસ્ટ્રેશન ફી (₹)
+              Entry / Registration Fee (₹)
             </label>
             <input
               type="number"
@@ -308,7 +308,7 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
 
           <div>
             <label className="text-xs font-bold text-slate-300 block mb-1">
-              છેલ્લી તારીખ (Deadline)
+              Registration Deadline
             </label>
             <input
               type="date"
@@ -320,7 +320,7 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
 
           <div>
             <label className="text-xs font-bold text-slate-300 block mb-1">
-              ઓર્ગેનાઈઝર UPI ID (ફી સ્વીકારવા)
+              Organizer UPI ID (For Fee Collection)
             </label>
             <input
               type="text"
@@ -334,7 +334,7 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
 
         <div>
           <label className="text-xs font-bold text-slate-300 block mb-1">
-            ફોર્મની શરૂઆતમાં દર્શાવાતી સૂચના (Instructions for Players)
+            Instructions for Players (Displayed at Top of Form)
           </label>
           <textarea
             rows={2}
@@ -350,10 +350,10 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
         <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-white/10">
           <div>
             <h3 className="text-lg font-black text-white font-display flex items-center gap-2">
-              💳 Google Pay & UPI પેમેન્ટ ગેટવે સેટિંગ્સ
+              💳 Google Pay & UPI Payment Gateway Settings
             </h3>
             <p className="text-xs text-slate-400">
-              ખેલાડીઓ રજીસ્ટ્રેશન કરતી વખતે આ Google Pay નંબર કે સ્કેનરથી પેમેન્ટ કરશે અને સ્ક્રીનશોટ અપલોડ કરશે.
+              Players will pay using this Google Pay number or scanner during registration and upload the transaction screenshot.
             </p>
           </div>
           <button
@@ -368,7 +368,7 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
             {paymentMandatory ? (
               <>
                 <ToggleRight className="w-4 h-4 text-emerald-400" />
-                <span>Screenshot Mandatory (ફરજિયાત)</span>
+                <span>Screenshot Mandatory</span>
               </>
             ) : (
               <>
@@ -382,7 +382,7 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <label className="text-xs font-bold text-slate-300 block mb-1">
-              Google Pay નંબર (Phone Number)
+              Google Pay Number (Phone Number)
             </label>
             <input
               type="text"
@@ -408,7 +408,7 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
 
           <div>
             <label className="text-xs font-bold text-slate-300 block mb-1">
-              પેમેન્ટ મેળવનારનું નામ (Payee Name)
+              Payee Name (Account Holder)
             </label>
             <input
               type="text"
@@ -437,9 +437,9 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
           )}
 
           <div className="space-y-1.5 flex-1 text-center sm:text-left">
-            <h4 className="text-xs font-bold text-white">તમારું પોતાનું Google Pay / PhonePe QR સ્કેનર અપલોડ કરો</h4>
+            <h4 className="text-xs font-bold text-white">Upload Your Custom Google Pay / PhonePe QR Scanner</h4>
             <p className="text-[11px] text-slate-400">
-              જો તમારી પાસે દુકાન કે કમિટીનું Google Pay QR સ્કેનર હોય તો તેનો ફોટો અહીં અપલોડ કરો જેથી ખેલાડીઓ સીધું એ જ સ્કેન કરી શકે.
+              If your club or organization has an official Google Pay / UPI QR standee, upload it here so players can scan it directly.
             </p>
             <div className="flex flex-wrap items-center gap-3 pt-1">
               <input
@@ -467,10 +467,10 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
         <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-white/10">
           <div>
             <h3 className="text-lg font-black text-white font-display flex items-center gap-2">
-              📝 ફોર્મ પ્રશ્નો અને ફીલ્ડ્સ (Google Forms Style)
+              📝 Form Questions & Custom Fields (Google Forms Style)
             </h3>
             <p className="text-xs text-slate-400">
-              ડિફોલ્ટ ફીલ્ડ્સ (નામ, ફોટો, રોલ, સ્ટાઇલ) ઉપરાંત તમારે જે પણ માહિતી માંગવી હોય તે પ્રશ્નો અહીં ઉમેરો.
+              In addition to default fields (Name, Photo, Role, Style), add any custom questions required from tournament players.
             </p>
           </div>
         </div>
@@ -478,12 +478,12 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
         {/* Existing Custom Fields List */}
         <div className="space-y-3">
           <span className="text-[11px] font-bold uppercase tracking-wider text-gold-400 block">
-            તમે ઉમેરેલા કસ્ટમ પ્રશ્નો ({customFields.length})
+            Configured Custom Questions ({customFields.length})
           </span>
 
           {customFields.length === 0 ? (
             <p className="text-xs text-slate-500 italic p-4 text-center rounded-2xl bg-white/[0.02]">
-              હજુ સુધી કોઈ કસ્ટમ પ્રશ્ન ઉમેર્યો નથી. નીચેથી નવો પ્રશ્ન ઉમેરો.
+              No custom questions added yet. Add a new question below.
             </p>
           ) : (
             <div className="space-y-2.5">
@@ -541,17 +541,17 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
         <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 space-y-4">
           <span className="text-xs font-black uppercase tracking-wider text-slate-300 block flex items-center gap-1.5">
             <Plus className="w-4 h-4 text-gold-400" />
-            નવો પ્રશ્ન ઉમેરો (Add Custom Question)
+            Add Custom Question
           </span>
 
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
             <div className="sm:col-span-6">
               <label className="text-xs font-bold text-slate-300 block mb-1">
-                પ્રશ્નનું નામ (Question Title)
+                Question Title
               </label>
               <input
                 type="text"
-                placeholder="દા.ત. આધાર કાર્ડ નંબર, સરનામું, અગાઉની ટીમ..."
+                placeholder="e.g. Aadhaar Card No, Address, Previous Club..."
                 value={newLabel}
                 onChange={(e) => setNewLabel(e.target.value)}
                 className="w-full bg-obsidian-950 border border-white/10 rounded-xl px-3.5 py-2 text-sm text-white focus:border-gold-400 focus:outline-none"
@@ -560,18 +560,18 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
 
             <div className="sm:col-span-4">
               <label className="text-xs font-bold text-slate-300 block mb-1">
-                જવાબનો પ્રકાર (Input Type)
+                Input Type
               </label>
               <select
                 value={newType}
                 onChange={(e) => setNewType(e.target.value as FormFieldType)}
                 className="w-full bg-obsidian-950 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:border-gold-400 focus:outline-none"
               >
-                <option value="text">Text (ટુંકો જવાબ)</option>
-                <option value="number">Number (સંખ્યા)</option>
-                <option value="select">Dropdown (વિકલ્પોની યાદી)</option>
-                <option value="textarea">Paragraph (લાંબો જવાબ)</option>
-                <option value="checkbox">Checkbox (હા/ના સ્વીકાર)</option>
+                <option value="text">Text (Short Answer)</option>
+                <option value="number">Number</option>
+                <option value="select">Dropdown (Options List)</option>
+                <option value="textarea">Paragraph (Long Answer)</option>
+                <option value="checkbox">Checkbox (Yes/No Confirmation)</option>
               </select>
             </div>
 
@@ -583,7 +583,7 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
                   onChange={(e) => setNewRequired(e.target.checked)}
                   className="rounded border-white/20 text-gold-500 focus:ring-0"
                 />
-                <span>ફરજિયાત?</span>
+                <span>Required?</span>
               </label>
             </div>
           </div>
@@ -592,11 +592,11 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
           {newType === 'select' && (
             <div>
               <label className="text-xs font-bold text-slate-300 block mb-1">
-                વિકલ્પો લખો (અલ્પવિરામ / Comma વડે અલગ કરો)
+                Enter Options (Comma-separated)
               </label>
               <input
                 type="text"
-                placeholder="દા.ત. વિકલ્પ ૧, વિકલ્પ ૨, વિકલ્પ ૩"
+                placeholder="e.g. Option 1, Option 2, Option 3"
                 value={newOptionsStr}
                 onChange={(e) => setNewOptionsStr(e.target.value)}
                 className="w-full bg-obsidian-950 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:border-gold-400 focus:outline-none font-mono"
@@ -615,7 +615,7 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
               }`}
             >
               <Plus className="w-4 h-4" />
-              પ્રશ્ન ઉમેરો
+              Add Question
             </button>
           </div>
         </div>
@@ -623,7 +623,7 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
         {/* Save All Changes Button */}
         <div className="flex items-center justify-between pt-4 border-t border-white/10">
           <span className="text-xs text-slate-400">
-            બધા ફેરફારો તમારા લાઈવ પ્લેયર રજીસ્ટ્રેશન ફોર્મમાં તરત જ લાગુ થઈ જશે.
+            All updates are applied instantly to your live public player registration form.
           </span>
 
           <button

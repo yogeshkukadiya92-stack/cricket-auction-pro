@@ -271,23 +271,23 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
             🎙️
           </div>
           <h3 className="text-xl font-black text-white font-display">
-            કોઈ ખેલાડી પોડિયમ પર નથી (Podium is Empty)
+            Podium is Empty
           </h3>
           <p className="text-xs text-slate-400 leading-relaxed">
             {allPlayers.length === 0
-              ? 'હજુ સુધી કોઈ ખેલાડી રજીસ્ટર નથી થયો. "Reg. Form" માંથી લિંક શેર કરો અથવા ખેલાડીઓ ઉમેરો.'
-              : 'ઓક્શન શરૂ કરવા માટે નીચે આપેલા બટનથી ખેલાડીને પોડિયમ પર બોલાવો:'}
+              ? 'No players registered yet. Share the registration link from the "Reg. Form" tab or add players in "Players".'
+              : 'To begin the auction, bring a player to the podium below:'}
           </p>
           {availablePlayers.length > 0 ? (
             <button
               onClick={onRandomDraw}
               className="px-6 py-3 rounded-2xl bg-gold-500 hover:bg-gold-400 text-black font-black text-xs shadow-glow-gold active:scale-95 transition-all cursor-pointer"
             >
-              ખેલાડીને પોડિયમ પર બોલાવો (Call First Player to Block)
+              Call First Player to Block (Random Draw)
             </button>
           ) : (
             <p className="text-[11px] text-amber-400 font-semibold">
-              {allPlayers.length > 0 ? 'બધા જ ખેલાડીઓનું ઓક્શન પૂર્ણ થઈ ગયું છે.' : ''}
+              {allPlayers.length > 0 ? 'All players in this pool have completed their auction round.' : ''}
             </p>
           )}
         </div>

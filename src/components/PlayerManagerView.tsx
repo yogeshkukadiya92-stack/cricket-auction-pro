@@ -239,14 +239,14 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <h4 className="text-base font-black text-white font-display">
-                પ્લેયર ઓનલાઇન સેલ્ફ-રજીસ્ટ્રેશન લિંક
+                Player Online Self-Registration Link
               </h4>
               <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                 ACTIVE
               </span>
             </div>
             <p className="text-xs text-slate-300 mt-0.5">
-              ખેલાડીઓને WhatsApp ગ્રૂપમાં મોકલો જેથી તેઓ જાતે જ ફોટો અને માહિતી ભરીને ફોર્મ સબમિટ કરી શકે.
+              Share this link in WhatsApp groups so players can self-register with photos, cricket stats, and fees.
             </p>
           </div>
         </div>
@@ -256,7 +256,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
             onClick={() => {
               const url = `${window.location.origin}${window.location.pathname}?mode=register`;
               navigator.clipboard.writeText(url);
-              alert('✅ પ્લેયર રજીસ્ટ્રેશન લિંક કોપી થઈ ગઈ છે!');
+              alert('✅ Player registration link copied to clipboard!');
             }}
             className="px-4 py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/15 text-white border border-white/10 active:scale-95 transition-all"
           >
@@ -358,10 +358,10 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
             🏏
           </div>
           <h3 className="text-2xl font-black text-white font-display">
-            કોઈ ખેલાડી મળ્યો નથી (No Players Found)
+            No Players Found
           </h3>
           <p className="text-xs text-slate-400 leading-relaxed">
-            તમારા લાઈવ ઓક્શનમાં હજુ સુધી કોઈ ખેલાડી ઉમેરાયા નથી. તમે ખેલાડીઓને રજીસ્ટ્રેશન લિંક મોકલી શકો છો, CSV થી એકસાથે ઈમ્પોર્ટ કરી શકો છો અથવા જાતે ઉમેરી શકો છો.
+            No players have been added to your live auction yet. Share the registration link with players, import via CSV, or add players manually.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             {onNavigateToFormBuilder && (
@@ -370,7 +370,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
                 className="px-4 py-2.5 rounded-xl text-xs font-black bg-gold-500 hover:bg-gold-400 text-black shadow-glow-gold active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
               >
                 <Link className="w-3.5 h-3.5" />
-                રજીસ્ટ્રેશન લિંક અને QR કોડ જુઓ
+                View Registration Link & QR
               </button>
             )}
             <button
@@ -378,7 +378,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
               className="px-4 py-2.5 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/15 text-white border border-white/10 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
-              નવો ખેલાડી ઉમેરો
+              Add New Player
             </button>
           </div>
         </div>
@@ -508,7 +508,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
                       type="button"
                       onClick={() => setSelectedReceiptPlayer(player)}
                       className="px-2 py-0.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 font-bold text-[10px] transition-all cursor-pointer"
-                      title="પેમેન્ટ સ્ક્રીનશોટ અને UTR ચકાસો"
+                      title="Verify payment screenshot and UTR"
                     >
                       <Eye className="w-3 h-3" />
                       <span>Receipt</span>
@@ -704,10 +704,10 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
                 </div>
                 <div>
                   <h3 className="text-lg font-black text-white font-display">
-                    Google Pay પેમેન્ટ વેરિફિકેશન (Payment Audit)
+                    Google Pay Payment Verification (Payment Audit)
                   </h3>
                   <p className="text-xs text-slate-400">
-                    ખેલાડીએ અપલોડ કરેલો Google Pay પેમેન્ટ સ્ક્રીનશોટ અને UTR નંબર
+                    Review player uploaded Google Pay payment screenshot and UTR number
                   </p>
                 </div>
               </div>
@@ -734,7 +734,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
                       alt="Payment Screenshot"
                       className="max-h-72 w-full object-contain rounded-xl bg-black/60 border border-white/10 shadow-lg cursor-zoom-in"
                       onClick={() => window.open(selectedReceiptPlayer.paymentScreenshotUrl, '_blank')}
-                      title="ક્લિક કરીને ફુલ સાઇઝમાં જુઓ"
+                      title="Click to view full size"
                     />
                     <a
                       href={selectedReceiptPlayer.paymentScreenshotUrl}
@@ -743,12 +743,12 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
                       className="mt-2 text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1.5 underline"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
-                      નવી વિન્ડોમાં ફુલ-સાઇઝ ફોટો ખોલો
+                      Open full-size image in new tab
                     </a>
                   </div>
                 ) : (
                   <div className="py-12 text-slate-500 text-xs">
-                    કોઈ સ્ક્રીનશોટ અપલોડ થયો નથી.
+                    No screenshot uploaded.
                   </div>
                 )}
               </div>
@@ -778,7 +778,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
                 {/* Payment Breakdown Box */}
                 <div className="p-3.5 rounded-2xl bg-obsidian-950 border border-white/10 space-y-2.5 text-xs">
                   <div className="flex justify-between items-center pb-2 border-b border-white/10">
-                    <span className="text-slate-400">ચુકવેલ રકમ (Amount):</span>
+                    <span className="text-slate-400">Amount Paid:</span>
                     <span className="text-base font-black text-emerald-400 font-mono">
                       ₹{selectedReceiptPlayer.paymentAmount || 500}
                     </span>
@@ -789,13 +789,13 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
                       Google Pay UPI Ref / UTR No:
                     </span>
                     <div className="p-2 rounded-xl bg-white/5 border border-white/10 font-mono text-xs text-white font-bold flex items-center justify-between select-all">
-                      <span>{selectedReceiptPlayer.paymentUtr || 'સ્ક્રીનશોટમાં ચેક કરો (Not typed)'}</span>
+                      <span>{selectedReceiptPlayer.paymentUtr || 'Check inside screenshot (Not typed)'}</span>
                       {selectedReceiptPlayer.paymentUtr && (
                         <button
                           type="button"
                           onClick={() => {
                             navigator.clipboard.writeText(selectedReceiptPlayer.paymentUtr || '');
-                            alert('UTR કોપી થઈ ગયો!');
+                            alert('UTR copied to clipboard!');
                           }}
                           className="text-[10px] text-gold-400 hover:underline cursor-pointer"
                         >
@@ -806,7 +806,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
                   </div>
 
                   <div className="flex justify-between text-[11px] text-slate-400 pt-1">
-                    <span>રજીસ્ટ્રેશન તારીખ:</span>
+                    <span>Registration Date:</span>
                     <span className="font-mono text-slate-200">
                       {selectedReceiptPlayer.registeredAt
                         ? new Date(selectedReceiptPlayer.registeredAt).toLocaleDateString()
@@ -819,7 +819,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
                 <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-300 flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
                   <span>
-                    તમારા Google Pay સ્ટેટમેન્ટમાં ₹{selectedReceiptPlayer.paymentAmount || 500} અને UTR ચકાસ્યા પછી જ Approve કરો.
+                    Verify ₹{selectedReceiptPlayer.paymentAmount || 500} and UTR in your Google Pay statement before approving.
                   </span>
                 </div>
               </div>
@@ -832,7 +832,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
                 onClick={() => setSelectedReceiptPlayer(null)}
                 className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white cursor-pointer"
               >
-                બંધ કરો (Close)
+                Close
               </button>
 
               {selectedReceiptPlayer.approvalStatus === 'PENDING' && (

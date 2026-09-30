@@ -122,7 +122,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               onClick={onEraseDemoData}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-bold transition-all cursor-pointer"
-              title="બધા જ ડેમો ડેટા ભૂંસી નાખો (Erase All Demo Data)"
+              title="Erase All Demo Data and Start Fresh"
             >
               <Trash2 className="w-3.5 h-3.5 text-red-400" />
               <span className="hidden md:inline">Erase Demo Data</span>

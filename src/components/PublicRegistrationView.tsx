@@ -132,13 +132,13 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName.trim() || !mobile.trim()) {
-      alert('કૃપા કરીને પૂરું નામ અને મોબાઈલ નંબર દાખલ કરો.');
+      alert('Please enter your full name and valid mobile number.');
       return;
     }
 
     if (tournament.paymentMandatory && !paymentScreenshotUrl) {
       alert(
-        '⚠️ પેમેન્ટનો સ્ક્રીનશોટ અપલોડ કરવો ફરજિયાત છે. આગળ વધવા માટે કૃપા કરીને Google Pay પેમેન્ટ કરીને સ્ક્રીનશોટ અપલોડ કરો.'
+        '⚠️ Payment screenshot is mandatory. Please complete payment via Google Pay and upload the screenshot to proceed.'
       );
       return;
     }
@@ -179,7 +179,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
   // Preview Player object for the live 3D card
   const previewPlayer: Player = {
     id: 'preview-id',
-    name: fullName.trim() || 'તમારું નામ (Player Name)',
+    name: fullName.trim() || 'Your Name (Player Name)',
     photoUrl,
     role,
     category: 'SET_A',
@@ -218,10 +218,10 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
               REGISTRATION CONFIRMED
             </span>
             <h2 className="text-3xl font-black text-white font-display mt-3">
-              અભિનંદન, {registeredPlayer.name}!
+              Congratulations, {registeredPlayer.name}!
             </h2>
             <p className="text-xs text-slate-300 mt-1">
-              તમારું રજીસ્ટ્રેશન <strong>{tournament.name}</strong> ના ઓક્શન પૂલમાં સફળતાપૂર્વક નોંધાઈ ગયું છે.
+              Your registration has been successfully submitted to the auction pool of <strong>{tournament.name}</strong>.
             </p>
           </div>
 
@@ -276,15 +276,15 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                     alt="Payment Receipt"
                     className="w-12 h-12 rounded-xl object-cover border border-emerald-400/40 cursor-pointer shadow"
                     onClick={() => window.open(registeredPlayer.paymentScreenshotUrl, '_blank')}
-                    title="ક્લિક કરીને આખો સ્ક્રીનશોટ જુઓ"
+                    title="Click to view full screenshot"
                   />
                   <div>
                     <span className="text-[10px] uppercase font-black text-emerald-400 flex items-center gap-1">
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      Google Pay પેમેન્ટ સ્વીકારાયું
+                      Google Pay Payment Verified
                     </span>
                     <p className="text-xs font-black text-white font-mono">
-                      ₹{registeredPlayer.paymentAmount || 500} ચુકવણી સ્ક્રીનશોટ અટેચ છે
+                      ₹{registeredPlayer.paymentAmount || 500} payment screenshot attached
                     </p>
                     {registeredPlayer.paymentUtr && (
                       <span className="text-[10px] text-slate-400 font-mono block">
@@ -299,7 +299,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
               </div>
             ) : (
               <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between text-xs">
-                <span className="text-slate-400">પેમેન્ટ સ્ટેટસ:</span>
+                <span className="text-slate-400">Payment Status:</span>
                 <span className="font-bold text-slate-300">Free / Not Required</span>
               </div>
             )}
@@ -310,7 +310,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
               onClick={() => window.print()}
               className="w-full py-3 rounded-xl font-black text-xs bg-gold-500 hover:bg-gold-400 text-black shadow-glow-gold active:scale-95 transition-all"
             >
-              પ્રિન્ટ અથવા સેવ સ્લિપ (Download Pass)
+              Print / Download Digital Pass
             </button>
 
             {onBackToDashboard && (
@@ -318,7 +318,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                 onClick={onBackToDashboard}
                 className="w-full py-2.5 rounded-xl font-bold text-xs bg-white/10 hover:bg-white/15 text-slate-300 transition-all"
               >
-                મુખ્ય ડેશબોર્ડ પર પાછા જાઓ
+                Back to Main Dashboard
               </button>
             )}
           </div>
@@ -387,7 +387,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
 
           {tournament.instructions && (
             <p className="text-xs text-slate-300 leading-relaxed pt-1">
-              📌 <strong>મહત્વની સૂચના:</strong> {tournament.instructions}
+              📌 <strong>Important Instructions:</strong> {tournament.instructions}
               {tournament.upiId && (
                 <span className="block mt-1 font-mono text-gold-400">
                   UPI ID for Entry Fee: <strong>{tournament.upiId}</strong>
@@ -402,24 +402,24 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
           <div className="lg:col-span-7">
             <form onSubmit={handleSubmit} className="p-6 sm:p-8 rounded-3xl glass-panel border border-white/10 space-y-6">
               <h2 className="text-xl font-black text-white font-display border-b border-white/10 pb-3">
-                પ્લેયર પ્રોફાઇલ વિગતો ભરો
+                Player Profile & Registration
               </h2>
 
               {/* Step 1: Basic Identity */}
               <div className="space-y-4">
                 <span className="text-xs font-bold uppercase tracking-wider text-gold-400 block">
-                  ૧. પ્રાથમિક માહિતી (Basic Info)
+                  1. Basic Identity
                 </span>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs font-bold text-slate-300 block mb-1">
-                      તમારું પૂરું નામ (Full Name) <span className="text-red-400">*</span>
+                      Full Name <span className="text-red-400">*</span>
                     </label>
                     <input
                       type="text"
                       required
-                      placeholder="દા.ત. પ્રિયેશ પટેલ"
+                      placeholder="e.g. Priyesh Patel"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       className="w-full bg-obsidian-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white focus:border-gold-400 focus:outline-none"
@@ -428,7 +428,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
 
                   <div>
                     <label className="text-xs font-bold text-slate-300 block mb-1">
-                      WhatsApp / મોબાઈલ નંબર <span className="text-red-400">*</span>
+                      WhatsApp / Mobile Number <span className="text-red-400">*</span>
                     </label>
                     <input
                       type="tel"
@@ -443,7 +443,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
 
                 <div>
                   <label className="text-xs font-bold text-slate-300 block mb-1">
-                    ઈમેલ એડ્રેસ (Email) - વૈકલ્પિક
+                    Email Address (Optional)
                   </label>
                   <input
                     type="email"
@@ -458,12 +458,12 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
               {/* Step 2: Cricket Credentials */}
               <div className="space-y-4 pt-4 border-t border-white/10">
                 <span className="text-xs font-bold uppercase tracking-wider text-gold-400 block">
-                  ૨. ક્રિકેટ રોલ અને સ્ટાઇલ (Playing Style)
+                  2. Cricket Playing Style & Stats
                 </span>
 
                 <div>
                   <label className="text-xs font-bold text-slate-300 block mb-2">
-                    તમારો મુખ્ય રોલ પસંદ કરો:
+                    Select Primary Cricket Role:
                   </label>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                     {[
@@ -496,7 +496,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs font-bold text-slate-300 block mb-1">
-                      બેટિંગ સ્ટાઇલ (Batting Style)
+                      Batting Style
                     </label>
                     <select
                       value={battingStyle}
@@ -513,7 +513,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
 
                   <div>
                     <label className="text-xs font-bold text-slate-300 block mb-1">
-                      બોલિંગ સ્ટાઇલ (Bowling Style)
+                      Bowling Style
                     </label>
                     <select
                       value={bowlingStyle}
@@ -534,7 +534,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                 {/* Stats */}
                 <div className="grid grid-cols-4 gap-2 pt-2">
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 block mb-1">મેચ (Matches)</label>
+                    <label className="text-[10px] font-bold text-slate-400 block mb-1">Matches</label>
                     <input
                       type="number"
                       value={matches}
@@ -543,7 +543,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 block mb-1">કુલ રન (Runs)</label>
+                    <label className="text-[10px] font-bold text-slate-400 block mb-1">Total Runs</label>
                     <input
                       type="number"
                       value={runs}
@@ -552,7 +552,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 block mb-1">વિકેટ્સ (Wkts)</label>
+                    <label className="text-[10px] font-bold text-slate-400 block mb-1">Wickets</label>
                     <input
                       type="number"
                       value={wickets}
@@ -561,7 +561,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 block mb-1">સ્ટ્રાઈક રેટ (SR)</label>
+                    <label className="text-[10px] font-bold text-slate-400 block mb-1">Strike Rate (SR)</label>
                     <input
                       type="number"
                       step="0.1"
@@ -576,7 +576,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
               {/* Step 3: Photo Upload */}
               <div className="space-y-3 pt-4 border-t border-white/10">
                 <span className="text-xs font-bold uppercase tracking-wider text-gold-400 block">
-                  ૩. પાસપોર્ટ સાઇઝ ફોટો (Live Stage Photo)
+                  3. Passport Size Stage Photo
                 </span>
                 <div className="p-4 rounded-2xl bg-white/[0.02] border border-dashed border-white/20 flex flex-col sm:flex-row items-center gap-4">
                   <img
@@ -585,9 +585,9 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                     className="w-20 h-20 rounded-2xl object-cover border-2 border-gold-400/50 shadow-md"
                   />
                   <div className="flex-1 space-y-1 text-center sm:text-left">
-                    <p className="text-xs font-bold text-white">સ્પષ્ટ ચહેરાવાળો ફોટો અપલોડ કરો</p>
+                    <p className="text-xs font-bold text-white">Upload a clear, front-facing photo</p>
                     <p className="text-[11px] text-slate-400">
-                      ઓક્શન સ્ટેજ પર જ્યારે ટીમો તમારા પર બોલી લગાવશે ત્યારે આ ફોટો 3D કાર્ડમાં દેખાશે.
+                      This photo will be displayed on 3D player cards and live projector screens during the auction.
                     </p>
                     <input
                       type="file"
@@ -603,7 +603,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
               {customFields.length > 0 && (
                 <div className="space-y-4 pt-4 border-t border-white/10">
                   <span className="text-xs font-bold uppercase tracking-wider text-gold-400 block">
-                    ૪. વધારાની વિગતો (Additional Tournament Details)
+                    4. Additional Tournament Details
                   </span>
 
                   <div className="space-y-3">
@@ -652,7 +652,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                               onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
                               className="w-full bg-obsidian-950 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:border-gold-400 focus:outline-none"
                             >
-                              <option value="">-- પસંદ કરો --</option>
+                              <option value="">-- Select Option --</option>
                               {field.options?.map((opt) => (
                                 <option key={opt} value={opt}>
                                   {opt}
@@ -681,7 +681,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                                 onChange={(e) => handleCustomFieldChange(field.id, e.target.checked)}
                                 className="rounded text-gold-500"
                               />
-                              <span>હું ટુર્નામેન્ટના તમામ નિયમોનું પાલન કરવાની બાંયધરી આપું છું.</span>
+                              <span>I agree to abide by all official tournament rules and guidelines.</span>
                             </label>
                           )}
                         </div>
@@ -709,19 +709,19 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                           </span>
                           {tournament.paymentMandatory && (
                             <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">
-                              ફરજિયાત (Mandatory)
+                              Mandatory
                             </span>
                           )}
                         </div>
                         <h3 className="text-lg font-black text-white font-display mt-0.5">
-                          Google Pay & UPI પેમેન્ટ અને સ્ક્રીનશોટ
+                          Google Pay & UPI Payment & Verification
                         </h3>
                       </div>
                     </div>
 
                     <div className="text-right">
                       <span className="text-[10px] text-slate-400 uppercase font-bold block">
-                        રજીસ્ટ્રેશન ફી (Registration Fee)
+                        Registration Fee
                       </span>
                       <span className="text-2xl font-black text-gold-400 font-mono">
                         ₹{regFee}
@@ -730,7 +730,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                   </div>
 
                   <p className="text-xs text-slate-300 leading-relaxed">
-                    નીચે દર્શાવેલા <strong>Google Pay સ્કેનર</strong> અથવા <strong>Google Pay નંબર</strong> પર <strong>₹{regFee}</strong> ટ્રાન્સફર કરી, પેમેન્ટ સફળ થયાનો સ્ક્રીનશોટ અહીં અપલોડ કરો. સ્ક્રીનશોટ અપલોડ કર્યા પછી જ તમારું રજીસ્ટ્રેશન કન્ફર્મ થશે.
+                    Transfer <strong>₹{regFee}</strong> to the <strong>Google Pay Scanner</strong> or <strong>Mobile Number</strong> below, then upload your transaction screenshot. Your registration will be confirmed upon review.
                   </p>
 
                   {/* Payment Details & QR Layout */}
@@ -739,7 +739,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                     <div className="md:col-span-5 p-4 rounded-2xl bg-obsidian-950 border border-white/10 flex flex-col items-center justify-between text-center relative group">
                       <div className="w-full flex items-center justify-between text-[11px] font-bold text-slate-400 mb-2">
                         <span className="flex items-center gap-1 text-gold-400">
-                          <QrCode className="w-3.5 h-3.5" /> સ્કેન કરીને પે કરો
+                          <QrCode className="w-3.5 h-3.5" /> Scan & Pay with Any UPI App
                         </span>
                         <span className="text-emerald-400 font-mono font-bold">ALL UPI APPS</span>
                       </div>
@@ -760,7 +760,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                       {/* Payee Info */}
                       <div className="w-full mt-3 pt-2 border-t border-white/10">
                         <span className="text-[10px] text-slate-400 block uppercase">
-                          Payee (નામ)
+                          Payee Name
                         </span>
                         <span className="text-xs font-black text-white truncate block">
                           {gpayName}
@@ -773,7 +773,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                         className="w-full mt-2.5 py-2.5 px-3 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-500 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs flex items-center justify-center gap-2 shadow active:scale-95 transition-all"
                       >
                         <Smartphone className="w-3.5 h-3.5" />
-                        <span>Google Pay એપમાં ખોલો (Pay Directly)</span>
+                        <span>Open in Google Pay (Pay Directly)</span>
                         <ExternalLink className="w-3 h-3 opacity-80" />
                       </a>
                     </div>
@@ -786,7 +786,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                         <div className="p-3 rounded-2xl bg-obsidian-950 border border-white/10 flex items-center justify-between">
                           <div>
                             <span className="text-[10px] text-slate-400 uppercase font-bold block">
-                              Google Pay નંબર (Mobile No.)
+                              Google Pay Number (Mobile)
                             </span>
                             <span className="text-sm font-black text-gold-400 font-mono tracking-wider">
                               {gpayNumber}
@@ -846,10 +846,10 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                         <label className="text-xs font-bold text-slate-200 flex items-center justify-between">
                           <span className="flex items-center gap-1.5">
                             <ImageIcon className="w-4 h-4 text-emerald-400" />
-                            પેમેન્ટ સ્ક્રીનશોટ અપલોડ કરો (Upload Screenshot)
+                            Upload Payment Screenshot
                           </span>
                           <span className="text-[10px] font-extrabold text-amber-400">
-                            * {tournament.paymentMandatory ? 'ફરજિયાત' : 'ઓપ્શનલ'}
+                            * {tournament.paymentMandatory ? 'Mandatory' : 'Optional'}
                           </span>
                         </label>
 
@@ -864,13 +864,13 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                             <div className="flex-1 text-center sm:text-left space-y-1">
                               <span className="inline-flex items-center gap-1 text-xs font-black text-emerald-400">
                                 <CheckCircle2 className="w-4 h-4" />
-                                સ્ક્રીનશોટ સફળતાપૂર્વક અપલોડ થયો!
+                                Screenshot uploaded successfully!
                               </span>
                               <p className="text-[11px] text-slate-300">
-                                ઓર્ગેનાઈઝર કમિટી આ સ્ક્રીનશોટ અને UTR ચકાસીને તમારું ઓક્શન લોટ મંજૂર કરશે.
+                                The tournament committee will audit this screenshot and UTR to approve your lot in the auction.
                               </p>
                               <label className="inline-block text-xs font-bold text-gold-400 hover:text-gold-300 underline cursor-pointer mt-1">
-                                <span>બીજો સ્ક્રીનશોટ બદલવો છે? (Replace)</span>
+                                <span>Replace Screenshot</span>
                                 <input
                                   type="file"
                                   accept="image/*"
@@ -887,13 +887,13 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                               <Upload className="w-6 h-6" />
                             </div>
                             <span className="text-xs font-black text-white group-hover:text-gold-300 transition-colors">
-                              અહીં ક્લિક કરીને પેમેન્ટ સ્ક્રીનશોટ પસંદ કરો
+                              Click to upload payment screenshot
                             </span>
                             <span className="text-[11px] text-slate-400 mt-0.5">
-                              Google Pay Success સ્ક્રીનનો ફોટો (JPG, PNG)
+                              Google Pay Payment Success screen (JPG, PNG)
                             </span>
                             <span className="text-[10px] text-amber-400/90 font-semibold mt-2 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20">
-                              ⚠️ સ્ક્રીનશોટ વગર રજીસ્ટ્રેશન સબમિટ નહીં થાય
+                              ⚠️ Screenshot required to complete registration
                             </span>
                             <input
                               type="file"
@@ -909,17 +909,17 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                       {/* 3. Transaction UTR / Ref Number */}
                       <div>
                         <label className="text-xs font-bold text-slate-300 block mb-1">
-                          Google Pay UPI Reference / UTR નંબર (વૈકલ્પિક અથવા 12-અંકનો નંબર)
+                          Google Pay UPI Reference / UTR Number (Optional 12-digit number)
                         </label>
                         <input
                           type="text"
                           value={paymentUtr}
                           onChange={(e) => setPaymentUtr(e.target.value)}
-                          placeholder="e.g. 423871928341 (Google Pay માંથી)"
+                          placeholder="e.g. 423871928341 (From Google Pay)"
                           className="w-full bg-obsidian-950 border border-white/10 rounded-xl px-3.5 py-2 text-xs font-mono text-white focus:border-gold-400 focus:outline-none"
                         />
                         <span className="text-[10px] text-slate-500 mt-1 block">
-                          ગૂગલ પે ટ્રાન્ઝેક્શન ડિટેલ્સમાં 12-અંકનો 'UPI Transaction ID' અથવા 'UPI Ref No.' જોવા મળશે.
+                          Find the 12-digit 'UPI Transaction ID' or 'UPI Ref No.' in your Google Pay transaction details.
                         </span>
                       </div>
                     </div>
@@ -933,7 +933,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                   <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-2.5 text-xs text-amber-300">
                     <AlertCircle className="w-5 h-5 text-amber-400 shrink-0" />
                     <span>
-                      <strong>પેમેન્ટ સ્ક્રીનશોટ બાકી છે:</strong> ફોર્મ સબમિટ કરવા માટે કૃપા કરીને ઉપર આપેલા Google Pay સ્કેનર પર ₹{regFee} પે કરીને સ્ક્રીનશોટ અપલોડ કરો.
+                      <strong>Payment Screenshot Required:</strong> Please transfer ₹{regFee} to the Google Pay scanner above and upload the screenshot to submit.
                     </span>
                   </div>
                 )}
@@ -950,17 +950,17 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                   {tournament.paymentMandatory && !paymentScreenshotUrl ? (
                     <>
                       <Lock className="w-4 h-4 text-amber-400" />
-                      <span>પેમેન્ટ સ્ક્રીનશોટ અપલોડ કરો (Upload Screenshot to Submit)</span>
+                      <span>Upload Screenshot to Submit</span>
                     </>
                   ) : (
                     <>
-                      <span>સબમિટ કરો (Submit Official Registration)</span>
+                      <span>Submit Official Registration</span>
                       <ArrowRight className="w-4 h-4" />
                     </>
                   )}
                 </button>
                 <p className="text-[11px] text-slate-500 text-center">
-                  સબમિટ કર્યા પછી તમને તમારો ડિજિટલ પ્લેયર રજીસ્ટ્રેશન પાસ અને રસીદ મળશે.
+                  You will receive your official digital player pass and confirmation receipt upon submission.
                 </p>
               </div>
             </form>
@@ -974,7 +974,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                 LIVE 3D AUCTION CARD PREVIEW
               </span>
               <p className="text-[11px] text-slate-400">
-                જેમ જેમ તમે ફોર્મ ભરશો તેમ તેમ તમારું ઓક્શન કાર્ડ રીયલ-ટાઇમમાં અપડેટ થશે:
+                Your auction card updates in real-time as you fill out the form:
               </p>
             </div>
 

@@ -31,9 +31,9 @@ export const TeamPaddleView: React.FC<TeamPaddleViewProps> = ({
         <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto text-2xl text-amber-400">
           🛡️
         </div>
-        <h3 className="text-xl font-bold text-white">કોઈ ટીમ મળી નથી (No Teams Available)</h3>
+        <h3 className="text-xl font-bold text-white">No Teams Available</h3>
         <p className="text-xs text-slate-400 leading-relaxed">
-          કૃપા કરીને પહેલાં "Franchises" ટેબમાં જઈને તમારી ટીમો બનાવો જેથી પેડલ એક્ટિવેટ થઈ શકે.
+          Please create teams in the "Franchises" tab first so team paddles can be activated.
         </p>
       </div>
     );

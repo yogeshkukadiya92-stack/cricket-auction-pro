@@ -469,7 +469,7 @@ export function App() {
   const handleEraseAllDemoData = () => {
     if (
       confirm(
-        '⚠️ શું તમે ખરેખર બધા જ ડેમો પ્લેયર્સ અને ટેસ્ટ ડેટા સાફ કરીને નવું લાઈવ ઓક્શન શરૂ કરવા માંગો છો? (Are you sure you want to erase all demo data and start a clean live tournament?)'
+        '⚠️ Are you sure you want to erase all demo data and start a clean live tournament? This will reset all players, bids, and team purses.'
       )
     ) {
       localStorage.removeItem('cap_players');
@@ -488,7 +488,7 @@ export function App() {
       syncEngine.broadcast({
         type: 'CLEAR_ALL_DATA',
       });
-      alert('✨ બધા જ ડેમો ડેટા ભૂંસી નાખ્યા છે! તમારી સિસ્ટમ હવે ૧૦૦% ફ્રેશ અને લાઈવ ઓક્શન માટે તૈયાર છે.');
+      alert('✨ All demo data erased! Your system is now 100% fresh and ready for the live auction.');
     }
   };
 
