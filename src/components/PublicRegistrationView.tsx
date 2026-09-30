@@ -22,6 +22,14 @@ import {
   Share2,
   ArrowLeft,
   Smartphone,
+  Copy,
+  Check,
+  ExternalLink,
+  Lock,
+  QrCode,
+  CreditCard,
+  Image as ImageIcon,
+  FileCheck,
 } from 'lucide-react';
 
 interface PublicRegistrationViewProps {
@@ -54,6 +62,12 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
   // Dynamic Custom Fields values: { fieldId: value }
   const [customValues, setCustomValues] = useState<Record<string, any>>({});
 
+  // Payment State
+  const [paymentScreenshotUrl, setPaymentScreenshotUrl] = useState('');
+  const [paymentUtr, setPaymentUtr] = useState('');
+  const [copiedGpay, setCopiedGpay] = useState(false);
+  const [copiedUpi, setCopiedUpi] = useState(false);
+
   // Submission State
   const [submitted, setSubmitted] = useState(false);
   const [registeredPlayer, setRegisteredPlayer] = useState<Player | null>(null);
@@ -77,10 +91,55 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
     }
   };
 
+  const handlePaymentScreenshotUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          setPaymentScreenshotUrl(reader.result);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const gpayNumber = tournament.gpayNumber || '+91 98250 12345';
+  const upiId = tournament.upiId || 'cricket.committee@okhdfcbank';
+  const gpayName = tournament.gpayName || tournament.name || 'GPL Cricket Committee';
+  const regFee = tournament.registrationFee !== undefined ? tournament.registrationFee : 500;
+  const isPaymentRequired = regFee > 0 || tournament.paymentMandatory;
+
+  // UPI deep link
+  const cleanUpi = upiId.trim();
+  const upiDeepLink = `upi://pay?pa=${encodeURIComponent(cleanUpi)}&pn=${encodeURIComponent(gpayName)}&am=${regFee}&cu=INR&tn=${encodeURIComponent(`${tournament.name} Player Entry Fee`)}`;
+
+  // Dynamic QR generator link fallback
+  const generatedQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=12&data=${encodeURIComponent(upiDeepLink)}`;
+  const activeQrUrl = tournament.gpayQrUrl || generatedQrUrl;
+
+  const handleCopyText = (text: string, type: 'gpay' | 'upi') => {
+    navigator.clipboard.writeText(text);
+    if (type === 'gpay') {
+      setCopiedGpay(true);
+      setTimeout(() => setCopiedGpay(false), 2000);
+    } else {
+      setCopiedUpi(true);
+      setTimeout(() => setCopiedUpi(false), 2000);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName.trim() || !mobile.trim()) {
       alert('કૃપા કરીને પૂરું નામ અને મોબાઈલ નંબર દાખલ કરો.');
+      return;
+    }
+
+    if (tournament.paymentMandatory && !paymentScreenshotUrl) {
+      alert(
+        '⚠️ પેમેન્ટનો સ્ક્રીનશોટ અપલોડ કરવો ફરજિયાત છે. આગળ વધવા માટે કૃપા કરીને Google Pay પેમેન્ટ કરીને સ્ક્રીનશોટ અપલોડ કરો.'
+      );
       return;
     }
 
@@ -106,6 +165,10 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
       registeredAt: new Date().toISOString(),
       lotOrder: Math.floor(Math.random() * 900) + 100,
       customData: customValues,
+      paymentScreenshotUrl,
+      paymentUtr: paymentUtr.trim(),
+      paymentStatus: paymentScreenshotUrl ? 'PAID' : 'PENDING',
+      paymentAmount: tournament.registrationFee || 500,
     };
 
     onRegisterPlayer(newPlayer);
@@ -201,6 +264,43 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            {/* Payment Verification Receipt Badge */}
+            {registeredPlayer.paymentScreenshotUrl ? (
+              <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-left">
+                <div className="flex items-center gap-3">
+                  <img
+                    src={registeredPlayer.paymentScreenshotUrl}
+                    alt="Payment Receipt"
+                    className="w-12 h-12 rounded-xl object-cover border border-emerald-400/40 cursor-pointer shadow"
+                    onClick={() => window.open(registeredPlayer.paymentScreenshotUrl, '_blank')}
+                    title="ક્લિક કરીને આખો સ્ક્રીનશોટ જુઓ"
+                  />
+                  <div>
+                    <span className="text-[10px] uppercase font-black text-emerald-400 flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Google Pay પેમેન્ટ સ્વીકારાયું
+                    </span>
+                    <p className="text-xs font-black text-white font-mono">
+                      ₹{registeredPlayer.paymentAmount || 500} ચુકવણી સ્ક્રીનશોટ અટેચ છે
+                    </p>
+                    {registeredPlayer.paymentUtr && (
+                      <span className="text-[10px] text-slate-400 font-mono block">
+                        UTR: {registeredPlayer.paymentUtr}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                  PAID
+                </span>
+              </div>
+            ) : (
+              <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between text-xs">
+                <span className="text-slate-400">પેમેન્ટ સ્ટેટસ:</span>
+                <span className="font-bold text-slate-300">Free / Not Required</span>
               </div>
             )}
           </div>
@@ -591,17 +691,276 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                 </div>
               )}
 
+              {/* Step 5: Google Pay Payment & Verification */}
+              {isPaymentRequired && (
+                <div className="p-6 rounded-3xl bg-gradient-to-b from-obsidian-900 via-obsidian-900 to-obsidian-950 border-2 border-gold-400/40 shadow-glow-gold/30 space-y-6 relative overflow-hidden">
+                  {/* Glowing header banner */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-white/10">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-500 via-emerald-400 to-yellow-400 p-0.5 shadow">
+                        <div className="w-full h-full bg-obsidian-950 rounded-[14px] flex items-center justify-center">
+                          <Smartphone className="w-5 h-5 text-gold-400" />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-gold-500/20 text-gold-300 border border-gold-400/30">
+                            STEP 5 • OFFICIAL PAYMENT
+                          </span>
+                          {tournament.paymentMandatory && (
+                            <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">
+                              ફરજિયાત (Mandatory)
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="text-lg font-black text-white font-display mt-0.5">
+                          Google Pay & UPI પેમેન્ટ અને સ્ક્રીનશોટ
+                        </h3>
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block">
+                        રજીસ્ટ્રેશન ફી (Registration Fee)
+                      </span>
+                      <span className="text-2xl font-black text-gold-400 font-mono">
+                        ₹{regFee}
+                      </span>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    નીચે દર્શાવેલા <strong>Google Pay સ્કેનર</strong> અથવા <strong>Google Pay નંબર</strong> પર <strong>₹{regFee}</strong> ટ્રાન્સફર કરી, પેમેન્ટ સફળ થયાનો સ્ક્રીનશોટ અહીં અપલોડ કરો. સ્ક્રીનશોટ અપલોડ કર્યા પછી જ તમારું રજીસ્ટ્રેશન કન્ફર્મ થશે.
+                  </p>
+
+                  {/* Payment Details & QR Layout */}
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-stretch">
+                    {/* Left: Google Pay QR Scanner Card (md:col-span-5) */}
+                    <div className="md:col-span-5 p-4 rounded-2xl bg-obsidian-950 border border-white/10 flex flex-col items-center justify-between text-center relative group">
+                      <div className="w-full flex items-center justify-between text-[11px] font-bold text-slate-400 mb-2">
+                        <span className="flex items-center gap-1 text-gold-400">
+                          <QrCode className="w-3.5 h-3.5" /> સ્કેન કરીને પે કરો
+                        </span>
+                        <span className="text-emerald-400 font-mono font-bold">ALL UPI APPS</span>
+                      </div>
+
+                      {/* QR Box with Scan animation / Border */}
+                      <div className="relative p-3 bg-white rounded-2xl shadow-2xl border-2 border-white/40 my-1 group-hover:scale-[1.02] transition-transform">
+                        <img
+                          src={activeQrUrl}
+                          alt="Google Pay QR Code"
+                          className="w-44 h-44 sm:w-48 sm:h-48 object-contain rounded-xl"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><rect width="200" height="200" fill="white"/><text x="50%" y="45%" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="14" fill="black">GOOGLE PAY QR</text><text x="50%" y="60%" text-anchor="middle" font-family="sans-serif" font-weight="black" font-size="16" fill="%2310b981">₹${regFee}</text></svg>`;
+                          }}
+                        />
+                        <div className="absolute inset-x-3 top-3 h-0.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-75 animate-pulse" />
+                      </div>
+
+                      {/* Payee Info */}
+                      <div className="w-full mt-3 pt-2 border-t border-white/10">
+                        <span className="text-[10px] text-slate-400 block uppercase">
+                          Payee (નામ)
+                        </span>
+                        <span className="text-xs font-black text-white truncate block">
+                          {gpayName}
+                        </span>
+                      </div>
+
+                      {/* Deep Link Button for Mobile Users */}
+                      <a
+                        href={upiDeepLink}
+                        className="w-full mt-2.5 py-2.5 px-3 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-500 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs flex items-center justify-center gap-2 shadow active:scale-95 transition-all"
+                      >
+                        <Smartphone className="w-3.5 h-3.5" />
+                        <span>Google Pay એપમાં ખોલો (Pay Directly)</span>
+                        <ExternalLink className="w-3 h-3 opacity-80" />
+                      </a>
+                    </div>
+
+                    {/* Right: GPay Number, UPI ID and Screenshot Upload (md:col-span-7) */}
+                    <div className="md:col-span-7 flex flex-col justify-between space-y-4">
+                      {/* 1. Google Pay Number & UPI copy rows */}
+                      <div className="space-y-2.5">
+                        {/* GPay Mobile Number */}
+                        <div className="p-3 rounded-2xl bg-obsidian-950 border border-white/10 flex items-center justify-between">
+                          <div>
+                            <span className="text-[10px] text-slate-400 uppercase font-bold block">
+                              Google Pay નંબર (Mobile No.)
+                            </span>
+                            <span className="text-sm font-black text-gold-400 font-mono tracking-wider">
+                              {gpayNumber}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyText(gpayNumber, 'gpay')}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/15 text-slate-200 border border-white/10 active:scale-95 transition-all cursor-pointer"
+                          >
+                            {copiedGpay ? (
+                              <>
+                                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                <span className="text-emerald-400">Copied!</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3.5 h-3.5" />
+                                <span>Copy No.</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+
+                        {/* UPI ID */}
+                        <div className="p-3 rounded-2xl bg-obsidian-950 border border-white/10 flex items-center justify-between">
+                          <div>
+                            <span className="text-[10px] text-slate-400 uppercase font-bold block">
+                              Google Pay UPI ID (VPA)
+                            </span>
+                            <span className="text-xs font-bold text-white font-mono truncate max-w-[200px] block">
+                              {upiId}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyText(upiId, 'upi')}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/15 text-slate-200 border border-white/10 active:scale-95 transition-all cursor-pointer"
+                          >
+                            {copiedUpi ? (
+                              <>
+                                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                <span className="text-emerald-400">Copied!</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3.5 h-3.5" />
+                                <span>Copy UPI</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* 2. Mandatory Screenshot Upload Box */}
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-slate-200 flex items-center justify-between">
+                          <span className="flex items-center gap-1.5">
+                            <ImageIcon className="w-4 h-4 text-emerald-400" />
+                            પેમેન્ટ સ્ક્રીનશોટ અપલોડ કરો (Upload Screenshot)
+                          </span>
+                          <span className="text-[10px] font-extrabold text-amber-400">
+                            * {tournament.paymentMandatory ? 'ફરજિયાત' : 'ઓપ્શનલ'}
+                          </span>
+                        </label>
+
+                        {paymentScreenshotUrl ? (
+                          /* Uploaded Preview */
+                          <div className="p-3 rounded-2xl bg-emerald-500/10 border-2 border-emerald-500/40 flex flex-col sm:flex-row items-center gap-3">
+                            <img
+                              src={paymentScreenshotUrl}
+                              alt="Payment Screenshot"
+                              className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-contain bg-black/60 border border-emerald-400/40 shadow"
+                            />
+                            <div className="flex-1 text-center sm:text-left space-y-1">
+                              <span className="inline-flex items-center gap-1 text-xs font-black text-emerald-400">
+                                <CheckCircle2 className="w-4 h-4" />
+                                સ્ક્રીનશોટ સફળતાપૂર્વક અપલોડ થયો!
+                              </span>
+                              <p className="text-[11px] text-slate-300">
+                                ઓર્ગેનાઈઝર કમિટી આ સ્ક્રીનશોટ અને UTR ચકાસીને તમારું ઓક્શન લોટ મંજૂર કરશે.
+                              </p>
+                              <label className="inline-block text-xs font-bold text-gold-400 hover:text-gold-300 underline cursor-pointer mt-1">
+                                <span>બીજો સ્ક્રીનશોટ બદલવો છે? (Replace)</span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handlePaymentScreenshotUpload}
+                                  className="hidden"
+                                />
+                              </label>
+                            </div>
+                          </div>
+                        ) : (
+                          /* Dropzone to Upload */
+                          <label className="flex flex-col items-center justify-center p-5 rounded-2xl border-2 border-dashed border-gold-400/50 hover:border-gold-400 bg-gold-500/[0.03] hover:bg-gold-500/[0.07] cursor-pointer transition-all text-center group">
+                            <div className="w-12 h-12 rounded-2xl bg-gold-500/10 border border-gold-400/30 flex items-center justify-center text-gold-400 group-hover:scale-110 transition-transform mb-2">
+                              <Upload className="w-6 h-6" />
+                            </div>
+                            <span className="text-xs font-black text-white group-hover:text-gold-300 transition-colors">
+                              અહીં ક્લિક કરીને પેમેન્ટ સ્ક્રીનશોટ પસંદ કરો
+                            </span>
+                            <span className="text-[11px] text-slate-400 mt-0.5">
+                              Google Pay Success સ્ક્રીનનો ફોટો (JPG, PNG)
+                            </span>
+                            <span className="text-[10px] text-amber-400/90 font-semibold mt-2 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20">
+                              ⚠️ સ્ક્રીનશોટ વગર રજીસ્ટ્રેશન સબમિટ નહીં થાય
+                            </span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              required={tournament.paymentMandatory}
+                              onChange={handlePaymentScreenshotUpload}
+                              className="hidden"
+                            />
+                          </label>
+                        )}
+                      </div>
+
+                      {/* 3. Transaction UTR / Ref Number */}
+                      <div>
+                        <label className="text-xs font-bold text-slate-300 block mb-1">
+                          Google Pay UPI Reference / UTR નંબર (વૈકલ્પિક અથવા 12-અંકનો નંબર)
+                        </label>
+                        <input
+                          type="text"
+                          value={paymentUtr}
+                          onChange={(e) => setPaymentUtr(e.target.value)}
+                          placeholder="e.g. 423871928341 (Google Pay માંથી)"
+                          className="w-full bg-obsidian-950 border border-white/10 rounded-xl px-3.5 py-2 text-xs font-mono text-white focus:border-gold-400 focus:outline-none"
+                        />
+                        <span className="text-[10px] text-slate-500 mt-1 block">
+                          ગૂગલ પે ટ્રાન્ઝેક્શન ડિટેલ્સમાં 12-અંકનો 'UPI Transaction ID' અથવા 'UPI Ref No.' જોવા મળશે.
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Submit Button */}
-              <div className="pt-4 border-t border-white/10">
+              <div className="pt-4 border-t border-white/10 space-y-3">
+                {tournament.paymentMandatory && !paymentScreenshotUrl && (
+                  <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-2.5 text-xs text-amber-300">
+                    <AlertCircle className="w-5 h-5 text-amber-400 shrink-0" />
+                    <span>
+                      <strong>પેમેન્ટ સ્ક્રીનશોટ બાકી છે:</strong> ફોર્મ સબમિટ કરવા માટે કૃપા કરીને ઉપર આપેલા Google Pay સ્કેનર પર ₹{regFee} પે કરીને સ્ક્રીનશોટ અપલોડ કરો.
+                    </span>
+                  </div>
+                )}
+
                 <button
                   type="submit"
-                  className="w-full py-4 rounded-2xl font-black text-sm uppercase tracking-wider bg-gradient-to-r from-gold-500 via-amber-400 to-yellow-500 hover:from-gold-400 hover:to-amber-300 text-black shadow-glow-gold active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  disabled={tournament.paymentMandatory && !paymentScreenshotUrl}
+                  className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
+                    tournament.paymentMandatory && !paymentScreenshotUrl
+                      ? 'bg-white/10 text-slate-500 cursor-not-allowed border border-white/10 opacity-70'
+                      : 'bg-gradient-to-r from-gold-500 via-amber-400 to-yellow-500 hover:from-gold-400 hover:to-amber-300 text-black shadow-glow-gold active:scale-95 cursor-pointer'
+                  }`}
                 >
-                  <span>સબમિટ કરો (Submit Official Registration)</span>
-                  <ArrowRight className="w-4 h-4" />
+                  {tournament.paymentMandatory && !paymentScreenshotUrl ? (
+                    <>
+                      <Lock className="w-4 h-4 text-amber-400" />
+                      <span>પેમેન્ટ સ્ક્રીનશોટ અપલોડ કરો (Upload Screenshot to Submit)</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>સબમિટ કરો (Submit Official Registration)</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
                 </button>
-                <p className="text-[11px] text-slate-500 text-center mt-2">
-                  સબમિટ કર્યા પછી તમને તમારો ડિજિટલ પ્લેયર રજીસ્ટ્રેશન પાસ મળશે.
+                <p className="text-[11px] text-slate-500 text-center">
+                  સબમિટ કર્યા પછી તમને તમારો ડિજિટલ પ્લેયર રજીસ્ટ્રેશન પાસ અને રસીદ મળશે.
                 </p>
               </div>
             </form>

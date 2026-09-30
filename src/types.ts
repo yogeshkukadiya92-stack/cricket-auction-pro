@@ -53,6 +53,10 @@ export interface Player {
   approvalStatus?: ApprovalStatus;
   registeredAt?: string;
   customData?: Record<string, any>;
+  paymentScreenshotUrl?: string;
+  paymentUtr?: string;
+  paymentStatus?: 'PAID' | 'VERIFIED' | 'PENDING' | 'EXEMPT';
+  paymentAmount?: number;
 }
 
 export interface Team {
@@ -106,6 +110,10 @@ export interface Tournament {
   registrationDeadline?: string;
   instructions?: string;
   upiId?: string;
+  gpayNumber?: string;
+  gpayName?: string;
+  gpayQrUrl?: string;
+  paymentMandatory?: boolean;
   customFields?: CustomFormField[];
 }
 

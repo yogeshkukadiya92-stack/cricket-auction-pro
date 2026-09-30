@@ -21,6 +21,12 @@ import {
   Sliders,
   UserCheck,
   UserX,
+  Eye,
+  CreditCard,
+  ExternalLink,
+  ShieldCheck,
+  Receipt,
+  X,
 } from 'lucide-react';
 
 interface PlayerManagerViewProps {
@@ -47,6 +53,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [approvalTab, setApprovalTab] = useState<'ALL' | 'APPROVED' | 'PENDING'>('ALL');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [selectedReceiptPlayer, setSelectedReceiptPlayer] = useState<Player | null>(null);
   const [csvMessage, setCsvMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -447,6 +454,38 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
                 </button>
               </div>
 
+              {/* Payment Verification Badge & View Receipt */}
+              {(player.paymentScreenshotUrl || player.paymentUtr || player.paymentStatus) && (
+                <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[11px]">
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={`w-2 h-2 rounded-full ${
+                        player.paymentStatus === 'PAID' ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
+                      }`}
+                    />
+                    <span className="font-bold text-slate-300">
+                      {player.paymentStatus === 'PAID' ? `₹${player.paymentAmount || 500} Paid` : 'Fee Pending'}
+                    </span>
+                    {player.paymentUtr && (
+                      <span className="text-[10px] text-slate-500 font-mono hidden sm:inline">
+                        (UTR: {player.paymentUtr.slice(0, 6)}..)
+                      </span>
+                    )}
+                  </div>
+                  {player.paymentScreenshotUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedReceiptPlayer(player)}
+                      className="px-2 py-0.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 font-bold text-[10px] transition-all cursor-pointer"
+                      title="પેમેન્ટ સ્ક્રીનશોટ અને UTR ચકાસો"
+                    >
+                      <Eye className="w-3 h-3" />
+                      <span>Receipt</span>
+                    </button>
+                  )}
+                </div>
+              )}
+
               {/* Pending Approval Actions */}
               {player.approvalStatus === 'PENDING' && (
                 <div className="flex items-center gap-1.5 pt-1">
@@ -617,6 +656,183 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Receipt Verification Modal */}
+      {selectedReceiptPlayer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-obsidian-950/85 backdrop-blur-md p-4 overflow-y-auto">
+          <div className="relative max-w-2xl w-full rounded-3xl p-6 bg-obsidian-900 border-2 border-emerald-500/40 shadow-glow-emerald/30 my-8 space-y-5">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+                  <Receipt className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-white font-display">
+                    Google Pay પેમેન્ટ વેરિફિકેશન (Payment Audit)
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    ખેલાડીએ અપલોડ કરેલો Google Pay પેમેન્ટ સ્ક્રીનશોટ અને UTR નંબર
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedReceiptPlayer(null)}
+                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-stretch">
+              {/* Left: Uploaded Screenshot View */}
+              <div className="p-3 rounded-2xl bg-obsidian-950 border border-white/10 flex flex-col items-center justify-center text-center">
+                <span className="text-[10px] uppercase font-bold text-slate-400 mb-2 block">
+                  Uploaded Payment Screenshot
+                </span>
+                {selectedReceiptPlayer.paymentScreenshotUrl ? (
+                  <div className="relative group w-full flex flex-col items-center">
+                    <img
+                      src={selectedReceiptPlayer.paymentScreenshotUrl}
+                      alt="Payment Screenshot"
+                      className="max-h-72 w-full object-contain rounded-xl bg-black/60 border border-white/10 shadow-lg cursor-zoom-in"
+                      onClick={() => window.open(selectedReceiptPlayer.paymentScreenshotUrl, '_blank')}
+                      title="ક્લિક કરીને ફુલ સાઇઝમાં જુઓ"
+                    />
+                    <a
+                      href={selectedReceiptPlayer.paymentScreenshotUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1.5 underline"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      નવી વિન્ડોમાં ફુલ-સાઇઝ ફોટો ખોલો
+                    </a>
+                  </div>
+                ) : (
+                  <div className="py-12 text-slate-500 text-xs">
+                    કોઈ સ્ક્રીનશોટ અપલોડ થયો નથી.
+                  </div>
+                )}
+              </div>
+
+              {/* Right: Player & Transaction Details */}
+              <div className="flex flex-col justify-between space-y-4">
+                {/* Player Profile Quick Info */}
+                <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center gap-3">
+                  <img
+                    src={selectedReceiptPlayer.photoUrl}
+                    alt={selectedReceiptPlayer.name}
+                    className="w-14 h-14 rounded-xl object-cover border border-white/20"
+                  />
+                  <div>
+                    <h4 className="text-base font-black text-white font-display">
+                      {selectedReceiptPlayer.name}
+                    </h4>
+                    <span className="text-xs text-gold-400 font-bold block">
+                      {selectedReceiptPlayer.role}
+                    </span>
+                    <span className="text-[11px] text-slate-400 font-mono">
+                      Mobile: {selectedReceiptPlayer.mobile || 'N/A'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Payment Breakdown Box */}
+                <div className="p-3.5 rounded-2xl bg-obsidian-950 border border-white/10 space-y-2.5 text-xs">
+                  <div className="flex justify-between items-center pb-2 border-b border-white/10">
+                    <span className="text-slate-400">ચુકવેલ રકમ (Amount):</span>
+                    <span className="text-base font-black text-emerald-400 font-mono">
+                      ₹{selectedReceiptPlayer.paymentAmount || 500}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                      Google Pay UPI Ref / UTR No:
+                    </span>
+                    <div className="p-2 rounded-xl bg-white/5 border border-white/10 font-mono text-xs text-white font-bold flex items-center justify-between select-all">
+                      <span>{selectedReceiptPlayer.paymentUtr || 'સ્ક્રીનશોટમાં ચેક કરો (Not typed)'}</span>
+                      {selectedReceiptPlayer.paymentUtr && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(selectedReceiptPlayer.paymentUtr || '');
+                            alert('UTR કોપી થઈ ગયો!');
+                          }}
+                          className="text-[10px] text-gold-400 hover:underline cursor-pointer"
+                        >
+                          Copy
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between text-[11px] text-slate-400 pt-1">
+                    <span>રજીસ્ટ્રેશન તારીખ:</span>
+                    <span className="font-mono text-slate-200">
+                      {selectedReceiptPlayer.registeredAt
+                        ? new Date(selectedReceiptPlayer.registeredAt).toLocaleDateString()
+                        : 'Today'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Verification Guidance */}
+                <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-300 flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>
+                    તમારા Google Pay સ્ટેટમેન્ટમાં ₹{selectedReceiptPlayer.paymentAmount || 500} અને UTR ચકાસ્યા પછી જ Approve કરો.
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+              <button
+                type="button"
+                onClick={() => setSelectedReceiptPlayer(null)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white cursor-pointer"
+              >
+                બંધ કરો (Close)
+              </button>
+
+              {selectedReceiptPlayer.approvalStatus === 'PENDING' && (
+                <>
+                  {onRejectPlayer && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onRejectPlayer(selectedReceiptPlayer.id);
+                        setSelectedReceiptPlayer(null);
+                      }}
+                      className="px-4 py-2 rounded-xl text-xs font-bold bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 transition-all cursor-pointer"
+                    >
+                      Reject
+                    </button>
+                  )}
+                  {onApprovePlayer && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onApprovePlayer(selectedReceiptPlayer.id);
+                        setSelectedReceiptPlayer(null);
+                      }}
+                      className="px-5 py-2.5 rounded-xl text-xs font-black bg-emerald-500 hover:bg-emerald-400 text-black shadow-glow-emerald active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <UserCheck className="w-4 h-4" />
+                      Approve & Verify Player Lot
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}

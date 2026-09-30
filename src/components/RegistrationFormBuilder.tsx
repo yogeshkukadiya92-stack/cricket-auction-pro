@@ -17,6 +17,8 @@ import {
   ToggleLeft,
   ToggleRight,
   Eye,
+  Smartphone,
+  Upload,
 } from 'lucide-react';
 
 interface RegistrationFormBuilderProps {
@@ -49,6 +51,10 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
       'કૃપા કરીને સાચો WhatsApp નંબર અને પાસપોર્ટ સાઈઝનો સ્પષ્ટ ફોટો અપલોડ કરો.'
   );
   const [upiId, setUpiId] = useState(tournament.upiId || 'cricketgpl@oksbi');
+  const [gpayNumber, setGpayNumber] = useState(tournament.gpayNumber || '+91 98250 12345');
+  const [gpayName, setGpayName] = useState(tournament.gpayName || 'GPL Cricket Committee');
+  const [gpayQrUrl, setGpayQrUrl] = useState(tournament.gpayQrUrl || '');
+  const [paymentMandatory, setPaymentMandatory] = useState(tournament.paymentMandatory ?? true);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   // New Question Form state
@@ -135,10 +141,27 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
       registrationDeadline: deadline,
       instructions,
       upiId,
+      gpayNumber,
+      gpayName,
+      gpayQrUrl,
+      paymentMandatory,
       customFields,
     });
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2000);
+  };
+
+  const handleQrUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          setGpayQrUrl(reader.result);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   return (
@@ -319,6 +342,123 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
             onChange={(e) => setInstructions(e.target.value)}
             className="w-full bg-obsidian-950 border border-white/10 rounded-xl p-3 text-xs text-white focus:border-gold-400 focus:outline-none resize-none"
           />
+        </div>
+      </div>
+
+      {/* 2.5 Google Pay & UPI Payment Settings */}
+      <div className="p-6 rounded-3xl glass-panel border border-white/10 space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-white/10">
+          <div>
+            <h3 className="text-lg font-black text-white font-display flex items-center gap-2">
+              💳 Google Pay & UPI પેમેન્ટ ગેટવે સેટિંગ્સ
+            </h3>
+            <p className="text-xs text-slate-400">
+              ખેલાડીઓ રજીસ્ટ્રેશન કરતી વખતે આ Google Pay નંબર કે સ્કેનરથી પેમેન્ટ કરશે અને સ્ક્રીનશોટ અપલોડ કરશે.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setPaymentMandatory(!paymentMandatory)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+              paymentMandatory
+                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                : 'bg-white/5 text-slate-400 border-white/10'
+            }`}
+          >
+            {paymentMandatory ? (
+              <>
+                <ToggleRight className="w-4 h-4 text-emerald-400" />
+                <span>Screenshot Mandatory (ફરજિયાત)</span>
+              </>
+            ) : (
+              <>
+                <ToggleLeft className="w-4 h-4 text-slate-500" />
+                <span>Screenshot Optional</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label className="text-xs font-bold text-slate-300 block mb-1">
+              Google Pay નંબર (Phone Number)
+            </label>
+            <input
+              type="text"
+              value={gpayNumber}
+              onChange={(e) => setGpayNumber(e.target.value)}
+              placeholder="e.g. +91 98250 12345"
+              className="w-full bg-obsidian-950 border border-white/10 rounded-xl px-3.5 py-2 text-sm text-white font-mono focus:border-gold-400 focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-bold text-slate-300 block mb-1">
+              Google Pay UPI ID (VPA)
+            </label>
+            <input
+              type="text"
+              value={upiId}
+              onChange={(e) => setUpiId(e.target.value)}
+              placeholder="e.g. 9825012345@oksbi"
+              className="w-full bg-obsidian-950 border border-white/10 rounded-xl px-3.5 py-2 text-sm text-white font-mono focus:border-gold-400 focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-bold text-slate-300 block mb-1">
+              પેમેન્ટ મેળવનારનું નામ (Payee Name)
+            </label>
+            <input
+              type="text"
+              value={gpayName}
+              onChange={(e) => setGpayName(e.target.value)}
+              placeholder="e.g. GPL Cricket Committee"
+              className="w-full bg-obsidian-950 border border-white/10 rounded-xl px-3.5 py-2 text-sm text-white focus:border-gold-400 focus:outline-none"
+            />
+          </div>
+        </div>
+
+        {/* Custom QR Code Upload or Default */}
+        <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 flex flex-col sm:flex-row items-center gap-5">
+          {gpayQrUrl ? (
+            <img
+              src={gpayQrUrl}
+              alt="Custom GPay QR"
+              className="w-24 h-24 rounded-xl object-contain bg-white p-1 border border-white/20 shadow"
+            />
+          ) : (
+            <div className="w-24 h-24 rounded-xl bg-white flex flex-col items-center justify-center p-2 shadow text-black text-center font-bold text-[10px] leading-tight">
+              <span className="text-lg mb-0.5">📱</span>
+              <span>Auto GPay QR Active</span>
+              <span className="text-[9px] text-emerald-700 font-mono mt-0.5 font-black">₹{fee}</span>
+            </div>
+          )}
+
+          <div className="space-y-1.5 flex-1 text-center sm:text-left">
+            <h4 className="text-xs font-bold text-white">તમારું પોતાનું Google Pay / PhonePe QR સ્કેનર અપલોડ કરો</h4>
+            <p className="text-[11px] text-slate-400">
+              જો તમારી પાસે દુકાન કે કમિટીનું Google Pay QR સ્કેનર હોય તો તેનો ફોટો અહીં અપલોડ કરો જેથી ખેલાડીઓ સીધું એ જ સ્કેન કરી શકે.
+            </p>
+            <div className="flex flex-wrap items-center gap-3 pt-1">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleQrUpload}
+                className="text-xs text-slate-400 file:mr-3 file:py-1 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-white/10 file:text-white hover:file:bg-white/20 cursor-pointer"
+              />
+              {gpayQrUrl && (
+                <button
+                  type="button"
+                  onClick={() => setGpayQrUrl('')}
+                  className="text-xs text-red-400 hover:underline"
+                >
+                  Remove Custom QR
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
