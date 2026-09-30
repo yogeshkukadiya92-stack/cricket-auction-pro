@@ -67,7 +67,7 @@ export const PlayerCard3D: React.FC<PlayerCard3DProps> = ({ player, isBigStage =
       <div
         ref={cardRef}
         className={`relative rounded-3xl transition-transform duration-150 ease-out preserve-3d overflow-hidden ${
-          isBigStage ? 'w-full max-w-[440px] h-[580px]' : 'w-full max-w-[340px] h-[460px]'
+          isBigStage ? 'w-full max-w-[440px] h-[600px]' : 'w-full max-w-[340px] h-[480px]'
         } ${
           isMarquee
             ? 'border-2 border-gold-400/80 shadow-glow-gold'
@@ -106,57 +106,58 @@ export const PlayerCard3D: React.FC<PlayerCard3DProps> = ({ player, isBigStage =
           </div>
         </div>
 
-        {/* Player Portrait Container with Vignette */}
-        <div className="relative w-full h-[62%] overflow-hidden bg-obsidian-950">
+        {/* Player Portrait Container - Full & Clear Visibility */}
+        <div className="relative w-full h-[78%] overflow-hidden bg-gradient-to-b from-obsidian-900 to-obsidian-950">
           <img
             src={player.photoUrl}
             alt={player.name}
-            className="w-full h-full object-cover object-top transition-transform duration-700 hover:scale-105"
+            className="w-full h-full object-cover object-top sm:object-center transition-transform duration-500 hover:scale-105"
             loading="lazy"
           />
-          {/* Gradient Dark Vignette Overlays */}
-          <div className="absolute inset-0 bg-gradient-to-t from-obsidian-900 via-transparent to-black/30" />
-          <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-obsidian-900 to-transparent" />
+          {/* Subtle bottom edge blend only (No heavy dark overlays) */}
+          <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-obsidian-950 via-obsidian-950/40 to-transparent pointer-events-none" />
         </div>
 
-        {/* Player Details & Key Stats Bottom Section */}
-        <div className="absolute bottom-0 inset-x-0 p-5 z-20 flex flex-col justify-end bg-gradient-to-t from-obsidian-950 via-obsidian-900/95 to-transparent">
-          <div className="space-y-1">
-            <h3 className="text-2xl font-black text-white tracking-tight flex items-center gap-2 font-display">
-              {player.name}
-            </h3>
-            <p className="text-xs text-slate-400 font-medium flex items-center gap-2">
-              <span className="text-gold-400">{player.battingStyle}</span>
-              {player.bowlingStyle !== 'N/A' && (
-                <>
-                  <span className="text-slate-600">•</span>
-                  <span>{player.bowlingStyle}</span>
-                </>
-              )}
-            </p>
-          </div>
+        {/* Player Details & Key Stats Floating Glassmorphic Card */}
+        <div className="absolute bottom-0 inset-x-0 p-3 sm:p-4 z-20 flex flex-col justify-end">
+          <div className="p-3.5 rounded-2xl bg-obsidian-950/85 backdrop-blur-xl border border-white/10 shadow-2xl space-y-2">
+            <div className="space-y-0.5">
+              <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2 font-display truncate">
+                {player.name}
+              </h3>
+              <p className="text-[11px] sm:text-xs text-slate-300 font-medium flex items-center gap-1.5 truncate">
+                <span className="text-gold-400 font-bold">{player.battingStyle}</span>
+                {player.bowlingStyle && player.bowlingStyle !== 'N/A' && (
+                  <>
+                    <span className="text-slate-500">•</span>
+                    <span className="text-slate-300">{player.bowlingStyle}</span>
+                  </>
+                )}
+              </p>
+            </div>
 
-          {/* Quick Stats Pill Grid */}
-          <div className="grid grid-cols-4 gap-2 mt-4 pt-3 border-t border-white/10">
-            <div className="text-center p-1.5 rounded-xl bg-white/[0.04] border border-white/5">
-              <span className="block text-[10px] uppercase font-bold text-slate-400">Matches</span>
-              <span className="text-sm font-black text-white">{player.stats.matches}</span>
-            </div>
-            <div className="text-center p-1.5 rounded-xl bg-white/[0.04] border border-white/5">
-              <span className="block text-[10px] uppercase font-bold text-slate-400">Runs</span>
-              <span className="text-sm font-black text-gold-400">{player.stats.runs}</span>
-            </div>
-            <div className="text-center p-1.5 rounded-xl bg-white/[0.04] border border-white/5">
-              <span className="block text-[10px] uppercase font-bold text-slate-400">Wickets</span>
-              <span className="text-sm font-black text-electric-cyan">{player.stats.wickets}</span>
-            </div>
-            <div className="text-center p-1.5 rounded-xl bg-white/[0.04] border border-white/5">
-              <span className="block text-[10px] uppercase font-bold text-slate-400">
-                {player.stats.strikeRate ? 'S.R.' : 'Econ'}
-              </span>
-              <span className="text-sm font-black text-emerald-400">
-                {player.stats.strikeRate || player.stats.economy || '-'}
-              </span>
+            {/* Quick Stats Pill Grid */}
+            <div className="grid grid-cols-4 gap-1.5 pt-2 border-t border-white/10">
+              <div className="text-center p-1 rounded-xl bg-white/[0.04] border border-white/5">
+                <span className="block text-[9px] uppercase font-bold text-slate-400">Matches</span>
+                <span className="text-xs sm:text-sm font-black text-white">{player.stats.matches}</span>
+              </div>
+              <div className="text-center p-1 rounded-xl bg-white/[0.04] border border-white/5">
+                <span className="block text-[9px] uppercase font-bold text-slate-400">Runs</span>
+                <span className="text-xs sm:text-sm font-black text-gold-400">{player.stats.runs}</span>
+              </div>
+              <div className="text-center p-1 rounded-xl bg-white/[0.04] border border-white/5">
+                <span className="block text-[9px] uppercase font-bold text-slate-400">Wickets</span>
+                <span className="text-xs sm:text-sm font-black text-electric-cyan">{player.stats.wickets}</span>
+              </div>
+              <div className="text-center p-1 rounded-xl bg-white/[0.04] border border-white/5">
+                <span className="block text-[9px] uppercase font-bold text-slate-400">
+                  {player.stats.strikeRate ? 'S.R.' : 'Econ'}
+                </span>
+                <span className="text-xs sm:text-sm font-black text-emerald-400">
+                  {player.stats.strikeRate || player.stats.economy || '-'}
+                </span>
+              </div>
             </div>
           </div>
         </div>
