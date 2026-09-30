@@ -1,6 +1,6 @@
 import React from 'react';
 import { Player, Team, AuctionRules } from '../types';
-import { Printer, Trophy, Users, Wallet, Zap, Shield, Sparkles } from 'lucide-react';
+import { Printer, Trophy, Users, Wallet, Zap, Shield, Sparkles, FileSpreadsheet, Download } from 'lucide-react';
 import { TeamLogo } from './TeamLogo';
 
 interface SquadSummaryViewProps {
@@ -27,6 +27,27 @@ export const SquadSummaryView: React.FC<SquadSummaryViewProps> = ({
   const soldPlayers = players.filter((p) => p.status === 'SOLD');
   const topBuys = [...soldPlayers].sort((a, b) => (b.soldPrice || 0) - (a.soldPrice || 0)).slice(0, 4);
 
+  const handleExportCSV = () => {
+    let csv = 'Franchise,Owner,Player Name,Role,Category,Base Price (INR),Sold Price (INR),Status\n';
+    soldPlayers.forEach((p) => {
+      const tm = teams.find((t) => t.id === p.soldToTeamId);
+      csv += `"${tm?.name || ''}","${tm?.ownerName || ''}","${p.name}","${p.role}","${p.category || ''}",${p.basePrice},${p.soldPrice || p.basePrice},"SOLD"\n`;
+    });
+    const unsold = players.filter((p) => p.status === 'UNSOLD');
+    unsold.forEach((p) => {
+      csv += `"Unsold","-","${p.name}","${p.role}","${p.category || ''}",${p.basePrice},0,"UNSOLD"\n`;
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `cricket_auction_squad_report_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-8">
       {/* Header Banner */}
@@ -40,13 +61,24 @@ export const SquadSummaryView: React.FC<SquadSummaryViewProps> = ({
           </p>
         </div>
 
-        <button
-          onClick={() => window.print()}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs bg-white/10 hover:bg-white/15 border border-white/10 text-white transition-all active:scale-95"
-        >
-          <Printer className="w-4 h-4 text-gold-400" />
-          Print / PDF Export
-        </button>
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={handleExportCSV}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 transition-all active:scale-95 cursor-pointer shadow-md"
+            title="Download full squad and auction analytics as CSV/Excel"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>Export to Excel (CSV)</span>
+          </button>
+
+          <button
+            onClick={() => window.print()}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs bg-white/10 hover:bg-white/15 border border-white/10 text-white transition-all active:scale-95 cursor-pointer"
+          >
+            <Printer className="w-4 h-4 text-gold-400" />
+            <span>Print / PDF Export</span>
+          </button>
+        </div>
       </div>
 
       {/* Top 4 Most Expensive Buys Ribbon */}

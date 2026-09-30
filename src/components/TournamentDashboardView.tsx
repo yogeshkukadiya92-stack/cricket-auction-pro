@@ -25,6 +25,9 @@ import {
   Check,
   Flame,
   ArrowRight,
+  Sparkles,
+  Eye,
+  FileUp,
 } from 'lucide-react';
 
 interface TournamentDashboardViewProps {
@@ -38,6 +41,8 @@ interface TournamentDashboardViewProps {
   onCreateNewTournament: () => void;
   onApprovePlayer?: (id: string) => void;
   onRejectPlayer?: (id: string) => void;
+  onOpenFortuneWheel?: () => void;
+  onOpenBulkUploadModal?: () => void;
 }
 
 export const TournamentDashboardView: React.FC<TournamentDashboardViewProps> = ({
@@ -51,6 +56,8 @@ export const TournamentDashboardView: React.FC<TournamentDashboardViewProps> = (
   onCreateNewTournament,
   onApprovePlayer,
   onRejectPlayer,
+  onOpenFortuneWheel,
+  onOpenBulkUploadModal,
 }) => {
   const [copiedLink, setCopiedLink] = useState(false);
 
@@ -454,6 +461,40 @@ export const TournamentDashboardView: React.FC<TournamentDashboardViewProps> = (
             <Radio className="w-6 h-6 text-rose-400 group-hover:scale-110 transition-transform" />
             <span className="text-xs font-bold text-white">OBS Studio Stream</span>
             <span className="text-[10px] text-slate-400">Transparent overlay</span>
+          </button>
+
+          {/* 7. Interactive Fortune Wheel */}
+          {onOpenFortuneWheel && (
+            <button
+              onClick={onOpenFortuneWheel}
+              className="p-4 rounded-2xl glass-panel border border-white/10 hover:border-amber-400/50 hover:bg-white/5 transition-all flex flex-col items-center justify-center gap-2 text-center group cursor-pointer"
+            >
+              <Sparkles className="w-6 h-6 text-amber-400 group-hover:rotate-180 transition-transform duration-500" />
+              <span className="text-xs font-bold text-white">Fortune Wheel</span>
+              <span className="text-[10px] text-slate-400">Team lottery / draft spin</span>
+            </button>
+          )}
+
+          {/* 8. Bulk Excel Upload */}
+          {onOpenBulkUploadModal && (
+            <button
+              onClick={onOpenBulkUploadModal}
+              className="p-4 rounded-2xl glass-panel border border-white/10 hover:border-cyan-400/50 hover:bg-white/5 transition-all flex flex-col items-center justify-center gap-2 text-center group cursor-pointer"
+            >
+              <FileUp className="w-6 h-6 text-cyan-400 group-hover:scale-110 transition-transform" />
+              <span className="text-xs font-bold text-white">Bulk Excel Import</span>
+              <span className="text-[10px] text-slate-400">Upload 100+ players</span>
+            </button>
+          )}
+
+          {/* 9. Live Spectator Hub */}
+          <button
+            onClick={() => onSelectViewMode('PUBLIC_SUMMARY')}
+            className="p-4 rounded-2xl glass-panel border border-white/10 hover:border-emerald-400/50 hover:bg-white/5 transition-all flex flex-col items-center justify-center gap-2 text-center group cursor-pointer"
+          >
+            <Eye className="w-6 h-6 text-emerald-400 group-hover:scale-110 transition-transform" />
+            <span className="text-xs font-bold text-white">Live Spectator Hub</span>
+            <span className="text-[10px] text-slate-400">Public mobile view</span>
           </button>
         </div>
       </div>

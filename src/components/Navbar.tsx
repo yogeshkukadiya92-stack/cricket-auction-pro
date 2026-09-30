@@ -25,6 +25,7 @@ import {
   User as UserIcon,
   LogOut,
   Sparkles,
+  Eye,
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -39,6 +40,7 @@ interface NavbarProps {
   currentUser?: User | null;
   onOpenAuthModal?: () => void;
   onLogout?: () => void;
+  onOpenFortuneWheel?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -53,6 +55,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   currentUser,
   onOpenAuthModal,
   onLogout,
+  onOpenFortuneWheel,
 }) => {
   const [soundEnabled, setSoundEnabled] = useState(sounds.enabled);
   const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
@@ -91,6 +94,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { mode: 'FORM_BUILDER' as ViewMode, label: 'Reg. Form', icon: ClipboardList },
     { mode: 'TEAMS' as ViewMode, label: 'Franchises', icon: Shield },
     { mode: 'SQUADS' as ViewMode, label: 'Squads', icon: FileSpreadsheet },
+    { mode: 'PUBLIC_SUMMARY' as ViewMode, label: 'Live Spectator', icon: Eye },
     { mode: 'OBS' as ViewMode, label: 'OBS Stream', icon: Radio },
     { mode: 'RULES' as ViewMode, label: 'Rules', icon: Settings },
   ];
@@ -272,6 +276,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span>Sign In / Register</span>
               </button>
             )
+          )}
+
+          {/* Interactive Fortune Wheel Launcher */}
+          {onOpenFortuneWheel && (
+            <button
+              onClick={onOpenFortuneWheel}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-bold transition-all cursor-pointer shadow-md"
+              title="Interactive Fortune Wheel (Lucky Draw)"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden xl:inline">Fortune Wheel</span>
+            </button>
           )}
 
           {/* Live Sync Badge */}

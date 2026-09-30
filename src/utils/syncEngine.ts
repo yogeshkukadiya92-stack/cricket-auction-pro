@@ -12,6 +12,7 @@ export type SyncAction =
   | { type: 'TOURNAMENT_CREATED'; payload: { tournament: Tournament } }
   | { type: 'TOURNAMENT_UPDATED'; payload: { tournament: Tournament } }
   | { type: 'TOURNAMENT_SELECTED'; payload: { tournamentId: string } }
+  | { type: 'PLAYERS_UPDATED'; payload: { players: Player[] } }
   | { type: 'CLEAR_ALL_DATA' }
   | { type: 'RESET_AUCTION' };
 

@@ -37,6 +37,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
   const [year, setYear] = useState(2026);
   const [status, setStatus] = useState<'UPCOMING' | 'LIVE' | 'COMPLETED'>('UPCOMING');
   const [logoUrl, setLogoUrl] = useState('🏆');
+  const [sportType, setSportType] = useState<'CRICKET' | 'FOOTBALL' | 'KABADDI' | 'VOLLEYBALL' | 'OTHER'>('CRICKET');
 
   // Sponsors
   const [sponsor, setSponsor] = useState('');
@@ -87,6 +88,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
       setUpiId(initialData.upiId || '');
       setGpayNumber(initialData.gpayNumber || '');
       setGpayName(initialData.gpayName || '');
+      setSportType(initialData.sportType || 'CRICKET');
     } else {
       // Default clean values for new tournament
       setName('');
@@ -110,6 +112,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
       setUpiId('');
       setGpayNumber('');
       setGpayName('');
+      setSportType('CRICKET');
     }
     setError('');
   }, [initialData, isOpen]);
@@ -142,6 +145,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
       season: season.trim() || 'Season 1',
       year: Number(year) || 2026,
       status,
+      sportType,
       logoUrl: logoUrl.trim() || '🏆',
       sponsor: sponsor.trim(),
       coSponsors: coSponsors.trim(),
@@ -206,8 +210,37 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
           <div className="p-4 sm:p-5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
             <h4 className="text-xs font-black uppercase tracking-wider text-gold-400 flex items-center gap-2">
               <Sparkles className="w-3.5 h-3.5" />
-              1. Brand Identity & Logo
+              1. Brand Identity & Sport Type
             </h4>
+
+            {/* Sport Preset Selector */}
+            <div>
+              <label className="text-xs font-bold text-slate-300 block mb-1.5">
+                Select Sport Category
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                {[
+                  { id: 'CRICKET', label: '🏏 Cricket' },
+                  { id: 'FOOTBALL', label: '⚽ Football' },
+                  { id: 'KABADDI', label: '🤼 Kabaddi' },
+                  { id: 'VOLLEYBALL', label: '🏐 Volleyball' },
+                  { id: 'OTHER', label: '🏸 Other Sports' },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setSportType(item.id as any)}
+                    className={`p-2 rounded-xl text-xs font-bold transition-all border text-center ${
+                      sportType === item.id
+                        ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md font-black'
+                        : 'bg-slate-950/80 text-slate-400 border-slate-800 hover:text-white hover:bg-slate-900'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>

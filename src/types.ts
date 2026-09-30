@@ -129,6 +129,7 @@ export interface Tournament {
   gpayQrUrl?: string;
   paymentMandatory?: boolean;
   customFields?: CustomFormField[];
+  sportType?: 'CRICKET' | 'FOOTBALL' | 'KABADDI' | 'VOLLEYBALL' | 'OTHER';
 }
 
 export type UserRole = 'ADMIN' | 'ORGANIZER';
@@ -156,4 +157,5 @@ export type ViewMode =
   | 'OBS'
   | 'FORM_BUILDER'
   | 'PUBLIC_REGISTER'
+  | 'PUBLIC_SUMMARY'
   | 'ADMIN_PANEL';

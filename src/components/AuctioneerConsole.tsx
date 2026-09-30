@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Player, Team, AuctionRules } from '../types';
 import { sounds } from '../soundEffects';
-import { Gavel, Undo2, Ban, ChevronRight, Shuffle, AlertCircle, ArrowUpRight } from 'lucide-react';
+import { Gavel, Undo2, Ban, ChevronRight, Shuffle, AlertCircle, ArrowUpRight, Sparkles, Zap } from 'lucide-react';
 import { TeamLogo } from './TeamLogo';
 
 interface AuctioneerConsoleProps {
@@ -17,6 +17,8 @@ interface AuctioneerConsoleProps {
   onUndoBid: () => void;
   onSelectPlayer: (player: Player) => void;
   onRandomDraw: () => void;
+  onOpenFortuneWheel?: () => void;
+  onLaunchAcceleratedRound?: (discountPercent: number) => void;
 }
 
 export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
@@ -32,6 +34,8 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
   onUndoBid,
   onSelectPlayer,
   onRandomDraw,
+  onOpenFortuneWheel,
+  onLaunchAcceleratedRound,
 }) => {
   const [selectedTeamId, setSelectedTeamId] = useState<string>(allTeams[0]?.id || '');
   const [customInc, setCustomInc] = useState<number>(10000);
@@ -68,6 +72,7 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
   };
 
   const availablePlayers = allPlayers.filter((p) => p.status === 'AVAILABLE' || p.status === 'IN_AUCTION');
+  const unsoldPlayers = allPlayers.filter((p) => p.status === 'UNSOLD');
 
   return (
     <div className="space-y-6">
@@ -82,7 +87,38 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {onOpenFortuneWheel && (
+            <button
+              onClick={onOpenFortuneWheel}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 transition active:scale-95 cursor-pointer shadow-md"
+              title="Interactive Fortune Wheel for Team Picks or Lucky Draw"
+            >
+              <Sparkles className="w-4 h-4 text-amber-400" />
+              <span>Fortune Wheel</span>
+            </button>
+          )}
+
+          {onLaunchAcceleratedRound && unsoldPlayers.length > 0 && (
+            <button
+              onClick={() => {
+                const choice = window.prompt(
+                  `⚡ Accelerated Round for ${unsoldPlayers.length} Unsold Players!\nEnter discount percentage on base price (e.g. 0 for original, 20 for -20%, 50 for -50%):`,
+                  '0'
+                );
+                if (choice !== null) {
+                  const pct = Math.max(0, Math.min(90, Number(choice) || 0));
+                  onLaunchAcceleratedRound(pct);
+                }
+              }}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/40 transition active:scale-95 cursor-pointer animate-pulse"
+              title="Recall unsold players with optional base price discount"
+            >
+              <Zap className="w-4 h-4 text-cyan-400" />
+              <span>Accelerated Round ({unsoldPlayers.length})</span>
+            </button>
+          )}
+
           <button
             onClick={onRandomDraw}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 transition-all active:scale-95"

@@ -32,6 +32,10 @@ import { RegistrationFormBuilder } from './components/RegistrationFormBuilder';
 import { PublicRegistrationView } from './components/PublicRegistrationView';
 import { AuthModal } from './components/AuthModal';
 import { AdminPanelView } from './components/AdminPanelView';
+import { FortuneWheelModal } from './components/FortuneWheelModal';
+import { BulkPlayerUploadModal } from './components/BulkPlayerUploadModal';
+import { PublicSpectatorView } from './components/PublicSpectatorView';
+import { OfflineAlertBanner } from './components/OfflineAlertBanner';
 import { syncEngine, SyncAction } from './utils/syncEngine';
 import { dbService } from './services/dbService';
 import { DatabaseBackupModal } from './components/DatabaseBackupModal';
@@ -145,7 +149,7 @@ export function App() {
     return [];
   });
 
-  // Check URL params (?mode=obs for OBS, ?mode=register for public player form)
+  // Check URL params (?mode=obs for OBS, ?mode=register for public player form, ?mode=summary for live spectators)
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -153,9 +157,16 @@ export function App() {
       if (params.get('mode') === 'register' || params.get('mode') === 'form') {
         return 'PUBLIC_REGISTER';
       }
+      if (params.get('mode') === 'summary' || params.get('mode') === 'live' || params.get('mode') === 'spectator') {
+        return 'PUBLIC_SUMMARY';
+      }
     }
     return 'TOURNAMENT_OVERVIEW';
   });
+
+  // Additional Feature Modals (Fortune Wheel, Excel Bulk Upload)
+  const [isFortuneWheelOpen, setIsFortuneWheelOpen] = useState(false);
+  const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
 
   // Live Auction State
   const [currentPlayerId, setCurrentPlayerId] = useState<string>('');
@@ -310,6 +321,9 @@ export function App() {
           break;
         case 'TOURNAMENT_SELECTED':
           setActiveTournamentId(action.payload.tournamentId);
+          break;
+        case 'PLAYERS_UPDATED':
+          setPlayers(action.payload.players);
           break;
         case 'CLEAR_ALL_DATA':
           setPlayers([]);
@@ -660,6 +674,45 @@ export function App() {
     setPlayers((prev) => [...prev, ...mapped]);
   };
 
+  const handleLaunchAcceleratedRound = (discountPercent: number) => {
+    const unsold = players.filter((p) => p.status === 'UNSOLD');
+    if (unsold.length === 0) {
+      alert('No unsold players available for Accelerated Round.');
+      return;
+    }
+
+    const updatedPlayers = players.map((p) => {
+      if (p.status === 'UNSOLD') {
+        const discountedPrice =
+          discountPercent > 0
+            ? Math.max(1000, Math.round(p.basePrice * (1 - discountPercent / 100)))
+            : p.basePrice;
+        return {
+          ...p,
+          status: 'AVAILABLE' as const,
+          basePrice: discountedPrice,
+          category: 'ACCELERATED' as const,
+        };
+      }
+      return p;
+    });
+
+    setPlayers(updatedPlayers);
+    syncEngine.broadcast({
+      type: 'PLAYERS_UPDATED',
+      payload: { players: updatedPlayers },
+    });
+
+    const firstRecall = updatedPlayers.find((p) => p.id === unsold[0].id);
+    if (firstRecall) {
+      handleSelectPlayer(firstRecall);
+    }
+
+    alert(
+      `⚡ Accelerated Round Launched!\n${unsold.length} unsold players recalled to auction lot with ${discountPercent}% price discount.`
+    );
+  };
+
   const handleDeletePlayer = (playerId: string) => {
     setPlayers((prev) => prev.filter((p) => p.id !== playerId));
   };
@@ -742,6 +795,22 @@ export function App() {
     );
   }
 
+  // Dedicated clean view for public live spectator summary (?mode=summary)
+  if (viewMode === 'PUBLIC_SUMMARY') {
+    return (
+      <PublicSpectatorView
+        tournament={tournament}
+        teams={activeTeams}
+        players={activePlayers}
+        currentPlayer={currentPlayer}
+        currentBid={currentBid}
+        leadingTeam={leadingTeam}
+        bidsHistory={bidsHistory}
+        onExitSpectatorMode={() => setViewMode('TOURNAMENT_OVERVIEW')}
+      />
+    );
+  }
+
   // Special full-screen transparent view for OBS Studio
   if (viewMode === 'OBS') {
     return (
@@ -786,6 +855,7 @@ export function App() {
         currentUser={currentUser}
         onOpenAuthModal={() => setIsAuthModalOpen(true)}
         onLogout={handleLogout}
+        onOpenFortuneWheel={() => setIsFortuneWheelOpen(true)}
       />
 
       {/* Main Container */}
@@ -841,6 +911,8 @@ export function App() {
             }}
             onApprovePlayer={handleApprovePlayer}
             onRejectPlayer={handleRejectPlayer}
+            onOpenFortuneWheel={() => setIsFortuneWheelOpen(true)}
+            onOpenBulkUploadModal={() => setIsBulkUploadModalOpen(true)}
           />
         )}
 
@@ -891,6 +963,8 @@ export function App() {
             onUndoBid={handleUndoBid}
             onSelectPlayer={handleSelectPlayer}
             onRandomDraw={handleRandomDraw}
+            onOpenFortuneWheel={() => setIsFortuneWheelOpen(true)}
+            onLaunchAcceleratedRound={handleLaunchAcceleratedRound}
           />
         )}
 
@@ -1010,6 +1084,27 @@ export function App() {
         onClose={() => setIsAuthModalOpen(false)}
         onSuccess={handleLoginSuccess}
       />
+
+      {/* Interactive Fortune Wheel Modal */}
+      <FortuneWheelModal
+        isOpen={isFortuneWheelOpen}
+        onClose={() => setIsFortuneWheelOpen(false)}
+        teams={activeTeams}
+        players={activePlayers}
+        onSelectPlayer={handleSelectPlayer}
+      />
+
+      {/* Excel / CSV Bulk Player Upload Modal */}
+      <BulkPlayerUploadModal
+        isOpen={isBulkUploadModalOpen}
+        onClose={() => setIsBulkUploadModalOpen(false)}
+        tournamentId={tournament.id}
+        defaultBasePrice={tournament.defaultBasePrice}
+        onBulkAddPlayers={handleBulkAddPlayers}
+      />
+
+      {/* Offline Alert Network Banner */}
+      <OfflineAlertBanner />
 
       {/* Footer Branding */}
       <footer className="p-4 border-t border-white/5 text-center text-xs text-slate-500 font-medium">
