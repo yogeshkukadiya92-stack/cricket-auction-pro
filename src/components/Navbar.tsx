@@ -13,6 +13,7 @@ import {
   Maximize2,
   Shield,
   Radio,
+  ClipboardList,
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -46,6 +47,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { mode: 'AUCTIONEER' as ViewMode, label: 'Auctioneer Desk', icon: Mic },
     { mode: 'PADDLE' as ViewMode, label: 'Team Paddle', icon: Hand },
     { mode: 'PLAYERS' as ViewMode, label: 'Players', icon: Users },
+    { mode: 'FORM_BUILDER' as ViewMode, label: 'Reg. Form', icon: ClipboardList },
     { mode: 'TEAMS' as ViewMode, label: 'Franchises', icon: Shield },
     { mode: 'SQUADS' as ViewMode, label: 'Squads', icon: FileSpreadsheet },
     { mode: 'OBS' as ViewMode, label: 'OBS Stream', icon: Radio },

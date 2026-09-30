@@ -23,6 +23,8 @@ import { RulesSettingsView } from './components/RulesSettingsView';
 import { SquadSummaryView } from './components/SquadSummaryView';
 import { ObsOverlayView } from './components/ObsOverlayView';
 import { SoldPosterModal } from './components/SoldPosterModal';
+import { RegistrationFormBuilder } from './components/RegistrationFormBuilder';
+import { PublicRegistrationView } from './components/PublicRegistrationView';
 import { syncEngine, SyncAction } from './utils/syncEngine';
 import { ArrowLeft } from 'lucide-react';
 
@@ -48,11 +50,14 @@ export function App() {
     return saved ? JSON.parse(saved) : initialPlayers;
   });
 
-  // Check URL param ?mode=obs for direct OBS streaming link
+  // Check URL params (?mode=obs for OBS, ?mode=register for public player form)
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       if (params.get('mode') === 'obs') return 'OBS';
+      if (params.get('mode') === 'register' || params.get('mode') === 'form') {
+        return 'PUBLIC_REGISTER';
+      }
     }
     return 'STAGE';
   });
@@ -376,6 +381,42 @@ export function App() {
     setPlayers((prev) => prev.filter((p) => p.id !== playerId));
   };
 
+  const handleApprovePlayer = (playerId: string) => {
+    setPlayers((prev) =>
+      prev.map((p) =>
+        p.id === playerId
+          ? { ...p, approvalStatus: 'APPROVED', status: 'AVAILABLE' }
+          : p
+      )
+    );
+    alert('✅ Player approved and added to the official auction lot!');
+  };
+
+  const handleRejectPlayer = (playerId: string) => {
+    if (confirm('Are you sure you want to reject this registration?')) {
+      setPlayers((prev) =>
+        prev.map((p) =>
+          p.id === playerId ? { ...p, approvalStatus: 'REJECTED' } : p
+        )
+      );
+    }
+  };
+
+  const handleRegisterPlayer = (newPlayer: Player) => {
+    setPlayers((prev) => [newPlayer, ...prev]);
+  };
+
+  // Dedicated clean view for public player registration (?mode=register)
+  if (viewMode === 'PUBLIC_REGISTER') {
+    return (
+      <PublicRegistrationView
+        tournament={tournament}
+        onRegisterPlayer={handleRegisterPlayer}
+        onBackToDashboard={() => setViewMode('STAGE')}
+      />
+    );
+  }
+
   // Special full-screen transparent view for OBS Studio
   if (viewMode === 'OBS') {
     return (
@@ -458,6 +499,17 @@ export function App() {
             onAddPlayer={handleAddPlayer}
             onBulkAddPlayers={handleBulkAddPlayers}
             onDeletePlayer={handleDeletePlayer}
+            onNavigateToFormBuilder={() => setViewMode('FORM_BUILDER')}
+            onApprovePlayer={handleApprovePlayer}
+            onRejectPlayer={handleRejectPlayer}
+          />
+        )}
+
+        {viewMode === 'FORM_BUILDER' && (
+          <RegistrationFormBuilder
+            tournament={tournament}
+            onUpdateTournament={setTournament}
+            onPreviewPublicForm={() => setViewMode('PUBLIC_REGISTER')}
           />
         )}
 

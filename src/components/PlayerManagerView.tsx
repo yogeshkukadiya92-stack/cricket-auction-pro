@@ -17,6 +17,10 @@ import {
   Download,
   FileSpreadsheet,
   FileUp,
+  Link,
+  Sliders,
+  UserCheck,
+  UserX,
 } from 'lucide-react';
 
 interface PlayerManagerViewProps {
@@ -24,6 +28,9 @@ interface PlayerManagerViewProps {
   onAddPlayer: (newPlayer: Player) => void;
   onBulkAddPlayers?: (newPlayers: Player[]) => void;
   onDeletePlayer: (playerId: string) => void;
+  onNavigateToFormBuilder?: () => void;
+  onApprovePlayer?: (playerId: string) => void;
+  onRejectPlayer?: (playerId: string) => void;
 }
 
 export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
@@ -31,10 +38,14 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
   onAddPlayer,
   onBulkAddPlayers,
   onDeletePlayer,
+  onNavigateToFormBuilder,
+  onApprovePlayer,
+  onRejectPlayer,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [approvalTab, setApprovalTab] = useState<'ALL' | 'APPROVED' | 'PENDING'>('ALL');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [csvMessage, setCsvMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -126,8 +137,15 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
     const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === 'ALL' || p.role === roleFilter;
     const matchesStatus = statusFilter === 'ALL' || p.status === statusFilter;
-    return matchesSearch && matchesRole && matchesStatus;
+    const matchesApproval =
+      approvalTab === 'ALL' ||
+      (approvalTab === 'PENDING'
+        ? p.approvalStatus === 'PENDING'
+        : p.approvalStatus !== 'PENDING');
+    return matchesSearch && matchesRole && matchesStatus && matchesApproval;
   });
+
+  const pendingCount = players.filter((p) => p.approvalStatus === 'PENDING').length;
 
   const formatPrice = (val: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -204,6 +222,81 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
           {csvMessage}
         </div>
       )}
+
+      {/* Online Registration Share Hub Banner */}
+      <div className="p-5 rounded-3xl bg-gradient-to-r from-obsidian-900 via-obsidian-850 to-obsidian-900 border border-gold-400/30 shadow-glow-gold flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="p-3 rounded-2xl bg-gold-500/15 border border-gold-400/30 text-gold-400 shadow">
+            <Link className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h4 className="text-base font-black text-white font-display">
+                પ્લેયર ઓનલાઇન સેલ્ફ-રજીસ્ટ્રેશન લિંક
+              </h4>
+              <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                ACTIVE
+              </span>
+            </div>
+            <p className="text-xs text-slate-300 mt-0.5">
+              ખેલાડીઓને WhatsApp ગ્રૂપમાં મોકલો જેથી તેઓ જાતે જ ફોટો અને માહિતી ભરીને ફોર્મ સબમિટ કરી શકે.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => {
+              const url = `${window.location.origin}${window.location.pathname}?mode=register`;
+              navigator.clipboard.writeText(url);
+              alert('✅ પ્લેયર રજીસ્ટ્રેશન લિંક કોપી થઈ ગઈ છે!');
+            }}
+            className="px-4 py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/15 text-white border border-white/10 active:scale-95 transition-all"
+          >
+            Copy Public Link
+          </button>
+
+          {onNavigateToFormBuilder && (
+            <button
+              onClick={onNavigateToFormBuilder}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black bg-gold-500 hover:bg-gold-400 text-black shadow-glow-gold active:scale-95 transition-all"
+            >
+              <Sliders className="w-3.5 h-3.5" />
+              Customize Form (Google Forms)
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Approval Filter Tabs */}
+      <div className="flex items-center gap-2 border-b border-white/10 pb-2">
+        <button
+          onClick={() => setApprovalTab('ALL')}
+          className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${
+            approvalTab === 'ALL'
+              ? 'bg-white/15 text-white shadow'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          All Registered Players ({players.length})
+        </button>
+
+        <button
+          onClick={() => setApprovalTab('PENDING')}
+          className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${
+            approvalTab === 'PENDING'
+              ? 'bg-amber-500/20 text-gold-400 border border-gold-400/40 font-black shadow'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <span>Pending Review</span>
+          {pendingCount > 0 && (
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-gold-500 text-black">
+              {pendingCount}
+            </span>
+          )}
+        </button>
+      </div>
 
       {/* Filter and Search Bar */}
       <div className="p-4 rounded-2xl glass-panel border border-white/10 flex flex-wrap items-center justify-between gap-4">
@@ -310,24 +403,73 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
                   <span className="font-bold text-emerald-400">{player.stats.strikeRate}</span>
                 </div>
               </div>
+              {/* Custom Form Data Preview */}
+              {player.customData && Object.keys(player.customData).length > 0 && (
+                <div className="mt-2.5 pt-2 border-t border-white/5 space-y-1">
+                  {player.customData.jersey_size && (
+                    <div className="flex justify-between text-[10px] text-slate-400">
+                      <span>Jersey:</span>
+                      <span className="font-bold text-white font-mono">{player.customData.jersey_size}</span>
+                    </div>
+                  )}
+                  {player.customData.player_city && (
+                    <div className="flex justify-between text-[10px] text-slate-400">
+                      <span>City:</span>
+                      <span className="font-bold text-white">{player.customData.player_city}</span>
+                    </div>
+                  )}
+                  {player.mobile && (
+                    <div className="flex justify-between text-[10px] text-slate-400">
+                      <span>Mobile:</span>
+                      <span className="font-mono text-slate-300">{player.mobile}</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
-            <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between">
-              <div>
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">
-                  {player.status === 'SOLD' ? 'Sold Price' : 'Base Price'}
-                </span>
-                <span className="text-sm font-black text-white font-mono">
-                  {player.status === 'SOLD' ? formatPrice(player.soldPrice || 0) : formatPrice(player.basePrice)}
-                </span>
+            <div className="mt-3 pt-3 border-t border-white/10 space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                    {player.status === 'SOLD' ? 'Sold Price' : 'Base Price'}
+                  </span>
+                  <span className="text-sm font-black text-white font-mono">
+                    {player.status === 'SOLD' ? formatPrice(player.soldPrice || 0) : formatPrice(player.basePrice)}
+                  </span>
+                </div>
+                <button
+                  onClick={() => onDeletePlayer(player.id)}
+                  className="p-2 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                  title="Delete Player"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </div>
-              <button
-                onClick={() => onDeletePlayer(player.id)}
-                className="p-2 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                title="Delete Player"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+
+              {/* Pending Approval Actions */}
+              {player.approvalStatus === 'PENDING' && (
+                <div className="flex items-center gap-1.5 pt-1">
+                  {onApprovePlayer && (
+                    <button
+                      onClick={() => onApprovePlayer(player.id)}
+                      className="flex-1 py-1.5 px-2 rounded-xl text-[11px] font-bold bg-emerald-500 hover:bg-emerald-400 text-black flex items-center justify-center gap-1 shadow-glow-emerald active:scale-95 transition-all"
+                    >
+                      <UserCheck className="w-3.5 h-3.5" />
+                      Approve Lot
+                    </button>
+                  )}
+                  {onRejectPlayer && (
+                    <button
+                      onClick={() => onRejectPlayer(player.id)}
+                      className="py-1.5 px-2 rounded-xl text-[11px] font-bold bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 flex items-center justify-center gap-1 transition-all"
+                      title="Reject Registration"
+                    >
+                      <UserX className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         ))}
