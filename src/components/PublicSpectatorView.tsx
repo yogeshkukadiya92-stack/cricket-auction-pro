@@ -17,11 +17,13 @@ import {
 } from 'lucide-react';
 import { Tournament, Team, Player, BidRecord } from '../types';
 import { TeamLogo } from './TeamLogo';
+import { getBidBudget } from '../../shared/auctionBudget.js';
 
 interface PublicSpectatorViewProps {
   tournament: Tournament;
   teams: Team[];
   players: Player[];
+  registrationStats?: { total: number; pending: number; approved: number; rejected: number };
   currentPlayer?: Player | null;
   currentBid?: number;
   leadingTeam?: Team | null;
@@ -34,6 +36,7 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
   teams,
   players,
   currentPlayer,
+  registrationStats,
   currentBid = 0,
   leadingTeam,
   bidsHistory = [],
@@ -52,7 +55,8 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
 
   const soldPlayers = players.filter((p) => p.status === 'SOLD');
   const unsoldPlayers = players.filter((p) => p.status === 'UNSOLD');
-  const availablePlayers = players.filter((p) => p.status === 'AVAILABLE');
+  const availablePlayers = players.filter((p) => (!p.approvalStatus || p.approvalStatus === 'APPROVED') && (p.status === 'AVAILABLE' || p.status === 'IN_AUCTION'));
+  const registrations = registrationStats || { total: players.length, pending: players.filter(p => p.approvalStatus === 'PENDING').length, approved: players.filter(p => !p.approvalStatus || p.approvalStatus === 'APPROVED').length, rejected: players.filter(p => p.approvalStatus === 'REJECTED').length };
 
   // Calculate Top Buys
   const topBuys = [...soldPlayers]
@@ -177,6 +181,14 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
           <div className="space-y-2">{bidsHistory.filter(b => b.playerId === currentPlayer.id).slice(0, 5).map((bid, index) => <div key={bid.id} className={`flex items-center justify-between gap-3 p-3 rounded-xl ${index === 0 ? 'bg-amber-500/10 text-amber-300' : 'bg-slate-950 text-slate-300'}`}><span className="text-sm font-bold min-w-0 break-words">{bid.teamName}</span><span className="text-sm font-black shrink-0">{formatPrice(bid.amount)}</span></div>)}</div>
         </section>}
 
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[['Total Registrations', registrations.total], ['Pending Approval', registrations.pending], ['Approved Players', registrations.approved], ['Rejected Registrations', registrations.rejected]].map(([label, count]) => (
+            <div key={label} className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{label}</span>
+              <div className="text-2xl font-black text-white mt-1">{count}</div>
+            </div>
+          ))}
+        </div>
         {/* QUICK METRICS BAR */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl">
@@ -186,7 +198,7 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
           </div>
 
           <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Remaining Lot</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Pending Auction</span>
             <div className="text-2xl font-black text-cyan-400 mt-1">{availablePlayers.length}</div>
             <span className="text-[10px] text-slate-500">Available to Bid</span>
           </div>
@@ -225,6 +237,9 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
                 const remaining = team.remainingPurse ?? (team.totalPurse - spent);
                 const pct = Math.max(0, Math.min(100, (remaining / (team.totalPurse || 1)) * 100));
 
+                const maxPlayers = tournament.rules?.maxPlayersPerTeam || 15;
+                const minPlayers = tournament.rules?.minPlayersPerTeam || 0;
+                const budget = tournament.rules ? getBidBudget({ ...team, remainingPurse: remaining }, players, tournament.rules) : null;
                 const isSelected = selectedTeamTab === team.id;
 
                 return (
@@ -261,8 +276,15 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
                     </div>
 
                     <div className="flex justify-between items-center text-[10px] text-slate-400 mt-1.5">
-                      <span>{teamSold.length} Players Bought</span>
+                      <span>{teamSold.length} / {maxPlayers} Players Bought</span>
                       <span>{Math.round(pct)}% Purse Left</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-300 mt-3 border-t border-slate-700 pt-3">
+                      <span>Slots left: <strong>{Math.max(0, maxPlayers - teamSold.length)}</strong></span>
+                      <span>Minimum needed: <strong>{Math.max(0, minPlayers - teamSold.length)}</strong></span>
+                      <span>Spent: <strong>{formatPrice(spent)}</strong></span>
+                      <span>Reserve for next bid: <strong>{formatPrice(budget?.reserve)}</strong></span>
+                      <span className="col-span-2 text-amber-300 font-bold">{budget?.squadComplete ? 'Squad Complete — No More Bids' : `Maximum next bid: ${formatPrice(budget?.maxBid ?? remaining)}`}</span>
                     </div>
                   </button>
                 );

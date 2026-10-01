@@ -51,7 +51,7 @@ export function App() {
   const [loadedLiveTournamentId, setLoadedLiveTournamentId] = useState('');
   const [dataError, setDataError] = useState('');
   const [publicTournament, setPublicTournament] = useState<Tournament | null>(null);
-  const [publicSummary, setPublicSummary] = useState<{ tournament: Tournament; teams: Team[]; players: Player[] } | null>(null);
+  const [publicSummary, setPublicSummary] = useState<{ tournament: Tournament; teams: Team[]; players: Player[]; registrationStats?: { total: number; pending: number; approved: number; rejected: number } } | null>(null);
   const [legacyAvailable, setLegacyAvailable] = useState(() => !!(localStorage.getItem('cap_tournaments') || localStorage.getItem('cap_tournament')));
   // Database status modal state
   const [isDbModalOpen, setIsDbModalOpen] = useState(false);
@@ -658,7 +658,7 @@ export function App() {
 
   if (viewMode === 'PUBLIC_SUMMARY' && new URLSearchParams(window.location.search).has('tournamentId')) {
     if (!publicSummary) return <main className="min-h-screen bg-obsidian-950 text-white grid place-items-center">{dataError || 'Loading tournament…'}</main>;
-    return <><div role="status" className="bg-slate-950 text-amber-300 text-center">{dataError}</div><PublicSpectatorView tournament={publicSummary.tournament} teams={publicSummary.teams} players={publicSummary.players} currentPlayer={publicSummary.players.find(p => p.id === (publicSummary as any).liveState?.currentPlayerId)} currentBid={(publicSummary as any).liveState?.currentBid} leadingTeam={publicSummary.teams.find(t => t.id === (publicSummary as any).liveState?.leadingTeam?.id)} bidsHistory={(publicSummary as any).liveState?.bidsHistory || []} /></>;
+    return <><div role="status" className="bg-slate-950 text-amber-300 text-center">{dataError}</div><PublicSpectatorView tournament={publicSummary.tournament} teams={publicSummary.teams} players={publicSummary.players} registrationStats={publicSummary.registrationStats} currentPlayer={publicSummary.players.find(p => p.id === (publicSummary as any).liveState?.currentPlayerId)} currentBid={(publicSummary as any).liveState?.currentBid} leadingTeam={publicSummary.teams.find(t => t.id === (publicSummary as any).liveState?.leadingTeam?.id)} bidsHistory={(publicSummary as any).liveState?.bidsHistory || []} /></>;
   }
   if (viewMode === 'OBS' && new URLSearchParams(window.location.search).has('tournamentId')) {
     if (!publicSummary) return <main>{dataError || 'Loading auction…'}</main>;
