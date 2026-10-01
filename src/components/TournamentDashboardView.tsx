@@ -399,6 +399,15 @@ export const TournamentDashboardView: React.FC<TournamentDashboardViewProps> = (
         </div>
       </div>
 
+      <div className="p-5 rounded-2xl glass-panel border border-white/10 space-y-3">
+        <h3 className="text-sm font-black text-gold-400">OWNER REGISTRATION SUMMARY LINK</h3>
+        <p className="text-xs text-slate-400">Share total registrations, player names and photos with owners. Payment details and mobile numbers are excluded.</p>
+        <div className="flex flex-wrap gap-3">
+          <button onClick={async () => { try { await navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?mode=registrations&tournamentId=${encodeURIComponent(tournament.id)}`); alert('Owner summary link copied'); } catch { alert('Unable to copy. Open the summary and copy its address.'); } }} className="px-4 py-2.5 rounded-xl bg-gold-500 text-black text-xs font-bold">Copy Owner Summary Link</button>
+          <a href={`?mode=registrations&tournamentId=${encodeURIComponent(tournament.id)}`} target="_blank" rel="noopener noreferrer" className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs font-bold">Open Registration Summary</a>
+        </div>
+      </div>
+
       {/* 4. Quick Command Navigation Grid */}
       <div>
         <h3 className="text-sm font-black uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">

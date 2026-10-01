@@ -1,3 +1,4 @@
+import { RegistrationSummaryView } from './components/RegistrationSummaryView';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   initialTournament,
@@ -115,6 +116,7 @@ export function App() {
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
+      if (params.get('mode') === 'registrations') return 'PUBLIC_REGISTRATIONS';
       if (params.get('mode') === 'obs') return 'OBS';
       if (params.get('mode') === 'register' || params.get('mode') === 'form') {
         return 'PUBLIC_REGISTER';
@@ -159,7 +161,7 @@ export function App() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.has('tournamentId') && ['obs', 'register', 'form', 'summary', 'live', 'spectator'].includes(params.get('mode') || '')) { setAuthChecked(true); return; }
+    if (params.has('tournamentId') && ['obs', 'register', 'form', 'summary', 'live', 'spectator', 'registrations'].includes(params.get('mode') || '')) { setAuthChecked(true); return; }
     fetch('/api/auth/me').then(async (res) => {
       if (!res.ok) return null;
       return (await res.json()).user as User;
@@ -197,7 +199,7 @@ export function App() {
 
   // Load only the signed-in organizer's records from the server.
   useEffect(() => {
-    if (!currentUser || ['PUBLIC_REGISTER', 'PUBLIC_SUMMARY', 'OBS'].includes(viewMode) && new URLSearchParams(window.location.search).has('tournamentId')) return;
+    if (!currentUser || ['PUBLIC_REGISTER', 'PUBLIC_SUMMARY', 'PUBLIC_REGISTRATIONS', 'OBS'].includes(viewMode) && new URLSearchParams(window.location.search).has('tournamentId')) return;
     setDataReady(false);
     dbService.setScope(currentUser.id);
     dbService.flushSync().then(() => dbService.fetchBootstrapData()).then((data) => {
@@ -639,6 +641,8 @@ export function App() {
       setLegacyAvailable(false);
     } catch (error) { alert((error as Error).message); }
   };
+
+  if (viewMode === 'PUBLIC_REGISTRATIONS') return <RegistrationSummaryView />;
 
   // Dedicated clean view for public player registration (?mode=register)
   if (viewMode === 'PUBLIC_REGISTER') {

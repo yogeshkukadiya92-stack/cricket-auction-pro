@@ -372,6 +372,16 @@ app.get('/api/public/tournaments/:id', async (req, res) => {
   const { userId, creatorEmail, ...tournament } = result.rows[0].data;
   res.json({ success: true, tournament });
 });
+// Owner-share view exposes only identity, photo and cricket role, including pending forms.
+app.get('/api/public/tournaments/:id/registrations', async (req, res) => {
+  const result = await pool.query('SELECT data FROM tournaments WHERE id=$1', [req.params.id]);
+  if (!result.rowCount) return bad(res, 404, 'Tournament not found');
+  const rows = await pool.query("SELECT data FROM players WHERE tournament_id=$1 ORDER BY data->>'registeredAt' DESC NULLS LAST", [req.params.id]);
+  const tournament = result.rows[0].data;
+  res.set('Cache-Control', 'no-store');
+  res.json({ tournament: { name: tournament.name, season: tournament.season }, players: rows.rows.map(({ data: player }) => ({ id: player.id, name: player.name, photoUrl: player.photoUrl, role: player.role })) });
+});
+
 app.get('/api/public/tournaments/:id/summary', async (req, res) => {
   const result = await pool.query('SELECT data FROM tournaments WHERE id=$1', [req.params.id]);
   if (!result.rowCount) return bad(res, 404, 'Tournament not found');

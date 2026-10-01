@@ -161,4 +161,5 @@ export type ViewMode =
   | 'FORM_BUILDER'
   | 'PUBLIC_REGISTER'
   | 'PUBLIC_SUMMARY'
+  | 'PUBLIC_REGISTRATIONS'
   | 'ADMIN_PANEL';
