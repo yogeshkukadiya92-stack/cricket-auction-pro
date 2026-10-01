@@ -59,12 +59,9 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
       return;
     }
     const budget = getBidBudget(team, allPlayers, rules);
+    if (budget.squadComplete) { alert(`Squad complete — ${team.name} has ${budget.bought}/${rules.maxPlayersPerTeam} players and cannot bid.`); return; }
     if ((rules.minimumPlayerReserve || !rules.allowNegativePurse) && targetAmount > budget.maxBid) {
       alert(`⚠️ ${team.name} can bid at most ${formatPrice(budget.maxBid)}. ${formatPrice(budget.reserve)} is reserved for remaining players.`);
-      return;
-    }
-    if (allPlayers.filter((player) => player.soldToTeamId === team.id).length >= rules.maxPlayersPerTeam) {
-      alert(`⚠️ ${team.name} has reached the maximum squad size.`);
       return;
     }
     setSelectedTeamId(team.id);
@@ -192,13 +189,14 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
                     </button>
                     <button
                       onClick={() => handleBidStep(nextBidAmount, team)}
-                      disabled={((rules.minimumPlayerReserve || !rules.allowNegativePurse) && nextBidAmount > budget.maxBid) || allPlayers.filter((player) => player.soldToTeamId === team.id).length >= rules.maxPlayersPerTeam}
+                      disabled={((rules.minimumPlayerReserve || !rules.allowNegativePurse) && nextBidAmount > budget.maxBid) || budget.squadComplete}
                       className="px-3 py-3 rounded-xl bg-gold-500 hover:bg-gold-400 text-black font-black text-sm transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
                       aria-label={`Place ${formatPrice(nextBidAmount)} bid for ${team.name}`}
                     >
-                      <span className="block text-[10px] font-bold">{currentBid > 0 ? `+${formatPrice(bidIncrement)}` : 'Opening Bid'}</span>
-                      {formatPrice(nextBidAmount)}
+                      <span className="block text-[10px] font-bold">{budget.squadComplete ? 'Limit reached' : currentBid > 0 ? `+${formatPrice(bidIncrement)}` : 'Opening Bid'}</span>
+                      {budget.squadComplete ? 'Squad complete' : formatPrice(nextBidAmount)}
                     </button>
+                    <span className="text-[11px] text-slate-400">Squad: {budget.bought}/{rules.maxPlayersPerTeam}{budget.squadComplete ? ' • Bidding closed' : ''}</span>
                     </div>
                   );
                 })}

@@ -229,8 +229,9 @@ app.post('/api/tournaments/:id/auction', requireUser, async (req, res) => {
         const amount = body.amount;
         if (!team || !Number.isFinite(amount) || amount < player.basePrice || amount <= state.currentBid) fail('Bid must exceed the current bid and meet the base price');
         const budget = getBidBudget(team, players, rules);
+        if (budget.squadComplete) fail(`Squad complete — ${team.name} has reached the maximum of ${rules.maxPlayersPerTeam || 15} players`);
         if ((rules.minimumPlayerReserve || !rules.allowNegativePurse) && amount > budget.maxBid) fail(`Maximum bid is ${budget.maxBid}; ${budget.reserve} must remain reserved for the squad`);
-        if (players.filter(p => p.status === 'SOLD' && p.soldToTeamId === team.id).length >= (rules.maxPlayersPerTeam || 15)) fail('Team squad is full');
+        if (players.filter(p => p.status === 'SOLD' && p.soldToTeamId === team.id).length >= (rules.maxPlayersPerTeam || 15)) fail('Squad complete — no further players or bids allowed');
         const record = { id: randomUUID(), playerId: player.id, teamId: team.id, teamName: team.name, amount, timestamp: Date.now() };
         state = { ...state, currentBid: amount, leadingTeam: team, bidsHistory: [record, ...(state.bidsHistory || [])] };
       } else if (body.action === 'UNDO') {
@@ -241,8 +242,9 @@ app.post('/api/tournaments/:id/auction', requireUser, async (req, res) => {
           const winner = teams.find(t => t.id === state.leadingTeam?.id);
           if (!winner || !state.currentBid || body.amount !== state.currentBid || body.teamId !== winner.id) fail('Winning bid changed; review it before marking sold');
           const budget = getBidBudget(winner, players, rules);
+          if (budget.squadComplete) fail("Squad complete — no further players or bids allowed");
           if ((rules.minimumPlayerReserve || !rules.allowNegativePurse) && state.currentBid > budget.maxBid) fail(`Winning bid exceeds the current maximum of ${budget.maxBid}; undo the bid or update squad rules`);
-          if (budget.bought >= (rules.maxPlayersPerTeam || 15)) fail('Team squad is full');
+          if (budget.bought >= (rules.maxPlayersPerTeam || 15)) fail('Squad complete — no further players or bids allowed');
           const sold = { ...player, status: 'SOLD', soldToTeamId: winner.id, soldPrice: state.currentBid };
           const updatedTeam = { ...winner, remainingPurse: winner.remainingPurse - state.currentBid };
           await client.query('UPDATE players SET data=$3 WHERE tournament_id=$1 AND id=$2', [req.params.id, player.id, sold]);

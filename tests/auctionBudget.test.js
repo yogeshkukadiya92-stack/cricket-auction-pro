@@ -4,11 +4,11 @@ import { getBidBudget } from '../shared/auctionBudget.js';
 const team = { id: 'a', remainingPurse: 10000000 };
 const rules = { minPlayersPerTeam: 12, minimumPlayerReserve: 200000 };
 test('one crore purse allows 78 lakh with 22 lakh reserved for eleven players', () => {
-  assert.deepEqual(getBidBudget(team, [], rules), { bought: 0, remainingSlots: 11, reserve: 2200000, maxBid: 7800000 });
+  assert.deepEqual(getBidBudget(team, [], rules), { bought: 0, remainingSlots: 11, reserve: 2200000, maxBid: 7800000, squadComplete: false });
 });
 test('reserve decreases as players are bought, using the actual remaining purse', () => {
   const players = [{ status: 'SOLD', soldToTeamId: 'a' }, { status: 'UNSOLD', soldToTeamId: 'a' }, { status: 'SOLD', soldToTeamId: 'b' }];
-  assert.deepEqual(getBidBudget({ ...team, remainingPurse: 8000000 }, players, rules), { bought: 1, remainingSlots: 10, reserve: 2000000, maxBid: 6000000 });
+  assert.deepEqual(getBidBudget({ ...team, remainingPurse: 8000000 }, players, rules), { bought: 1, remainingSlots: 10, reserve: 2000000, maxBid: 6000000, squadComplete: false });
 });
 test('last required player may use all remaining purse', () => {
   const players = Array.from({ length: 11 }, () => ({ status: 'SOLD', soldToTeamId: 'a' }));
@@ -20,4 +20,12 @@ test('thirteen player squad reserves 24 lakh and permits 76 lakh', () => {
 });
 test('insufficient purse never produces a negative maximum', () => {
   assert.equal(getBidBudget({ ...team, remainingPurse: 100000 }, [], rules).maxBid, 0);
+});
+
+test('twelve-player limit closes bidding even with a large purse', () => {
+  const players = Array.from({ length: 12 }, () => ({ status: 'SOLD', soldToTeamId: 'a' }));
+  const budget = getBidBudget(team, players, { ...rules, maxPlayersPerTeam: 12 });
+  assert.equal(budget.squadComplete, true);
+  assert.equal(budget.maxBid, 0);
+  assert.equal(getBidBudget(team, players.slice(1), { ...rules, maxPlayersPerTeam: 12 }).squadComplete, false);
 });

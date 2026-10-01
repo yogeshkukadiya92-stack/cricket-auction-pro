@@ -57,7 +57,7 @@ export const TeamPaddleView: React.FC<TeamPaddleViewProps> = ({
 
   const budget = getBidBudget(team, allPlayers, rules);
   const maxSafeBid = budget.maxBid;
-  const canAffordNextBid = !!currentPlayer && ['AVAILABLE', 'IN_AUCTION'].includes(currentPlayer.status) && teamPlayers.length < rules.maxPlayersPerTeam && (!(rules.minimumPlayerReserve || !rules.allowNegativePurse) || nextBidAmount <= maxSafeBid);
+  const canAffordNextBid = !!currentPlayer && ['AVAILABLE', 'IN_AUCTION'].includes(currentPlayer.status) && !budget.squadComplete && (!(rules.minimumPlayerReserve || !rules.allowNegativePurse) || nextBidAmount <= maxSafeBid);
 
   const isCurrentlyLeading = leadingTeam?.id === team.id;
 
@@ -184,7 +184,7 @@ export const TeamPaddleView: React.FC<TeamPaddleViewProps> = ({
             >
               <Hand className="w-10 h-10 animate-bounce" />
               <span className="text-2xl font-black font-display tracking-tight">
-                RAISE PADDLE • {formatPrice(nextBidAmount)}
+                {budget.squadComplete ? 'SQUAD COMPLETE' : `RAISE PADDLE • ${formatPrice(nextBidAmount)}`}
               </span>
               <span className="text-xs font-semibold opacity-80">
                 Tap to place instant official franchise bid
@@ -195,7 +195,7 @@ export const TeamPaddleView: React.FC<TeamPaddleViewProps> = ({
           {!canAffordNextBid && (
             <div className="flex items-center justify-center gap-2 text-xs text-red-400 font-medium">
               <AlertTriangle className="w-4 h-4" />
-              This bid exceeds the maximum allowed after reserving the remaining squad budget.
+              {budget.squadComplete ? `Squad complete — ${budget.bought}/${rules.maxPlayersPerTeam} players. No further bids allowed.` : 'This bid exceeds the maximum allowed after reserving the remaining squad budget.'}
             </div>
           )}
         </div>

@@ -45,6 +45,8 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
   const [coSponsors, setCoSponsors] = useState('');
 
   // Auction & Financials
+  const [maxPlayersPerTeam, setMaxPlayersPerTeam] = useState(initialRules.maxPlayersPerTeam);
+  const [minPlayersPerTeam, setMinPlayersPerTeam] = useState(initialRules.minPlayersPerTeam);
   const [minimumPlayerReserve, setMinimumPlayerReserve] = useState(20000);
   const [bidIncrement, setBidIncrement] = useState(20000);
   const [defaultBasePrice, setDefaultBasePrice] = useState(20000);
@@ -70,6 +72,8 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
 
   useEffect(() => {
     if (initialData) {
+      setMaxPlayersPerTeam(initialData.rules?.maxPlayersPerTeam || initialRules.maxPlayersPerTeam);
+      setMinPlayersPerTeam(initialData.rules?.minPlayersPerTeam || initialRules.minPlayersPerTeam);
       setName(initialData.name || '');
       setSeason(initialData.season || 'Season 1');
       setYear(initialData.year || 2026);
@@ -149,6 +153,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
       return;
     }
     if (!Number.isSafeInteger(minimumPlayerReserve) || minimumPlayerReserve <= 0) { setError("Enter a positive minimum amount per remaining player"); return; }
+    if (!Number.isSafeInteger(maxPlayersPerTeam) || !Number.isSafeInteger(minPlayersPerTeam) || minPlayersPerTeam < 1 || maxPlayersPerTeam < minPlayersPerTeam) { setError("Maximum players must be at least the minimum required squad size."); return; }
     onSave({
       ...(initialData || {}),
       name: name.trim(),
@@ -160,7 +165,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
       sponsor: sponsor.trim(),
       coSponsors: coSponsors.trim(),
       defaultBasePrice: Number(defaultBasePrice) || 20000,
-      rules: { ...(initialData?.rules || initialRules), bidIncrement: Number(bidIncrement), minimumPlayerReserve, pursePerTeam: Number(totalPursePerTeam) || 1000000 },
+      rules: { ...(initialData?.rules || initialRules), bidIncrement: Number(bidIncrement), minimumPlayerReserve, minPlayersPerTeam, maxPlayersPerTeam, pursePerTeam: Number(totalPursePerTeam) || 1000000 },
       totalPursePerTeam: Number(totalPursePerTeam) || 1000000,
       expectedTeamsCount: Number(expectedTeamsCount) || 8,
       ground: ground.trim(),
@@ -409,6 +414,18 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
               3. Auction Economy & Teams Allocation
             </h4>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="tournament-min-players" className="text-xs font-bold text-slate-300 block mb-1">Minimum required players per team *</label>
+                <input id="tournament-min-players" type="number" min="1" step="1" required value={minPlayersPerTeam} onChange={(e) => setMinPlayersPerTeam(Number(e.target.value))} className="w-full bg-obsidian-950 border border-white/10 text-white font-bold text-sm px-4 py-2.5 rounded-xl" />
+                <p className="text-[10px] text-slate-400 mt-1">Used to reserve the remaining squad budget.</p>
+              </div>
+              <div>
+                <label htmlFor="tournament-max-players" className="text-xs font-bold text-slate-300 block mb-1">Maximum players per team *</label>
+                <input id="tournament-max-players" type="number" min={minPlayersPerTeam} step="1" required value={maxPlayersPerTeam} onChange={(e) => setMaxPlayersPerTeam(Number(e.target.value))} className="w-full bg-obsidian-950 border border-white/10 text-white font-bold text-sm px-4 py-2.5 rounded-xl" />
+                <p className="text-[10px] text-slate-400 mt-1">Bidding stops with “Squad complete” when this limit is reached.</p>
+              </div>
+            </div>
             <div>
               <label htmlFor="tournament-player-reserve" className="text-xs font-bold text-slate-300 block mb-1">Minimum amount per remaining player (₹) *</label>
               <input id="tournament-player-reserve" type="number" min="1" step="1" required value={minimumPlayerReserve} onChange={(e) => setMinimumPlayerReserve(Number(e.target.value))} className="w-full bg-obsidian-950 border border-white/10 text-white font-mono font-bold text-sm px-4 py-2.5 rounded-xl" />
