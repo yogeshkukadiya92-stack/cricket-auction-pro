@@ -47,25 +47,29 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
     return formatAuctionPrice(val, rules.currency);
   };
 
-  const getNextBidOptions = () => {
-    const base = currentBid === 0 && currentPlayer ? currentPlayer.basePrice : currentBid;
-    return [
-      { label: '+2k', val: base + 2000 },
-      { label: '+5k', val: base + 5000 },
-      { label: '+10k', val: base + 10000 },
-      { label: '+25k', val: base + 25000 },
-      { label: '+50k', val: base + 50000 },
-    ];
-  };
+  const bidBase = currentBid > 0 ? currentBid : currentPlayer?.basePrice || 0;
+  const bidIncrement = rules.bidSlabs.find(
+    (slab) => bidBase >= slab.fromAmount && bidBase < slab.toAmount
+  )?.increment || rules.bidSlabs[rules.bidSlabs.length - 1]?.increment || 2000;
+  const nextBidAmount = currentBid > 0 ? currentBid + bidIncrement : bidBase;
 
-  const handleBidStep = (targetAmount: number) => {
-    if (!selectedTeam || !currentPlayer) return;
-    if (targetAmount > selectedTeam.remainingPurse) {
-      alert(`⚠️ ${selectedTeam.name} does not have enough purse! (${formatPrice(selectedTeam.remainingPurse)})`);
+  const handleBidStep = (targetAmount: number, team = selectedTeam) => {
+    if (!team || !currentPlayer) return;
+    if (!Number.isFinite(targetAmount) || targetAmount < currentPlayer.basePrice || targetAmount <= currentBid) {
+      alert(`Bid must meet the base price and exceed the current bid.`);
       return;
     }
+    if (!rules.allowNegativePurse && targetAmount > team.remainingPurse) {
+      alert(`⚠️ ${team.name} does not have enough purse! (${formatPrice(team.remainingPurse)})`);
+      return;
+    }
+    if (allPlayers.filter((player) => player.soldToTeamId === team.id).length >= rules.maxPlayersPerTeam) {
+      alert(`⚠️ ${team.name} has reached the maximum squad size.`);
+      return;
+    }
+    setSelectedTeamId(team.id);
     sounds.playBidSound();
-    onPlaceBid(selectedTeam, targetAmount);
+    onPlaceBid(team, targetAmount);
   };
 
   const availablePlayers = allPlayers.filter((p) => (!p.approvalStatus || p.approvalStatus === 'APPROVED') && (p.status === 'AVAILABLE' || p.status === 'IN_AUCTION'));
@@ -158,8 +162,8 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
                   const isSelected = selectedTeam?.id === team.id;
                   const isLeading = leadingTeam?.id === team.id;
                   return (
+                    <div key={team.id} className="flex flex-col gap-2 min-w-0">
                     <button
-                      key={team.id}
                       onClick={() => {
                         setSelectedTeamId(team.id);
                         sounds.playTick();
@@ -183,6 +187,16 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
                         Purse: {formatPrice(team.remainingPurse)}
                       </div>
                     </button>
+                    <button
+                      onClick={() => handleBidStep(nextBidAmount, team)}
+                      disabled={(!rules.allowNegativePurse && nextBidAmount > team.remainingPurse) || allPlayers.filter((player) => player.soldToTeamId === team.id).length >= rules.maxPlayersPerTeam}
+                      className="px-3 py-3 rounded-xl bg-gold-500 hover:bg-gold-400 text-black font-black text-sm transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                      aria-label={`Place ${formatPrice(nextBidAmount)} bid for ${team.name}`}
+                    >
+                      <span className="block text-[10px] font-bold">{currentBid > 0 ? `+${formatPrice(bidIncrement)}` : 'Opening Bid'}</span>
+                      {formatPrice(nextBidAmount)}
+                    </button>
+                    </div>
                   );
                 })}
               </div>
@@ -199,30 +213,26 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
                 </span>
               </div>
 
-              {/* Fast Increment Buttons */}
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                {getNextBidOptions().map((opt) => (
-                  <button
-                    key={opt.val}
-                    onClick={() => handleBidStep(opt.val)}
-                    className="group p-3 rounded-xl bg-gradient-to-b from-white/10 to-white/5 hover:from-gold-500/30 hover:to-gold-500/10 border border-white/10 hover:border-gold-400/50 text-center transition-all active:scale-95 shadow-lg"
-                  >
-                    <span className="block text-xs font-bold text-slate-400 group-hover:text-gold-300">
-                      {opt.label}
-                    </span>
-                    <span className="text-base font-black text-white group-hover:text-gold-400 font-display">
-                      {formatPrice(opt.val)}
-                    </span>
-                  </button>
-                ))}
-              </div>
+              <button
+                onClick={() => handleBidStep(nextBidAmount)}
+                disabled={!selectedTeam}
+                className="w-full p-3 rounded-xl bg-gold-500/15 hover:bg-gold-500/25 border border-gold-400/40 text-center transition-all active:scale-95 disabled:opacity-40"
+              >
+                <span className="block text-xs font-bold text-gold-300">
+                  {currentBid > 0 ? `Increase by ${formatPrice(bidIncrement)}` : 'Place Opening Bid'}
+                </span>
+                <span className="text-base font-black text-white font-display">{formatPrice(nextBidAmount)}</span>
+              </button>
+              <p className="mt-2 text-[11px] text-slate-400">
+                Tournament bid increment: {formatPrice(bidIncrement)}. Each team button places the next bid directly.
+              </p>
 
               {/* Custom Bid Input */}
               <div className="mt-4 pt-4 border-t border-white/10 flex items-center gap-3">
                 <span className="text-xs font-semibold text-slate-400">Custom Bid:</span>
                 <input
                   type="number"
-                  step="5000"
+                  step={bidIncrement}
                   value={customInc}
                   onChange={(e) => setCustomInc(Number(e.target.value))}
                   className="bg-obsidian-900 border border-white/10 px-3 py-1.5 rounded-xl text-sm font-bold text-white w-36 focus:border-gold-400 focus:outline-none"
