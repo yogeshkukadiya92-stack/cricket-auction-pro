@@ -62,6 +62,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
 
   // Registration & UPI
   const [registrationOpen, setRegistrationOpen] = useState(true);
+  const [paymentMandatory, setPaymentMandatory] = useState(false);
   const [registrationFee, setRegistrationFee] = useState(0);
   const [registrationDeadline, setRegistrationDeadline] = useState('');
   const [upiId, setUpiId] = useState('');
@@ -93,12 +94,14 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
       setBallType(initialData.ballType || 'Heavy Tennis Ball');
       setRegistrationOpen(initialData.registrationOpen ?? true);
       setRegistrationFee(initialData.registrationFee ?? 0);
+      setPaymentMandatory(initialData.paymentMandatory ?? false);
       setRegistrationDeadline(initialData.registrationDeadline || '');
       setUpiId(initialData.upiId || '');
       setGpayNumber(initialData.gpayNumber || '');
       setGpayName(initialData.gpayName || '');
       setSportType(initialData.sportType || 'CRICKET');
     } else {
+      setPaymentMandatory(false);
       // Default clean values for new tournament
       setName('');
       setSeason('Season 1');
@@ -175,6 +178,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
       ballType,
       registrationOpen,
       registrationFee: Number(registrationFee) || 0,
+      paymentMandatory,
       registrationDeadline,
       upiId: upiId.trim(),
       gpayNumber: gpayNumber.trim(),
@@ -581,7 +585,17 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
             </div>
 
             {registrationOpen && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              <>
+              <div>
+              <label htmlFor="payment-requirement" className="text-xs font-bold text-slate-300 block mb-1">Payment requirement</label>
+              <select id="payment-requirement" value={paymentMandatory ? 'required' : 'optional'} onChange={(e) => setPaymentMandatory(e.target.value === 'required')} className="w-full bg-obsidian-950 border border-white/10 text-white text-sm px-4 py-2.5 rounded-xl">
+                <option value="optional">Not compulsory</option>
+                <option value="required">Compulsory — payment screenshot required</option>
+              </select>
+              <p className="text-[11px] text-slate-400 mt-2">{paymentMandatory ? 'Players must upload a payment screenshot before submitting registration.' : 'Players can submit registration without a payment screenshot.'}</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                 <div>
                   <label className="text-xs font-bold text-slate-300 block mb-1">
                     Registration Fee (₹)
@@ -640,6 +654,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
                   </div>
                 </div>
               </div>
+              </>
             )}
           </div>
 

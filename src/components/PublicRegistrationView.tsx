@@ -789,7 +789,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                               Google Pay Payment Success screen (JPG, PNG)
                             </span>
                             <span className="text-[10px] text-amber-400/90 font-semibold mt-2 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20">
-                              ⚠️ Screenshot required to complete registration
+                              {tournament.paymentMandatory ? '⚠️ Screenshot required to complete registration' : 'Payment screenshot is optional'}
                             </span>
                             <input
                               type="file"
