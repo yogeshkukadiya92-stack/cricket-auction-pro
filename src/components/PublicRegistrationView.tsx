@@ -198,15 +198,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
     lotOrder: 99,
   };
 
-  const formatPrice = (val: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-    }).format(val);
-  };
-
-  // If already submitted, show confirmation pass
+  // If already submitted, show only the registration confirmation
   if (submitted && registeredPlayer) {
     return (
       <div className="min-h-screen bg-obsidian-950 text-white flex flex-col items-center justify-center p-4 sm:p-6 stadium-beam">
@@ -225,104 +217,6 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
             <p className="text-xs text-slate-300 mt-1">
               Your registration has been successfully submitted to the auction pool of <strong>{tournament.name}</strong>.
             </p>
-          </div>
-
-          {/* Digital Pass Badge */}
-          <div className="p-5 rounded-2xl bg-white/[0.04] border border-white/10 text-left space-y-3 relative overflow-hidden">
-            <div className="flex items-center gap-3">
-              <img
-                src={registeredPlayer.photoUrl}
-                alt={registeredPlayer.name}
-                className="w-16 h-16 rounded-xl object-cover border border-white/15"
-              />
-              <div>
-                <h4 className="text-lg font-black text-white font-display">{registeredPlayer.name}</h4>
-                <p className="text-xs text-gold-400 font-semibold">{registeredPlayer.role}</p>
-                <span className="text-[10px] text-slate-400 font-mono">Reg ID: {registeredPlayer.id}</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/10 text-xs">
-              <div>
-                <span className="text-[10px] text-slate-400 block uppercase">Mobile</span>
-                <span className="font-bold text-white">{registeredPlayer.mobile}</span>
-              </div>
-              <div>
-                <span className="text-[10px] text-slate-400 block uppercase">Base Price</span>
-                <span className="font-bold text-gold-400 font-mono">{formatPrice(registeredPlayer.basePrice)}</span>
-              </div>
-            </div>
-
-            {/* Custom Field Highlights */}
-            {customFields.length > 0 && (
-              <div className="pt-2 border-t border-white/10 space-y-1">
-                {customFields.slice(0, 3).map((f) => {
-                  const val = registeredPlayer.customData?.[f.id];
-                  if (!val) return null;
-                  return (
-                    <div key={f.id} className="flex justify-between text-[11px] text-slate-300">
-                      <span className="text-slate-400">{f.label}:</span>
-                      <span className="font-bold text-white">{val}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Payment Verification Receipt Badge */}
-            {registeredPlayer.paymentScreenshotUrl ? (
-              <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-left">
-                <div className="flex items-center gap-3">
-                  <img
-                    src={registeredPlayer.paymentScreenshotUrl}
-                    alt="Payment Receipt"
-                    className="w-12 h-12 rounded-xl object-cover border border-emerald-400/40 cursor-pointer shadow"
-                    onClick={() => window.open(registeredPlayer.paymentScreenshotUrl, '_blank')}
-                    title="Click to view full screenshot"
-                  />
-                  <div>
-                    <span className="text-[10px] uppercase font-black text-emerald-400 flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      Receipt Submitted — Awaiting Verification
-                    </span>
-                    <p className="text-xs font-black text-white font-mono">
-                      ₹{registeredPlayer.paymentAmount ?? 0} payment screenshot attached
-                    </p>
-                    {registeredPlayer.paymentUtr && (
-                      <span className="text-[10px] text-slate-400 font-mono block">
-                        UTR: {registeredPlayer.paymentUtr}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                  PENDING
-                </span>
-              </div>
-            ) : (
-              <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between text-xs">
-                <span className="text-slate-400">Payment Status:</span>
-                <span className="font-bold text-slate-300">Free / Not Required</span>
-              </div>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-2.5">
-            <button
-              onClick={() => window.print()}
-              className="w-full py-3 rounded-xl font-black text-xs bg-gold-500 hover:bg-gold-400 text-black shadow-glow-gold active:scale-95 transition-all"
-            >
-              Print / Download Digital Pass
-            </button>
-
-            {onBackToDashboard && (
-              <button
-                onClick={onBackToDashboard}
-                className="w-full py-2.5 rounded-xl font-bold text-xs bg-white/10 hover:bg-white/15 text-slate-300 transition-all"
-              >
-                Back to Main Dashboard
-              </button>
-            )}
           </div>
         </div>
       </div>
