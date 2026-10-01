@@ -86,6 +86,7 @@ export interface AuctionRules {
   maxPlayersPerTeam: number;
   currency: CurrencyType;
   bidSlabs: BidSlab[];
+  bidIncrement?: number;
   rtmCardsPerTeam: number;
   allowNegativePurse: boolean;
   timerSeconds: number;

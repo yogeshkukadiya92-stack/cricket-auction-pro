@@ -48,9 +48,7 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
   };
 
   const bidBase = currentBid > 0 ? currentBid : currentPlayer?.basePrice || 0;
-  const bidIncrement = rules.bidSlabs.find(
-    (slab) => bidBase >= slab.fromAmount && bidBase < slab.toAmount
-  )?.increment || rules.bidSlabs[rules.bidSlabs.length - 1]?.increment || 2000;
+  const bidIncrement = rules.bidIncrement || currentPlayer?.basePrice || 20000;
   const nextBidAmount = currentBid > 0 ? currentBid + bidIncrement : bidBase;
 
   const handleBidStep = (targetAmount: number, team = selectedTeam) => {

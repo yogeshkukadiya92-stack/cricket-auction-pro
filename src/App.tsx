@@ -471,7 +471,7 @@ export function App() {
       gpayNumber: data.gpayNumber || '',
       gpayName: data.gpayName || '',
       paymentMandatory: data.paymentMandatory ?? false,
-      rules: { ...initialRules, pursePerTeam: data.totalPursePerTeam || initialRules.pursePerTeam },
+      rules: { ...initialRules, ...data.rules, pursePerTeam: data.totalPursePerTeam || initialRules.pursePerTeam },
       customFields: data.customFields || [],
       sportType: data.sportType || 'CRICKET',
       instructions: data.instructions || '',
@@ -491,6 +491,7 @@ export function App() {
   };
 
   const handleUpdateTournament = (updated: Tournament) => {
+    if (updated.id === activeTournamentId && updated.rules) setRules(updated.rules);
     dbService.queueSync({ tournament: updated });
     setTournaments((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
     syncEngine.broadcast({
@@ -883,6 +884,7 @@ export function App() {
 
         {viewMode === 'RULES' && (
           <RulesSettingsView
+            defaultBidIncrement={tournament.defaultBasePrice}
             rules={rules}
             onUpdateRules={(updated) => { dbService.queueSync({ rules: updated, tournamentId: activeTournamentId }); setRules(updated); setTournaments(prev => prev.map(t => t.id === activeTournamentId ? { ...t, rules: updated } : t)); }}
             onResetAuction={handleResetAuction}

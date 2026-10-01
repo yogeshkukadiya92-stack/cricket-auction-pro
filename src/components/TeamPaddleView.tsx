@@ -52,7 +52,7 @@ export const TeamPaddleView: React.FC<TeamPaddleViewProps> = ({
   const nextBidAmount =
     currentBid === 0
       ? currentPlayer?.basePrice || 20000
-      : currentBid + (rules.bidSlabs.find(s => currentBid >= s.fromAmount && currentBid < s.toAmount)?.increment || rules.bidSlabs[rules.bidSlabs.length - 1]?.increment || 2000);
+      : currentBid + (rules.bidIncrement || currentPlayer?.basePrice || 20000);
 
   // Smart Max Bid Power:
   // Purse Left - (Slots Remaining - 1) * Avg Base Price
