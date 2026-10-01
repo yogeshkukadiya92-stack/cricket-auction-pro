@@ -264,7 +264,7 @@ export const FortuneWheelModal: React.FC<FortuneWheelModalProps> = ({
         }))
       );
     } else {
-      const avail = players.filter((p) => p.status === 'AVAILABLE');
+      const avail = players.filter((p) => p.status === 'AVAILABLE' && (!p.approvalStatus || p.approvalStatus === 'APPROVED'));
       setAvailableSectors(
         avail.slice(0, 16).map((p, idx) => ({
           id: p.id,

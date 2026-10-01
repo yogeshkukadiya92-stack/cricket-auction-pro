@@ -1,3 +1,4 @@
+import { formatAuctionPrice } from '../utils/currency';
 import React, { useState, useRef } from 'react';
 import { Player, PlayerRole, PlayerCategory } from '../types';
 import {
@@ -31,6 +32,8 @@ import {
 } from 'lucide-react';
 
 interface PlayerManagerViewProps {
+  currency?: import('../types').CurrencyType;
+  defaultBasePrice?: number;
   tournamentId: string;
   players: Player[];
   onAddPlayer: (newPlayer: Player) => void;
@@ -38,10 +41,13 @@ interface PlayerManagerViewProps {
   onDeletePlayer: (playerId: string) => void;
   onNavigateToFormBuilder?: () => void;
   onApprovePlayer?: (playerId: string) => void;
+  onVerifyPayment?: (playerId: string) => void;
   onRejectPlayer?: (playerId: string) => void;
 }
 
 export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
+  currency = 'INR',
+  defaultBasePrice = 20000,
   tournamentId,
   players,
   onAddPlayer,
@@ -49,6 +55,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
   onDeletePlayer,
   onNavigateToFormBuilder,
   onApprovePlayer,
+  onVerifyPayment,
   onRejectPlayer,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -90,15 +97,15 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
   const [name, setName] = useState('');
   const [role, setRole] = useState<PlayerRole>('ALL_ROUNDER');
   const [category, setCategory] = useState<PlayerCategory>('SET_A');
-  const [basePrice, setBasePrice] = useState<number>(30000);
+  const [basePrice, setBasePrice] = useState<number>(defaultBasePrice);
   const [battingStyle, setBattingStyle] = useState('Right Hand Batsman');
   const [bowlingStyle, setBowlingStyle] = useState('Right Arm Fast');
-  const [matches, setMatches] = useState(15);
-  const [runs, setRuns] = useState(350);
-  const [wickets, setWickets] = useState(12);
-  const [strikeRate, setStrikeRate] = useState(135.0);
+  const [matches, setMatches] = useState(0);
+  const [runs, setRuns] = useState(0);
+  const [wickets, setWickets] = useState(0);
+  const [strikeRate, setStrikeRate] = useState(0);
   const [photoUrl, setPhotoUrl] = useState(
-    'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=500&auto=format&fit=crop&q=80'
+    '/player-placeholder.svg'
   );
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -154,11 +161,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
   const pendingCount = players.filter((p) => p.approvalStatus === 'PENDING').length;
 
   const formatPrice = (val: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-    }).format(val);
+    return formatAuctionPrice(val, currency);
   };
 
   return (
@@ -391,7 +394,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
             <div>
               <div className="relative w-full h-44 rounded-xl overflow-hidden mb-3 bg-obsidian-950">
                 <img
-                  src={player.photoUrl}
+                  src={player.photoUrl || "/player-placeholder.svg"}
                   alt={player.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
@@ -494,7 +497,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
                       }`}
                     />
                     <span className="font-bold text-slate-300">
-                      {player.paymentStatus === 'PAID' ? `₹${player.paymentAmount || 500} Paid` : 'Fee Pending'}
+                      {player.paymentStatus === 'VERIFIED' ? 'Payment Verified' : player.paymentScreenshotUrl ? 'Receipt Submitted' : 'Fee Pending'}
                     </span>
                     {player.paymentUtr && (
                       <span className="text-[10px] text-slate-500 font-mono hidden sm:inline">
@@ -614,7 +617,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
                 <label className="text-xs font-bold text-slate-300 block mb-1">Player Photo</label>
                 <div className="flex items-center gap-3">
                   <img
-                    src={photoUrl}
+                    src={photoUrl || "/player-placeholder.svg"}
                     alt="Preview"
                     className="w-14 h-14 rounded-xl object-cover border border-white/10"
                   />
@@ -757,7 +760,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
                 {/* Player Profile Quick Info */}
                 <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center gap-3">
                   <img
-                    src={selectedReceiptPlayer.photoUrl}
+                    src={selectedReceiptPlayer.photoUrl || "/player-placeholder.svg"}
                     alt={selectedReceiptPlayer.name}
                     className="w-14 h-14 rounded-xl object-cover border border-white/20"
                   />
@@ -779,7 +782,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
                   <div className="flex justify-between items-center pb-2 border-b border-white/10">
                     <span className="text-slate-400">Amount Paid:</span>
                     <span className="text-base font-black text-emerald-400 font-mono">
-                      ₹{selectedReceiptPlayer.paymentAmount || 500}
+                      ₹{selectedReceiptPlayer.paymentAmount ?? 0}
                     </span>
                   </div>
 
@@ -818,7 +821,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
                 <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-300 flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
                   <span>
-                    Verify ₹{selectedReceiptPlayer.paymentAmount || 500} and UTR in your Google Pay statement before approving.
+                    Verify ₹{selectedReceiptPlayer.paymentAmount ?? 0} and UTR in your Google Pay statement before approving.
                   </span>
                 </div>
               </div>
@@ -834,6 +837,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
                 Close
               </button>
 
+              {onVerifyPayment && selectedReceiptPlayer.paymentScreenshotUrl && selectedReceiptPlayer.paymentStatus !== 'VERIFIED' && <button type="button" className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold" onClick={() => { onVerifyPayment(selectedReceiptPlayer.id); setSelectedReceiptPlayer(null); }}>Confirm Payment Verified</button>}
               {selectedReceiptPlayer.approvalStatus === 'PENDING' && (
                 <>
                   {onRejectPlayer && (

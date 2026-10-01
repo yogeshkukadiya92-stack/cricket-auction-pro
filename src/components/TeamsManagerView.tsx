@@ -1,3 +1,4 @@
+import { formatAuctionPrice } from '../utils/currency';
 import React, { useState } from 'react';
 import { Team, Tournament } from '../types';
 import { Plus, Trash2, Shield, Users, Wallet, Trophy, Edit3, Check, Upload, Image as ImageIcon, X } from 'lucide-react';
@@ -32,7 +33,7 @@ export const TeamsManagerView: React.FC<TeamsManagerViewProps> = ({
   const [colorHex, setColorHex] = useState('#3B82F6');
   const [ownerName, setOwnerName] = useState('');
   const [ownerMobile, setOwnerMobile] = useState('');
-  const [purse, setPurse] = useState(1000000);
+  const [purse, setPurse] = useState(tournament.totalPursePerTeam || 1000000);
   const [rtm, setRtm] = useState(2);
 
   // Edit Team Form State
@@ -172,11 +173,7 @@ export const TeamsManagerView: React.FC<TeamsManagerViewProps> = ({
   };
 
   const formatPrice = (val: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-    }).format(val);
+    return formatAuctionPrice(val, tournament.rules?.currency);
   };
 
   return (

@@ -1,3 +1,4 @@
+import { formatAuctionPrice } from '../utils/currency';
 import React, { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
 import { Player, Team, BidRecord } from '../types';
@@ -5,6 +6,8 @@ import { Timer, Flame, CheckCircle2 } from 'lucide-react';
 import { TeamLogo, isImageLogo } from './TeamLogo';
 
 interface ObsOverlayViewProps {
+  timerSeconds?: number;
+  currency?: import('../types').CurrencyType;
   currentPlayer: Player | null;
   currentBid: number;
   leadingTeam: Team | null;
@@ -15,6 +18,8 @@ interface ObsOverlayViewProps {
 }
 
 export const ObsOverlayView: React.FC<ObsOverlayViewProps> = ({
+  timerSeconds = 15,
+  currency = 'INR',
   currentPlayer,
   currentBid,
   leadingTeam,
@@ -22,7 +27,7 @@ export const ObsOverlayView: React.FC<ObsOverlayViewProps> = ({
   isUnsold,
   lastSoldInfo,
 }) => {
-  const [timeLeft, setTimeLeft] = useState(15);
+  const [timeLeft, setTimeLeft] = useState(timerSeconds);
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
@@ -36,9 +41,11 @@ export const ObsOverlayView: React.FC<ObsOverlayViewProps> = ({
 
   useEffect(() => {
     if (currentBid > 0) {
-      setTimeLeft(12);
+      setTimeLeft(timerSeconds);
     }
   }, [currentBid]);
+
+  useEffect(() => { setTimeLeft(timerSeconds); }, [currentPlayer?.id, timerSeconds]);
 
   // Confetti trigger
   useEffect(() => {
@@ -52,12 +59,10 @@ export const ObsOverlayView: React.FC<ObsOverlayViewProps> = ({
   }, [isSold, lastSoldInfo]);
 
   const formatPrice = (val: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-    }).format(val);
+    return formatAuctionPrice(val, currency);
   };
+
+  const displayPlayer = isSold && lastSoldInfo ? lastSoldInfo.player : currentPlayer;
 
   return (
     <div className="fixed inset-0 pointer-events-none flex flex-col justify-end p-6 select-none bg-transparent">
@@ -67,7 +72,7 @@ export const ObsOverlayView: React.FC<ObsOverlayViewProps> = ({
       </div>
 
       {/* Main Broadcast Lower-Third Ticker */}
-      {currentPlayer && (
+      {displayPlayer && (
         <div className="w-full max-w-6xl mx-auto rounded-3xl overflow-hidden shadow-2xl border-2 border-gold-400/50 bg-gradient-to-r from-obsidian-950 via-obsidian-900 to-obsidian-950 p-4 lg:p-6 backdrop-blur-2xl">
           {/* Top Mini Bar */}
           <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/10 text-xs font-bold">
@@ -76,7 +81,7 @@ export const ObsOverlayView: React.FC<ObsOverlayViewProps> = ({
                 ● LIVE AUCTION
               </span>
               <span className="text-slate-300">
-                LOT #{currentPlayer.lotOrder} • {currentPlayer.role} • Base {formatPrice(currentPlayer.basePrice)}
+                LOT #{displayPlayer.lotOrder} • {displayPlayer.role} • Base {formatPrice(displayPlayer.basePrice)}
               </span>
             </div>
 
@@ -92,21 +97,21 @@ export const ObsOverlayView: React.FC<ObsOverlayViewProps> = ({
             {/* Player Info */}
             <div className="flex items-center gap-4">
               <img
-                src={currentPlayer.photoUrl}
-                alt={currentPlayer.name}
+                src={displayPlayer.photoUrl || "/player-placeholder.svg"}
+                alt={displayPlayer.name}
                 className="w-20 h-20 rounded-2xl object-cover border-2 border-white/20 shadow-lg"
               />
               <div>
                 <h3 className="text-2xl font-black text-white font-display tracking-tight">
-                  {currentPlayer.name}
+                  {displayPlayer.name}
                 </h3>
                 <p className="text-xs text-gold-400 font-semibold mt-0.5">
-                  {currentPlayer.battingStyle}
+                  {displayPlayer.battingStyle}
                 </p>
                 <div className="flex items-center gap-3 text-xs text-slate-400 mt-1 font-mono">
-                  <span>Runs: <strong className="text-white">{currentPlayer.stats.runs}</strong></span>
-                  <span>Wkts: <strong className="text-electric-cyan">{currentPlayer.stats.wickets}</strong></span>
-                  <span>SR: <strong className="text-emerald-400">{currentPlayer.stats.strikeRate}</strong></span>
+                  <span>Runs: <strong className="text-white">{displayPlayer.stats.runs}</strong></span>
+                  <span>Wkts: <strong className="text-electric-cyan">{displayPlayer.stats.wickets}</strong></span>
+                  <span>SR: <strong className="text-emerald-400">{displayPlayer.stats.strikeRate}</strong></span>
                 </div>
               </div>
             </div>
@@ -118,7 +123,7 @@ export const ObsOverlayView: React.FC<ObsOverlayViewProps> = ({
                 HIGHEST BID
               </span>
               <span className="text-4xl lg:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-gold-400 via-amber-300 to-yellow-500 font-display">
-                {currentBid > 0 ? formatPrice(currentBid) : formatPrice(currentPlayer.basePrice)}
+                {currentBid > 0 ? formatPrice(currentBid) : formatPrice(displayPlayer.basePrice)}
               </span>
             </div>
 

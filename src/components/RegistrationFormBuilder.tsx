@@ -44,7 +44,7 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
   );
   const [fee, setFee] = useState(tournament.registrationFee ?? 0);
   const [deadline, setDeadline] = useState(
-    tournament.registrationDeadline || '2026-10-15'
+    tournament.registrationDeadline || ''
   );
   const [instructions, setInstructions] = useState(
     tournament.instructions ||
@@ -52,7 +52,7 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
   );
   const [upiId, setUpiId] = useState(tournament.upiId || '');
   const [gpayNumber, setGpayNumber] = useState(tournament.gpayNumber || '');
-  const [gpayName, setGpayName] = useState(tournament.gpayName || 'GPL Cricket Committee');
+  const [gpayName, setGpayName] = useState(tournament.gpayName || tournament.name);
   const [gpayQrUrl, setGpayQrUrl] = useState(tournament.gpayQrUrl || '');
   const [paymentMandatory, setPaymentMandatory] = useState(tournament.paymentMandatory ?? false);
   const [savedSuccess, setSavedSuccess] = useState(false);

@@ -1,3 +1,4 @@
+import { formatAuctionPrice } from '../utils/currency';
 import React, { useState } from 'react';
 import { Player, Team, AuctionRules } from '../types';
 import { sounds } from '../soundEffects';
@@ -44,18 +45,14 @@ export const TeamPaddleView: React.FC<TeamPaddleViewProps> = ({
   const slotsRemaining = rules.minPlayersPerTeam - teamPlayers.length;
 
   const formatPrice = (val: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-    }).format(val);
+    return formatAuctionPrice(val, rules.currency);
   };
 
   // Next Bid Calculation
   const nextBidAmount =
     currentBid === 0
       ? currentPlayer?.basePrice || 20000
-      : currentBid + (currentBid < 50000 ? 2000 : currentBid < 200000 ? 5000 : 10000);
+      : currentBid + (rules.bidSlabs.find(s => currentBid >= s.fromAmount && currentBid < s.toAmount)?.increment || rules.bidSlabs[rules.bidSlabs.length - 1]?.increment || 2000);
 
   // Smart Max Bid Power:
   // Purse Left - (Slots Remaining - 1) * Avg Base Price
@@ -65,7 +62,7 @@ export const TeamPaddleView: React.FC<TeamPaddleViewProps> = ({
     team.remainingPurse - Math.max(0, slotsRemaining - 1) * estimatedMinPerSlot
   );
 
-  const canAffordNextBid = team.remainingPurse >= nextBidAmount;
+  const canAffordNextBid = !!currentPlayer && ['AVAILABLE', 'IN_AUCTION'].includes(currentPlayer.status) && teamPlayers.length < rules.maxPlayersPerTeam && (rules.allowNegativePurse || team.remainingPurse >= nextBidAmount);
   const isCurrentlyLeading = leadingTeam?.id === team.id;
 
   const handlePaddlePress = () => {
@@ -151,7 +148,7 @@ export const TeamPaddleView: React.FC<TeamPaddleViewProps> = ({
         <div className="p-8 rounded-3xl glass-panel border border-white/10 text-center space-y-6">
           <div className="flex items-center justify-center gap-3">
             <img
-              src={currentPlayer.photoUrl}
+              src={currentPlayer.photoUrl || "/player-placeholder.svg"}
               alt={currentPlayer.name}
               className="w-16 h-16 rounded-2xl object-cover border border-white/10"
             />
@@ -230,7 +227,7 @@ export const TeamPaddleView: React.FC<TeamPaddleViewProps> = ({
                 className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.03] border border-white/5 text-xs"
               >
                 <div className="flex items-center gap-2.5">
-                  <img src={player.photoUrl} alt={player.name} className="w-8 h-8 rounded-lg object-cover" />
+                  <img src={player.photoUrl || "/player-placeholder.svg"} alt={player.name} className="w-8 h-8 rounded-lg object-cover" />
                   <div>
                     <span className="font-bold text-white block">{player.name}</span>
                     <span className="text-[10px] text-slate-400">{player.role}</span>

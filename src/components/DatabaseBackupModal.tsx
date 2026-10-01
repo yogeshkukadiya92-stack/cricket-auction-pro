@@ -20,7 +20,6 @@ interface DatabaseBackupModalProps {
   tournamentsCount: number;
   teamsCount: number;
   playersCount: number;
-  onEraseDemoData?: () => void;
   onReloadData?: () => void;
 }
 
@@ -30,7 +29,6 @@ export const DatabaseBackupModal: React.FC<DatabaseBackupModalProps> = ({
   tournamentsCount,
   teamsCount,
   playersCount,
-  onEraseDemoData,
   onReloadData,
 }) => {
   const [exporting, setExporting] = useState(false);
@@ -96,7 +94,7 @@ export const DatabaseBackupModal: React.FC<DatabaseBackupModalProps> = ({
                 POSTGRESQL DATABASE STORAGE
               </h3>
               <p className="text-xs text-slate-400">
-                Native ACID persistent storage engine & auto-backup
+                Persistent tournament storage & manual backups
               </p>
             </div>
           </div>
@@ -117,7 +115,7 @@ export const DatabaseBackupModal: React.FC<DatabaseBackupModalProps> = ({
             </span>
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              ACTIVE & CONNECTED
+              {dbService.isConnected ? 'CONNECTED' : 'CONNECTION UNAVAILABLE'}
             </span>
           </div>
 
@@ -127,8 +125,8 @@ export const DatabaseBackupModal: React.FC<DatabaseBackupModalProps> = ({
               <span className="text-white font-bold">PostgreSQL</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-slate-400">Disk File:</span>
-              <span className="text-gold-400">database/cricket_auction.db</span>
+              <span className="text-slate-400">Storage:</span>
+              <span className="text-gold-400">Server PostgreSQL database</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-slate-400">Data Records:</span>
@@ -176,22 +174,11 @@ export const DatabaseBackupModal: React.FC<DatabaseBackupModalProps> = ({
           </label>
 
           {/* Erase All Demo Data */}
-          {onEraseDemoData && (
-            <button
-              onClick={() => {
-                onClose();
-                onEraseDemoData();
-              }}
-              className="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 flex items-center justify-center gap-2 transition-all cursor-pointer"
-            >
-              <Trash2 className="w-4 h-4" />
-              <span>Erase Demo Data & Reset DB</span>
-            </button>
-          )}
+
         </div>
 
         <p className="text-[11px] text-slate-500 text-center leading-relaxed">
-          All changes are auto-saved to disk immediately. You can download the JSON backup anytime to transfer your tournament data between computers.
+          Changes save automatically; check any save warnings before closing. You can download the JSON backup anytime to transfer your tournament data between computers.
         </p>
       </div>
     </div>

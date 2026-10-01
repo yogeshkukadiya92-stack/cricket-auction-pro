@@ -22,6 +22,7 @@ export const RulesSettingsView: React.FC<RulesSettingsViewProps> = ({
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+    if (Number(minPlayers) < 1 || Number(maxPlayers) < Number(minPlayers) || Number(purse) <= 0 || Number(timerSeconds) < 1) { alert('Enter a positive purse and timer; maximum squad size must be at least the minimum.'); return; }
     onUpdateRules({
       ...rules,
       pursePerTeam: Number(purse),

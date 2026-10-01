@@ -67,8 +67,7 @@ class SyncEngine {
         console.warn('Channel post error', e);
       }
     }
-    // Also dispatch to local component listeners
-    this.notify(action);
+    // The initiating component already updates its state; notify remote tabs only.
 
   }
 }

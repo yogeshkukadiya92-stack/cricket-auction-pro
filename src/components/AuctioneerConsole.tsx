@@ -1,3 +1,4 @@
+import { formatAuctionPrice } from '../utils/currency';
 import React, { useState } from 'react';
 import { Player, Team, AuctionRules } from '../types';
 import { sounds } from '../soundEffects';
@@ -43,11 +44,7 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
   const selectedTeam = allTeams.find((t) => t.id === selectedTeamId) || allTeams[0];
 
   const formatPrice = (val: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-    }).format(val);
+    return formatAuctionPrice(val, rules.currency);
   };
 
   const getNextBidOptions = () => {
@@ -71,7 +68,7 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
     onPlaceBid(selectedTeam, targetAmount);
   };
 
-  const availablePlayers = allPlayers.filter((p) => p.status === 'AVAILABLE' || p.status === 'IN_AUCTION');
+  const availablePlayers = allPlayers.filter((p) => (!p.approvalStatus || p.approvalStatus === 'APPROVED') && (p.status === 'AVAILABLE' || p.status === 'IN_AUCTION'));
   const unsoldPlayers = allPlayers.filter((p) => p.status === 'UNSOLD');
 
   return (
@@ -136,7 +133,8 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
               }}
               className="bg-obsidian-850 text-xs font-semibold text-white px-3 py-1.5 rounded-lg border border-white/10 focus:outline-none focus:border-gold-400"
             >
-              {allPlayers.map((p) => (
+              <option value="">Select available player</option>
+              {availablePlayers.map((p) => (
                 <option key={p.id} value={p.id}>
                   Lot #{p.lotOrder} - {p.name} ({p.role} - {p.status})
                 </option>
@@ -292,7 +290,7 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
               <span className="text-[10px] font-bold uppercase text-slate-400 block mb-2">Active Player Info</span>
               <div className="flex items-center gap-3">
                 <img
-                  src={currentPlayer.photoUrl}
+                  src={currentPlayer.photoUrl || "/player-placeholder.svg"}
                   alt={currentPlayer.name}
                   className="w-12 h-12 rounded-xl object-cover border border-white/10"
                 />

@@ -1,3 +1,4 @@
+import { formatAuctionPrice } from '../utils/currency';
 import React from 'react';
 import { Player, Team, AuctionRules } from '../types';
 import { Printer, Trophy, Users, Wallet, Zap, Shield, Sparkles, FileSpreadsheet, Download } from 'lucide-react';
@@ -17,11 +18,7 @@ export const SquadSummaryView: React.FC<SquadSummaryViewProps> = ({
   onOpenPoster,
 }) => {
   const formatPrice = (val: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-    }).format(val);
+    return formatAuctionPrice(val, rules.currency);
   };
 
   const soldPlayers = players.filter((p) => p.status === 'SOLD');
@@ -99,7 +96,7 @@ export const SquadSummaryView: React.FC<SquadSummaryViewProps> = ({
                   <span className="absolute top-1 right-2 text-3xl font-black text-white/5 font-display">
                     #{idx + 1}
                   </span>
-                  <img src={p.photoUrl} alt={p.name} className="w-12 h-12 rounded-xl object-cover" />
+                  <img src={p.photoUrl || "/player-placeholder.svg"} alt={p.name} className="w-12 h-12 rounded-xl object-cover" />
                   <div>
                     <h4 className="text-sm font-bold text-white truncate">{p.name}</h4>
                     <p className="text-[11px] text-slate-400">{boughtTeam?.name || 'Unknown'}</p>
@@ -174,7 +171,7 @@ export const SquadSummaryView: React.FC<SquadSummaryViewProps> = ({
                           className="flex items-center justify-between p-2 rounded-xl bg-obsidian-900 border border-white/5 text-xs"
                         >
                           <div className="flex items-center gap-2">
-                            <img src={p.photoUrl} alt={p.name} className="w-7 h-7 rounded-lg object-cover" />
+                            <img src={p.photoUrl || "/player-placeholder.svg"} alt={p.name} className="w-7 h-7 rounded-lg object-cover" />
                             <div>
                               <span className="font-bold text-white block truncate max-w-[130px]">{p.name}</span>
                               <span className="text-[9px] text-slate-400">{p.role}</span>
@@ -188,6 +185,7 @@ export const SquadSummaryView: React.FC<SquadSummaryViewProps> = ({
                               <button
                                 onClick={() => onOpenPoster(p, team, p.soldPrice || 0)}
                                 className="p-1 rounded-lg text-slate-400 hover:text-gold-400 hover:bg-gold-500/10 transition-colors"
+                                aria-label="Generate WhatsApp & Instagram Poster"
                                 title="Generate WhatsApp & Instagram Poster"
                               >
                                 📸

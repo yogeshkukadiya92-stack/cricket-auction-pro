@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   initialTournament,
   initialRules,
@@ -38,6 +38,12 @@ import { DatabaseBackupModal } from './components/DatabaseBackupModal';
 import { ArrowLeft } from 'lucide-react';
 
 export function App() {
+  const settling = useRef(false);
+  const seenAuctionEvent = useRef('');
+  const serverTournaments = useRef('');
+  const serverTeams = useRef('');
+  const serverPlayers = useRef('');
+  const [saveMessage, setSaveMessage] = useState('');
   const [authChecked, setAuthChecked] = useState(false);
   const [dataReady, setDataReady] = useState(false);
   const [liveReady, setLiveReady] = useState(false);
@@ -63,9 +69,13 @@ export function App() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try { await dbService.flushSync(); } catch { setSaveMessage('Save your pending changes before signing out.'); return; }
+    try {
+      const response = await fetch('/api/auth/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      if (!response.ok && response.status !== 401) throw new Error('Sign out failed');
+    } catch { setSaveMessage('Could not sign out. Check your connection and retry.'); return; }
     dbService.clearPending();
-    fetch('/api/auth/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).catch(() => {});
     setDataReady(false);
     setLiveReady(false);
     setLoadedLiveTournamentId('');
@@ -84,7 +94,7 @@ export function App() {
   const tournament =
     tournaments.find((t) => t.id === activeTournamentId) ||
     tournaments[0] ||
-    { ...initialTournament, id: '', name: 'My Tournaments', year: new Date().getFullYear(), season: '', status: 'UPCOMING' as const };
+    { id: '', name: 'My Tournaments', year: new Date().getFullYear(), season: '', defaultBasePrice: 20000, status: 'UPCOMING' as const };
 
   // Filter tournaments visible to current user (organizer vs super admin)
   const visibleTournaments = tournaments.filter((t) => {
@@ -116,6 +126,15 @@ export function App() {
     return 'TOURNAMENT_OVERVIEW';
   });
 
+  const selectViewMode = (mode: ViewMode) => {
+    if (!tournament.id && !['TOURNAMENTS', 'ADMIN_PANEL'].includes(mode)) { setViewMode('TOURNAMENTS'); return; }
+    if (mode === 'OBS') {
+      window.open(`/?mode=obs&tournamentId=${encodeURIComponent(tournament.id)}`, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    setViewMode(mode);
+  };
+
   // Additional Feature Modals (Fortune Wheel, Excel Bulk Upload)
   const [isFortuneWheelOpen, setIsFortuneWheelOpen] = useState(false);
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
@@ -135,6 +154,12 @@ export function App() {
   const [posterData, setPosterData] = useState<{ player: Player; team: Team; price: number } | null>(null);
 
   useEffect(() => {
+    return dbService.subscribe(setSaveMessage);
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('tournamentId') && ['obs', 'register', 'form', 'summary', 'live', 'spectator'].includes(params.get('mode') || '')) { setAuthChecked(true); return; }
     fetch('/api/auth/me').then(async (res) => {
       if (!res.ok) return null;
       return (await res.json()).user as User;
@@ -144,36 +169,47 @@ export function App() {
   useEffect(() => {
     if (viewMode !== 'PUBLIC_REGISTER') return;
     const id = new URLSearchParams(window.location.search).get('tournamentId');
-    if (!id) { setDataError('Tournament link is missing its ID.'); return; }
+    if (!id) { if (currentUser && tournament.id) setPublicTournament(tournament); else setDataError('Tournament link is missing its ID.'); return; }
     fetch(`/api/public/tournaments/${encodeURIComponent(id)}`).then(async (res) => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Tournament unavailable');
       setPublicTournament(data.tournament);
     }).catch((err) => setDataError(err.message));
-  }, [viewMode]);
+  }, [viewMode, currentUser?.id, tournament]);
 
   useEffect(() => {
-    if (viewMode !== 'PUBLIC_SUMMARY') return;
+    if (viewMode !== 'PUBLIC_SUMMARY' && viewMode !== 'OBS') return;
     const id = new URLSearchParams(window.location.search).get('tournamentId');
     if (!id) return;
-    fetch(`/api/public/tournaments/${encodeURIComponent(id)}/summary`).then(async res => {
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Tournament unavailable');
-      setPublicSummary(data);
-    }).catch(err => setDataError(err.message));
+    let cancelled = false;
+    const refresh = async () => {
+      try {
+        const res = await fetch(`/api/public/tournaments/${encodeURIComponent(id)}/summary`, { cache: 'no-store' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Tournament unavailable');
+        if (!cancelled) { consumeAuctionEvent(data.liveState?.lastEvent); setPublicSummary(data); setDataError(''); }
+      } catch (err) { if (!cancelled) setDataError((err as Error).message); }
+    };
+    void refresh();
+    const timer = setInterval(refresh, 2000);
+    return () => { cancelled = true; clearInterval(timer); };
   }, [viewMode]);
 
   // Load only the signed-in organizer's records from the server.
   useEffect(() => {
-    if (!currentUser || viewMode === 'PUBLIC_REGISTER') return;
+    if (!currentUser || ['PUBLIC_REGISTER', 'PUBLIC_SUMMARY', 'OBS'].includes(viewMode) && new URLSearchParams(window.location.search).has('tournamentId')) return;
     setDataReady(false);
-    dbService.fetchBootstrapData().then((data) => {
+    dbService.setScope(currentUser.id);
+    dbService.flushSync().then(() => dbService.fetchBootstrapData()).then((data) => {
       if (!data?.success) throw new Error('Could not load your tournaments');
+      serverTournaments.current = JSON.stringify(data.tournaments || []);
       setTournaments(data.tournaments || []);
+      serverTeams.current = JSON.stringify(data.teams || []);
+      serverPlayers.current = JSON.stringify(data.players || []);
       setTeams(data.teams || []);
       setPlayers(data.players || []);
-      setRules(data.rules || initialRules);
-      setActiveTournamentId(currentUser.role === 'ADMIN' ? '' : data.tournaments?.[0]?.id || '');
+      setRules(data.tournaments?.[0]?.rules || data.rules || initialRules);
+      setActiveTournamentId(data.tournaments?.[0]?.id || '');
       if (new URLSearchParams(window.location.search).get('mode') !== 'summary') {
         setViewMode(currentUser.role === 'ADMIN' ? 'ADMIN_PANEL' : 'TOURNAMENTS');
       }
@@ -183,7 +219,8 @@ export function App() {
 
   // Persist changes only after the organizer's server data has loaded.
   useEffect(() => {
-    if (dataReady && currentUser?.role !== 'ADMIN') dbService.queueSync({ tournaments });
+    const value = JSON.stringify(tournaments);
+    if (dataReady && value !== serverTournaments.current) { serverTournaments.current = value; dbService.queueSync({ tournaments }); }
   }, [tournaments, dataReady, currentUser?.role]);
 
   useEffect(() => {
@@ -194,38 +231,34 @@ export function App() {
     if (!dataReady || !activeTournamentId) return;
     setLiveReady(false);
     setLoadedLiveTournamentId('');
-    fetch(`/api/tournaments/${encodeURIComponent(activeTournamentId)}/live`).then(async res => {
+    let cancelled = false;
+    dbService.flushSync().then(() => fetch(`/api/tournaments/${encodeURIComponent(activeTournamentId)}/live`)).then(async res => {
       if (!res.ok) throw new Error('Could not load live auction');
       return (await res.json()).liveState;
     }).then(state => {
+      if (cancelled) return;
       setCurrentPlayerId(state.currentPlayerId || '');
       setCurrentBid(state.currentBid || 0);
       setLeadingTeam(state.leadingTeam || null);
       setBidsHistory(state.bidsHistory || []);
       setLoadedLiveTournamentId(activeTournamentId);
       setLiveReady(true);
-    }).catch(err => setDataError(err.message));
+    }).catch(err => { if (!cancelled) setDataError(err.message); });
+    return () => { cancelled = true; };
   }, [activeTournamentId, dataReady]);
 
-  useEffect(() => {
-    if (dataReady && liveReady && activeTournamentId && loadedLiveTournamentId === activeTournamentId) dbService.queueSync({ liveState: { tournamentId: activeTournamentId, currentPlayerId, currentBid, leadingTeam, bidsHistory } });
-  }, [currentPlayerId, currentBid, leadingTeam, bidsHistory, activeTournamentId, dataReady, liveReady, loadedLiveTournamentId]);
+
 
   useEffect(() => {
-    if (dataReady && tournaments.some(t => t.id === tournament.id)) dbService.queueSync({ tournament });
-  }, [tournament, dataReady]);
-
-  useEffect(() => {
-    if (dataReady) dbService.queueSync({ teams });
+    const value = JSON.stringify(teams);
+    if (dataReady && value !== serverTeams.current) { serverTeams.current = value; dbService.queueSync({ teams }); }
   }, [teams, dataReady]);
 
   useEffect(() => {
-    if (dataReady) dbService.queueSync({ players });
+    const value = JSON.stringify(players);
+    if (dataReady && value !== serverPlayers.current) { serverPlayers.current = value; dbService.queueSync({ players }); }
   }, [players, dataReady]);
 
-  useEffect(() => {
-    if (dataReady) dbService.queueSync({ rules });
-  }, [rules, dataReady]);
 
   // Real-Time Cross-Device & Cross-Tab Synchronization
   useEffect(() => {
@@ -234,7 +267,7 @@ export function App() {
         case 'BID_PLACED':
           setCurrentBid(action.payload.amount);
           setLeadingTeam(action.payload.team);
-          setBidsHistory((prev) => [action.payload.record, ...prev]);
+          setBidsHistory((prev) => prev.some(b => b.id === action.payload.record.id) ? prev : [action.payload.record, ...prev]);
           break;
         case 'HAMMER_SOLD':
           setLastSoldInfo({
@@ -250,6 +283,7 @@ export function App() {
           setTimeout(() => setIsUnsold(false), 2800);
           break;
         case 'UNDO_BID':
+          setBidsHistory(prev => prev.slice(1));
           if (action.payload.prevBid) {
             setCurrentBid(action.payload.prevBid.amount);
             const t = teams.find((item) => item.id === action.payload.prevBid?.teamId) || null;
@@ -275,7 +309,7 @@ export function App() {
           setPlayers((prev) =>
             prev.map((p) =>
               p.id === action.payload.playerId
-                ? { ...p, approvalStatus: 'APPROVED', status: 'AVAILABLE' }
+                ? { ...p, approvalStatus: 'APPROVED' }
                 : p
             )
           );
@@ -328,186 +362,75 @@ export function App() {
 
   const currentPlayer = activePlayers.find((p) => p.id === currentPlayerId) || null;
 
-  // Place a Bid
-  const handlePlaceBid = (team: Team, newAmount: number) => {
-    if (!currentPlayer) return;
-
-    setCurrentBid(newAmount);
-    setLeadingTeam(team);
-
-    const record: BidRecord = {
-      id: `bid-${Date.now()}`,
-      playerId: currentPlayer.id,
-      teamId: team.id,
-      teamName: team.name,
-      amount: newAmount,
-      timestamp: Date.now(),
-    };
-    setBidsHistory((prev) => [record, ...prev]);
-
-    syncEngine.broadcast({
-      type: 'BID_PLACED',
-      payload: { team, amount: newAmount, record },
-    });
-  };
-
-  // Hammer SOLD
-  const handleSold = () => {
-    if (!currentPlayer || !leadingTeam || currentBid === 0) return;
-
-    const soldPlayer = currentPlayer;
-    const winningTeam = leadingTeam;
-    const finalPrice = currentBid;
-
-    // Deduct purse from team
-    setTeams((prevTeams) =>
-      prevTeams.map((t) => {
-        if (t.id === winningTeam.id) {
-          return {
-            ...t,
-            remainingPurse: t.remainingPurse - finalPrice,
-          };
-        }
-        return t;
-      })
-    );
-
-    // Update player record
-    setPlayers((prevPlayers) =>
-      prevPlayers.map((p) => {
-        if (p.id === soldPlayer.id) {
-          return {
-            ...p,
-            status: 'SOLD',
-            soldToTeamId: winningTeam.id,
-            soldPrice: finalPrice,
-          };
-        }
-        return p;
-      })
-    );
-
-    const soldInfo = {
-      player: soldPlayer,
-      team: winningTeam,
-      price: finalPrice,
-    };
-
-    setLastSoldInfo(soldInfo);
-    setIsSold(true);
-
-    syncEngine.broadcast({
-      type: 'HAMMER_SOLD',
-      payload: soldInfo,
-    });
-
-    // Automatically transition to next available player after 3.8s celebration
-    setTimeout(() => {
-      setIsSold(false);
-      setLastSoldInfo(null);
-      setCurrentBid(0);
-      setLeadingTeam(null);
-      setBidsHistory([]);
-
-      const nextAvail = activePlayers.find(
-        (p) => p.id !== soldPlayer.id && (p.status === 'AVAILABLE' || p.status === 'IN_AUCTION')
-      );
-      if (nextAvail) {
-        setCurrentPlayerId(nextAvail.id);
-        syncEngine.broadcast({
-          type: 'SELECT_PLAYER',
-          payload: { player: nextAvail },
-        });
-      }
-    }, 3800);
-  };
-
-  // Mark UNSOLD
-  const handleUnsold = () => {
-    if (!currentPlayer) return;
-
-    const unsoldPlayer = currentPlayer;
-
-    setPlayers((prevPlayers) =>
-      prevPlayers.map((p) => {
-        if (p.id === unsoldPlayer.id) {
-          return {
-            ...p,
-            status: 'UNSOLD',
-          };
-        }
-        return p;
-      })
-    );
-
-    setIsUnsold(true);
-
-    syncEngine.broadcast({
-      type: 'MARK_UNSOLD',
-      payload: { player: unsoldPlayer },
-    });
-
-    setTimeout(() => {
-      setIsUnsold(false);
-      setCurrentBid(0);
-      setLeadingTeam(null);
-      setBidsHistory([]);
-
-      const nextAvail = activePlayers.find(
-        (p) => p.id !== unsoldPlayer.id && (p.status === 'AVAILABLE' || p.status === 'IN_AUCTION')
-      );
-      if (nextAvail) {
-        setCurrentPlayerId(nextAvail.id);
-        syncEngine.broadcast({
-          type: 'SELECT_PLAYER',
-          payload: { player: nextAvail },
-        });
-      }
-    }, 2800);
-  };
-
-  // Undo Bid
-  const handleUndoBid = () => {
-    if (bidsHistory.length <= 1) {
-      setCurrentBid(0);
-      setLeadingTeam(null);
-      setBidsHistory([]);
-      syncEngine.broadcast({
-        type: 'UNDO_BID',
-        payload: { prevBid: null },
-      });
-      return;
+  const consumeAuctionEvent = (event: any) => {
+    if (!event || event.id === seenAuctionEvent.current) return;
+    seenAuctionEvent.current = event.id;
+    const elapsed = Date.now() - event.timestamp;
+    if (elapsed > 3800) return;
+    if (event.type === 'SOLD' && event.player && event.team) {
+      setLastSoldInfo({ player: event.player, team: event.team, price: event.price });
+      setIsSold(true);
+      setTimeout(() => { setIsSold(false); setLastSoldInfo(null); }, Math.max(0, 3800 - elapsed));
+    } else if (event.type === 'UNSOLD' && elapsed < 2800) {
+      setIsUnsold(true); setTimeout(() => setIsUnsold(false), Math.max(0, 2800 - elapsed));
     }
-
-    const newHistory = bidsHistory.slice(1);
-    setBidsHistory(newHistory);
-    const prevBid = newHistory[0];
-    setCurrentBid(prevBid.amount);
-    const prevTeam = teams.find((t) => t.id === prevBid.teamId) || null;
-    setLeadingTeam(prevTeam);
-
-    syncEngine.broadcast({
-      type: 'UNDO_BID',
-      payload: { prevBid },
-    });
   };
 
-  // Select Player
-  const handleSelectPlayer = (player: Player) => {
-    setCurrentPlayerId(player.id);
-    setCurrentBid(0);
-    setLeadingTeam(null);
-    setBidsHistory([]);
-    syncEngine.broadcast({
-      type: 'SELECT_PLAYER',
-      payload: { player },
-    });
+  const applyAuctionSnapshot = (data: any, id: string) => {
+    const state = data.liveState || {};
+    consumeAuctionEvent(state.lastEvent);
+    setCurrentPlayerId(state.currentPlayerId || '');
+    setCurrentBid(state.currentBid || 0);
+    setLeadingTeam(state.leadingTeam || null);
+    setBidsHistory(state.bidsHistory || []);
+    if (data.teams) setTeams(prev => { const next = [...prev.filter(t => t.tournamentId !== id), ...data.teams]; serverTeams.current = JSON.stringify(next); return next; });
+    if (data.players) setPlayers(prev => { const next = [...prev.filter(p => p.tournamentId !== id), ...data.players]; serverPlayers.current = JSON.stringify(next); return next; });
   };
+
+  const runAuctionCommand = async (action: string, extra: Record<string, unknown> = {}) => {
+    if (settling.current || !liveReady) return;
+    settling.current = true;
+    const id = activeTournamentId;
+    try {
+      await dbService.flushSync();
+      const response = await fetch(`/api/tournaments/${encodeURIComponent(id)}/auction`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, playerId: currentPlayerId, ...extra }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Auction action failed');
+      applyAuctionSnapshot(data, id);
+      setSaveMessage('');
+    } catch (error) { setSaveMessage((error as Error).message); }
+    finally { settling.current = false; }
+  };
+  const handlePlaceBid = (team: Team, amount: number) => { void runAuctionCommand('BID', { teamId: team.id, amount }); };
+  const handleSold = () => { void runAuctionCommand('SOLD', { teamId: leadingTeam?.id, amount: currentBid }); };
+  const handleUnsold = () => { void runAuctionCommand('UNSOLD'); };
+  const handleUndoBid = () => { void runAuctionCommand('UNDO'); };
+  const handleSelectPlayer = (player: Player) => { void runAuctionCommand('SELECT', { playerId: player.id }); };
+
+  // Display and paddle clients read the same authoritative auction state.
+  useEffect(() => {
+    if (!dataReady || !activeTournamentId || !['STAGE', 'AUCTIONEER', 'PADDLE', 'OBS', 'PUBLIC_SUMMARY', 'PLAYERS', 'TOURNAMENT_OVERVIEW'].includes(viewMode)) return;
+    let cancelled = false;
+    const refresh = async () => {
+      if (settling.current || dbService.hasPending()) return;
+      try {
+        const response = await fetch(`/api/tournaments/${encodeURIComponent(activeTournamentId)}/snapshot`, { cache: 'no-store' });
+        if (!response.ok) return;
+        const data = await response.json();
+        if (!cancelled && !settling.current && !dbService.hasPending()) applyAuctionSnapshot(data, activeTournamentId);
+      } catch { /* Existing data stays visible until the next successful refresh. */ }
+    };
+    const timer = setInterval(refresh, 2000);
+    return () => { cancelled = true; clearInterval(timer); };
+  }, [viewMode, dataReady, activeTournamentId]);
 
   // Random Draw
   const handleRandomDraw = () => {
     const unAuctioned = activePlayers.filter(
-      (p) => p.status === 'AVAILABLE' || p.status === 'IN_AUCTION'
+      (p) => (!p.approvalStatus || p.approvalStatus === 'APPROVED') && (p.status === 'AVAILABLE' || p.status === 'IN_AUCTION')
     );
     if (unAuctioned.length === 0) {
       alert('All players in this tournament pool have been auctioned! Check the Squad Booklet.');
@@ -518,36 +441,7 @@ export function App() {
   };
 
   // Reset Auction for current tournament
-  const handleResetAuction = () => {
-    setPlayers((prev) =>
-      prev.map((p) =>
-        (!p.tournamentId || p.tournamentId === tournament.id)
-          ? {
-              ...p,
-              status: 'AVAILABLE',
-              soldPrice: undefined,
-              soldToTeamId: undefined,
-            }
-          : p
-      )
-    );
-    setTeams((prev) =>
-      prev.map((t) =>
-        (!t.tournamentId || t.tournamentId === tournament.id)
-          ? {
-              ...t,
-              remainingPurse: t.totalPurse,
-            }
-          : t
-      )
-    );
-    setCurrentBid(0);
-    setLeadingTeam(null);
-    setBidsHistory([]);
-    if (activePlayers[0]) {
-      setCurrentPlayerId(activePlayers[0].id);
-    }
-  };
+  const handleResetAuction = () => { void runAuctionCommand('RESET'); };
 
   // Tournament Management Handlers
   const handleCreateTournament = (data: Partial<Tournament>) => {
@@ -577,9 +471,15 @@ export function App() {
       gpayNumber: data.gpayNumber || '',
       gpayName: data.gpayName || '',
       paymentMandatory: data.paymentMandatory ?? false,
-      customFields: data.customFields || initialTournament.customFields,
+      rules: { ...initialRules, pursePerTeam: data.totalPursePerTeam || initialRules.pursePerTeam },
+      customFields: data.customFields || [],
+      sportType: data.sportType || 'CRICKET',
+      instructions: data.instructions || '',
+      gpayQrUrl: data.gpayQrUrl || '',
     };
 
+    setRules(newTourney.rules || initialRules);
+    dbService.queueSync({ tournament: newTourney });
     setTournaments((prev) => [newTourney, ...prev]);
     setActiveTournamentId(newTourney.id);
     setViewMode('TOURNAMENT_OVERVIEW');
@@ -591,6 +491,7 @@ export function App() {
   };
 
   const handleUpdateTournament = (updated: Tournament) => {
+    dbService.queueSync({ tournament: updated });
     setTournaments((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
     syncEngine.broadcast({
       type: 'TOURNAMENT_UPDATED',
@@ -598,20 +499,29 @@ export function App() {
     });
   };
 
-  const handleDeleteTournament = (tourneyId: string) => {
-    if (tournaments.length <= 1) {
-      alert('Cannot delete the only tournament. At least one tournament is required.');
-      return;
-    }
-    const remaining = tournaments.filter((t) => t.id !== tourneyId);
-    setTournaments(remaining);
-    if (activeTournamentId === tourneyId) {
-      setActiveTournamentId(remaining[0].id);
-    }
-    dbService.flushSync().then(() => fetch(`/api/tournaments/${encodeURIComponent(tourneyId)}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: '{}' }));
+  const deleteRecord = async (route: string, id: string, apply: () => void) => {
+    try {
+      await dbService.flushSync();
+      const response = await fetch(`/api/${route}/${encodeURIComponent(id)}?tournamentId=${encodeURIComponent(activeTournamentId)}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Delete failed');
+      apply();
+    } catch (error) { setSaveMessage((error as Error).message); }
+  };
+  const handleDeleteTournament = (id: string) => {
+    void deleteRecord('tournaments', id, () => {
+      const remaining = tournaments.filter(t => t.id !== id);
+      setTournaments(remaining);
+      setTeams(prev => prev.filter(t => t.tournamentId !== id));
+      setPlayers(prev => prev.filter(p => p.tournamentId !== id));
+      if (activeTournamentId === id) setActiveTournamentId(remaining[0]?.id || '');
+      setViewMode('TOURNAMENTS');
+    });
   };
 
-  const handleSelectTournament = (tourneyId: string) => {
+  const handleSelectTournament = async (tourneyId: string) => {
+    try { await dbService.flushSync(); } catch { setSaveMessage('Save pending changes before switching tournaments.'); return; }
+    setRules(tournaments.find(t => t.id === tourneyId)?.rules || initialRules);
     setActiveTournamentId(tourneyId);
     setViewMode('TOURNAMENT_OVERVIEW');
     syncEngine.broadcast({
@@ -626,16 +536,18 @@ export function App() {
       ...newTeam,
       tournamentId: tournament.id,
     };
+    dbService.queueSync({ team: teamWithTourney });
     setTeams((prev) => [...prev, teamWithTourney]);
   };
 
   const handleUpdateTeam = (updated: Team) => {
+    dbService.queueSync({ team: updated });
     setTeams((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
   };
 
   const handleDeleteTeam = (teamId: string) => {
-    setTeams((prev) => prev.filter((t) => t.id !== teamId));
-    dbService.flushSync().then(() => fetch(`/api/teams/${encodeURIComponent(teamId)}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: '{}' }));
+    if (players.some(p => p.soldToTeamId === teamId)) { setSaveMessage('Reset the auction before deleting a team with sold players.'); return; }
+    void deleteRecord('teams', teamId, () => setTeams(prev => prev.filter(t => t.id !== teamId)));
   };
 
   // Player Management Handlers
@@ -644,66 +556,36 @@ export function App() {
       ...newPlayer,
       tournamentId: tournament.id,
     };
+    dbService.queueSync({ player: playerWithTourney });
     setPlayers((prev) => [...prev, playerWithTourney]);
   };
 
   const handleBulkAddPlayers = (newPlayers: Player[]) => {
-    const mapped = newPlayers.map((p) => ({
+    const lastLot = Math.max(0, ...activePlayers.map(p => p.lotOrder || 0));
+    const mapped = newPlayers.map((p, index) => ({
       ...p,
       tournamentId: tournament.id,
+      lotOrder: lastLot + index + 1,
     }));
+    dbService.queueSync({ players: mapped });
     setPlayers((prev) => [...prev, ...mapped]);
   };
 
-  const handleLaunchAcceleratedRound = (discountPercent: number) => {
-    const unsold = players.filter((p) => p.status === 'UNSOLD');
-    if (unsold.length === 0) {
-      alert('No unsold players available for Accelerated Round.');
-      return;
-    }
-
-    const updatedPlayers = players.map((p) => {
-      if (p.status === 'UNSOLD') {
-        const discountedPrice =
-          discountPercent > 0
-            ? Math.max(1000, Math.round(p.basePrice * (1 - discountPercent / 100)))
-            : p.basePrice;
-        return {
-          ...p,
-          status: 'AVAILABLE' as const,
-          basePrice: discountedPrice,
-          category: 'ACCELERATED' as const,
-        };
-      }
-      return p;
-    });
-
-    setPlayers(updatedPlayers);
-    syncEngine.broadcast({
-      type: 'PLAYERS_UPDATED',
-      payload: { players: updatedPlayers },
-    });
-
-    const firstRecall = updatedPlayers.find((p) => p.id === unsold[0].id);
-    if (firstRecall) {
-      handleSelectPlayer(firstRecall);
-    }
-
-    alert(
-      `⚡ Accelerated Round Launched!\n${unsold.length} unsold players recalled to auction lot with ${discountPercent}% price discount.`
-    );
-  };
+  const handleLaunchAcceleratedRound = (discountPercent: number) => { void runAuctionCommand('ACCELERATE', { discountPercent }); };
 
   const handleDeletePlayer = (playerId: string) => {
-    setPlayers((prev) => prev.filter((p) => p.id !== playerId));
-    dbService.flushSync().then(() => fetch(`/api/players/${encodeURIComponent(playerId)}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: '{}' }));
+    if (players.find(p => p.id === playerId)?.status === 'SOLD') { setSaveMessage('Reset the auction before deleting a sold player.'); return; }
+    void deleteRecord('players', playerId, () => {
+      setPlayers(prev => prev.filter(p => p.id !== playerId));
+      if (currentPlayerId === playerId) { setCurrentPlayerId(''); setCurrentBid(0); setLeadingTeam(null); setBidsHistory([]); }
+    });
   };
 
   const handleApprovePlayer = (playerId: string) => {
     setPlayers((prev) =>
       prev.map((p) =>
         p.id === playerId
-          ? { ...p, approvalStatus: 'APPROVED', status: 'AVAILABLE' }
+          ? { ...p, approvalStatus: 'APPROVED' }
           : p
       )
     );
@@ -757,32 +639,6 @@ export function App() {
     } catch (error) { alert((error as Error).message); }
   };
 
-  const handleEraseAllDemoData = () => {
-    if (
-      confirm(
-        '⚠️ Are you sure you want to erase all demo data and start a clean live tournament? This will reset all players, bids, and team purses.'
-      )
-    ) {
-      localStorage.removeItem('cap_players');
-      localStorage.removeItem('cap_bids');
-      setPlayers([]);
-      setTeams((prev) =>
-        prev.map((t) => ({
-          ...t,
-          remainingPurse: t.totalPurse,
-        }))
-      );
-      setCurrentPlayerId('');
-      setCurrentBid(0);
-      setLeadingTeam(null);
-      setBidsHistory([]);
-      syncEngine.broadcast({
-        type: 'CLEAR_ALL_DATA',
-      });
-      alert('✨ All demo data erased! Your system is now 100% fresh and ready for the live auction.');
-    }
-  };
-
   // Dedicated clean view for public player registration (?mode=register)
   if (viewMode === 'PUBLIC_REGISTER') {
     if (!publicTournament) return <main className="min-h-screen bg-obsidian-950 text-white grid place-items-center">{dataError || 'Loading tournament…'}</main>;
@@ -790,24 +646,30 @@ export function App() {
       <PublicRegistrationView
         tournament={publicTournament}
         onRegisterPlayer={handleRegisterPlayer}
-        onBackToDashboard={() => setViewMode('TOURNAMENT_OVERVIEW')}
+        onBackToDashboard={() => { if (new URLSearchParams(window.location.search).has('tournamentId')) window.location.assign('/'); else setViewMode('TOURNAMENT_OVERVIEW'); }}
       />
     );
   }
 
   if (viewMode === 'PUBLIC_SUMMARY' && new URLSearchParams(window.location.search).has('tournamentId')) {
     if (!publicSummary) return <main className="min-h-screen bg-obsidian-950 text-white grid place-items-center">{dataError || 'Loading tournament…'}</main>;
-    return <PublicSpectatorView tournament={publicSummary.tournament} teams={publicSummary.teams} players={publicSummary.players} />;
+    return <><div role="status" className="bg-slate-950 text-amber-300 text-center">{dataError}</div><PublicSpectatorView tournament={publicSummary.tournament} teams={publicSummary.teams} players={publicSummary.players} currentPlayer={publicSummary.players.find(p => p.id === (publicSummary as any).liveState?.currentPlayerId)} currentBid={(publicSummary as any).liveState?.currentBid} leadingTeam={publicSummary.teams.find(t => t.id === (publicSummary as any).liveState?.leadingTeam?.id)} /></>;
+  }
+  if (viewMode === 'OBS' && new URLSearchParams(window.location.search).has('tournamentId')) {
+    if (!publicSummary) return <main>{dataError || 'Loading auction…'}</main>;
+    const state = (publicSummary as any).liveState || {};
+    return <ObsOverlayView timerSeconds={publicSummary.tournament.rules?.timerSeconds} currency={publicSummary.tournament.rules?.currency} currentPlayer={publicSummary.players.find(p => p.id === state.currentPlayerId) || null} currentBid={state.currentBid || 0} leadingTeam={publicSummary.teams.find(t => t.id === state.leadingTeam?.id) || null} bidsHistory={[]} isSold={isSold} isUnsold={isUnsold} lastSoldInfo={lastSoldInfo} />;
   }
   if (!authChecked) return <main className="min-h-screen bg-obsidian-950 text-white grid place-items-center">Loading…</main>;
   if (!currentUser) return <main className="min-h-screen bg-obsidian-950 text-white grid place-items-center"><div className="text-center"><h1 className="text-3xl font-bold text-amber-300 mb-5">Cricket Auction Pro</h1><button onClick={() => setIsAuthModalOpen(true)} className="rounded-xl bg-amber-400 text-slate-950 px-8 py-3 font-bold">Organizer sign in or register</button></div><AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onSuccess={handleLoginSuccess} /></main>;
-  if (!dataReady) return <main className="min-h-screen bg-obsidian-950 text-white grid place-items-center">{dataError || 'Loading your tournaments…'}</main>;
+  if (!dataReady) return <main className="min-h-screen bg-obsidian-950 text-white grid place-items-center"><div>{dataError || 'Loading your tournaments…'}{dataError && <button onClick={() => window.location.reload()} className="ml-4 underline">Retry</button>}</div></main>;
 
-  if (currentUser.role === 'ADMIN') return <AdminPanelView
+  if (currentUser.role === 'ADMIN' && viewMode === 'ADMIN_PANEL') return <AdminPanelView
     currentUser={currentUser}
     tournaments={tournaments}
     onSelectTournament={(t) => window.open(`/?mode=summary&tournamentId=${encodeURIComponent(t.id)}`, '_blank', 'noopener,noreferrer')}
-    onBackToApp={handleLogout}
+    onBackToApp={() => setViewMode('TOURNAMENTS')}
+    onLogout={handleLogout}
     onRefreshData={() => dbService.fetchBootstrapData().then((data) => { if (data?.tournaments) setTournaments(data.tournaments); })}
   />;
 
@@ -841,6 +703,8 @@ export function App() {
         </button>
 
         <ObsOverlayView
+          timerSeconds={rules.timerSeconds}
+          currency={rules.currency}
           currentPlayer={currentPlayer}
           currentBid={currentBid}
           leadingTeam={leadingTeam}
@@ -855,10 +719,11 @@ export function App() {
 
   return (
     <div className="min-h-screen bg-obsidian-950 text-slate-100 flex flex-col">
+      {saveMessage && <div role="status" className="sticky top-0 z-50 bg-amber-950 px-4 py-2 text-amber-100 text-center">{saveMessage}<button onClick={() => dbService.flushSync().catch(() => {})} className="ml-4 underline">Retry save</button></div>}
       {/* Top Navbar */}
       <Navbar
         currentMode={viewMode}
-        onSelectMode={setViewMode}
+        onSelectMode={selectViewMode}
         tournament={tournament}
         tournaments={visibleTournaments}
         onSelectTournament={handleSelectTournament}
@@ -867,7 +732,6 @@ export function App() {
           setIsTournamentModalOpen(true);
         }}
         onOpenDatabaseModal={() => setIsDbModalOpen(true)}
-        onEraseDemoData={handleEraseAllDemoData}
         currentUser={currentUser}
         onOpenAuthModal={() => setIsAuthModalOpen(true)}
         onLogout={handleLogout}
@@ -882,7 +746,7 @@ export function App() {
             allTournaments={visibleTournaments}
             teams={activeTeams}
             players={activePlayers}
-            onSelectViewMode={setViewMode}
+            onSelectViewMode={selectViewMode}
             onEditTournament={() => {
               setEditingTournamentData(tournament);
               setIsTournamentModalOpen(true);
@@ -923,6 +787,8 @@ export function App() {
 
         {viewMode === 'STAGE' && (
           <StageView
+            timerSeconds={rules.timerSeconds}
+            currency={rules.currency}
             currentPlayer={currentPlayer}
             currentBid={currentBid}
             leadingTeam={leadingTeam}
@@ -968,6 +834,8 @@ export function App() {
 
         {viewMode === 'PLAYERS' && (
           <PlayerManagerView
+            currency={rules.currency}
+            defaultBasePrice={tournament.defaultBasePrice}
             tournamentId={tournament.id}
             players={activePlayers}
             onAddPlayer={handleAddPlayer}
@@ -976,6 +844,7 @@ export function App() {
             onNavigateToFormBuilder={() => setViewMode('FORM_BUILDER')}
             onApprovePlayer={handleApprovePlayer}
             onRejectPlayer={handleRejectPlayer}
+            onVerifyPayment={(id) => setPlayers(prev => prev.map(p => p.id === id && p.paymentScreenshotUrl ? { ...p, paymentStatus: 'VERIFIED' } : p))}
           />
         )}
 
@@ -1014,7 +883,7 @@ export function App() {
         {viewMode === 'RULES' && (
           <RulesSettingsView
             rules={rules}
-            onUpdateRules={setRules}
+            onUpdateRules={(updated) => { dbService.queueSync({ rules: updated, tournamentId: activeTournamentId }); setRules(updated); setTournaments(prev => prev.map(t => t.id === activeTournamentId ? { ...t, rules: updated } : t)); }}
             onResetAuction={handleResetAuction}
           />
         )}
@@ -1055,7 +924,6 @@ export function App() {
         tournamentsCount={tournaments.length}
         teamsCount={teams.length}
         playersCount={players.length}
-        onEraseDemoData={handleEraseAllDemoData}
         onReloadData={() => {
           dbService.fetchBootstrapData().then((data) => {
             if (data?.tournaments) setTournaments(data.tournaments);

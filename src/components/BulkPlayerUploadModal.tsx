@@ -1,3 +1,4 @@
+import { parseCsvRows } from '../utils/csvHelper';
 import React, { useState } from 'react';
 import {
   X,
@@ -52,6 +53,7 @@ export const BulkPlayerUploadModal: React.FC<BulkPlayerUploadModalProps> = ({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   // Parse CSV File
@@ -67,12 +69,12 @@ export const BulkPlayerUploadModal: React.FC<BulkPlayerUploadModalProps> = ({
     reader.onload = (event) => {
       try {
         const text = event.target?.result as string;
-        const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
+        const lines = parseCsvRows(text);
         if (lines.length < 2) {
           throw new Error('CSV file is empty or missing headers.');
         }
 
-        const headers = lines[0].split(',').map((h) => h.trim().toLowerCase());
+        const headers = lines[0].map((h) => h.trim().toLowerCase());
         const nameIdx = headers.findIndex((h) => h.includes('name'));
         if (nameIdx === -1) {
           throw new Error('CSV file must have a "Name" column.');
@@ -88,17 +90,19 @@ export const BulkPlayerUploadModal: React.FC<BulkPlayerUploadModalProps> = ({
         const bowlIdx = headers.findIndex((h) => h.includes('bowl'));
         const matchesIdx = headers.findIndex((h) => h.includes('match'));
         const runsIdx = headers.findIndex((h) => h.includes('run'));
+        const photoIdx = headers.findIndex(h => h.includes('photo') || h.includes('image'));
+        const strikeIdx = headers.findIndex(h => h.includes('strike'));
         const wktsIdx = headers.findIndex((h) => h.includes('wkt') || h.includes('wicket'));
 
         const now = Date.now();
         const playersList: Player[] = [];
 
         for (let i = 1; i < lines.length; i++) {
-          const row = lines[i].split(',').map((c) => c.trim());
+          const row = lines[i].map((c) => c.trim());
           if (!row[nameIdx]) continue;
 
           // Map Role safely
-          let rawRole = roleIdx !== -1 ? row[roleIdx]?.toUpperCase() : '';
+          let rawRole = roleIdx !== -1 ? row[roleIdx]?.toUpperCase() || '' : '';
           let role: PlayerRole = 'ALL_ROUNDER';
           if (rawRole.includes('BAT')) role = 'BATSMAN';
           else if (rawRole.includes('BOWL')) role = 'BOWLER';
@@ -124,20 +128,20 @@ export const BulkPlayerUploadModal: React.FC<BulkPlayerUploadModalProps> = ({
             id: `ply-${now}-${i}`,
             tournamentId: tournamentId,
             name: row[nameIdx],
-            photoUrl: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=400`,
+            photoUrl: photoIdx !== -1 && row[photoIdx] ? row[photoIdx] : '/player-placeholder.svg',
             mobile: mobileIdx !== -1 ? row[mobileIdx] : '',
             email: emailIdx !== -1 ? row[emailIdx] : '',
-            city: cityIdx !== -1 ? row[cityIdx] : 'Gujarat',
+            city: cityIdx !== -1 ? row[cityIdx] : '',
             role,
             battingStyle: batIdx !== -1 && row[batIdx] ? row[batIdx] : 'Right Hand Bat',
             bowlingStyle: bowlIdx !== -1 && row[bowlIdx] ? row[bowlIdx] : 'Right Arm Medium',
             basePrice,
             category,
             stats: {
-              matches: matchesIdx !== -1 ? Number(row[matchesIdx]) || 10 : 10,
-              runs: runsIdx !== -1 ? Number(row[runsIdx]) || 200 : 200,
-              wickets: wktsIdx !== -1 ? Number(row[wktsIdx]) || 5 : 5,
-              strikeRate: 135.5,
+              matches: matchesIdx !== -1 ? Number(row[matchesIdx]) || 0 : 0,
+              runs: runsIdx !== -1 ? Number(row[runsIdx]) || 0 : 0,
+              wickets: wktsIdx !== -1 ? Number(row[wktsIdx]) || 0 : 0,
+              strikeRate: strikeIdx !== -1 ? Number(row[strikeIdx]) || 0 : 0,
             },
             status: 'AVAILABLE',
             approvalStatus: 'APPROVED',

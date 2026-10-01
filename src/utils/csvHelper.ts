@@ -21,6 +21,7 @@ export function downloadSampleCsvTemplate() {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
 
 export function exportPlayersToCsv(players: Player[]) {
@@ -51,24 +52,36 @@ export function exportPlayersToCsv(players: Player[]) {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+export function parseCsvRows(csvText: string): string[][] {
+  // Read quoted commas, empty columns, escaped quotes and multiline fields.
+  const rows: string[][] = [];
+  let row: string[] = [], field = '', quoted = false;
+  for (let i = 0; i < csvText.length; i++) {
+    const char = csvText[i];
+    if (char === '"') {
+      if (quoted && csvText[i + 1] === '"') { field += '"'; i++; }
+      else quoted = !quoted;
+    } else if (char === ',' && !quoted) { row.push(field); field = ''; }
+    else if ((char === '\n' || char === '\r') && !quoted) {
+      if (char === '\r' && csvText[i + 1] === '\n') i++;
+      row.push(field); if (row.some(value => value.trim())) rows.push(row);
+      row = []; field = '';
+    } else field += char;
+  }
+  row.push(field); if (row.some(value => value.trim())) rows.push(row);
+  if (quoted) throw new Error('CSV contains an unclosed quoted field');
+  return rows;
 }
 
 export function parseCsvToPlayers(csvText: string, currentTotal: number): Player[] {
-  const lines = csvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
-  if (lines.length <= 1) return [];
-
-  // Skip header line
-  const dataLines = lines.slice(1);
+  const rows = parseCsvRows(csvText);
   const parsed: Player[] = [];
-
-  dataLines.forEach((line, index) => {
-    // Basic comma splitter handling quotes
-    const regex = /(".*?"|[^",\s]+)(?=\s*,|\s*$)/g;
-    const matches = line.match(/(?:[^\s",]+|"[^"]*")+/g) || line.split(',');
-
+  rows.slice(1).forEach((matches, index) => {
     if (matches.length >= 4) {
-      const clean = (val: string = '') => val.replace(/^"|"$/g, '').trim();
-
+      const clean = (val: string = '') => val.trim();
       const name = clean(matches[0]);
       if (!name) return;
 
@@ -84,16 +97,16 @@ export function parseCsvToPlayers(csvText: string, currentTotal: number): Player
       else if (rawCat.includes('SET_B')) category = 'SET_B';
       else if (rawCat.includes('ACCEL')) category = 'ACCELERATED';
 
-      const basePrice = Number(clean(matches[3])) || 25000;
+      const basePrice = Math.max(0, Number(clean(matches[3])) || 0);
       const battingStyle = clean(matches[4]) || 'Right Hand Batsman';
       const bowlingStyle = clean(matches[5]) || 'Right Arm Fast';
-      const matchesCount = Number(clean(matches[6])) || 10;
-      const runs = Number(clean(matches[7])) || 150;
-      const wickets = Number(clean(matches[8])) || 5;
-      const strikeRate = Number(clean(matches[9])) || 130.0;
+      const matchesCount = Math.max(0, Number(clean(matches[6])) || 0);
+      const runs = Math.max(0, Number(clean(matches[7])) || 0);
+      const wickets = Math.max(0, Number(clean(matches[8])) || 0);
+      const strikeRate = Math.max(0, Number(clean(matches[9])) || 0);
       const photoUrl =
         clean(matches[10]) ||
-        'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=500&auto=format&fit=crop&q=80';
+        '/player-placeholder.svg';
       const mobile = clean(matches[11]) || '';
 
       parsed.push({
@@ -113,6 +126,7 @@ export function parseCsvToPlayers(csvText: string, currentTotal: number): Player
           strikeRate,
         },
         status: 'AVAILABLE',
+        approvalStatus: 'APPROVED',
         lotOrder: currentTotal + index + 1,
       });
     }

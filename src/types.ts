@@ -101,6 +101,7 @@ export interface BidRecord {
 }
 
 export interface Tournament {
+  rules?: AuctionRules;
   id: string;
   userId?: string;
   creatorEmail?: string;

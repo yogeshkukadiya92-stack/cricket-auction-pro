@@ -1,3 +1,4 @@
+import { formatAuctionPrice } from '../utils/currency';
 import React, { useEffect, useRef } from 'react';
 import { Player, Team, Tournament } from '../types';
 import { Download, Share2, X, Check, Award } from 'lucide-react';
@@ -21,11 +22,7 @@ export const SoldPosterModal: React.FC<SoldPosterModalProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const formatPrice = (val: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-    }).format(val);
+    return formatAuctionPrice(val, tournament.rules?.currency);
   };
 
   useEffect(() => {

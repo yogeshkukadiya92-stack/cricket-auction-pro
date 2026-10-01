@@ -28,3 +28,8 @@ database/*.db-journal
 database/*.db-wal
 database/*.db-shm
 database/*.sqlite-journal
+
+# Runtime secrets
+.env
+.env.*
+!.env.example

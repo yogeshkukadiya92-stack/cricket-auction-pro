@@ -97,3 +97,13 @@ Enter and confirm a password of 12–128 characters when prompted. The input is 
 
 ## 📄 License
 MIT License. Created with ❤️ for cricket communities worldwide.
+
+## Production runtime and QA
+
+Set `DATABASE_URL`, `APP_ORIGIN` (the exact HTTPS site origin, without a trailing slash), and `PORT` in Coolify. Run `npm ci && npm run build`, then start with `npm start`. The server creates its PostgreSQL tables and indexes at startup. Configure a health check at `/api/health`.
+
+Auction bids, SOLD/UNSOLD, undo, reset, and accelerated rounds commit on the server. Concurrent commands are serialized per tournament. Stage, paddles, spectator pages, and OBS refresh live state every two seconds. Public OBS links must include `?mode=obs&tournamentId=YOUR_TOURNAMENT_ID`.
+
+Pending organizer changes are retained in this browser under the signed-in user's ID and retried after save failures. A save warning means the change has not reached PostgreSQL. Auction commands require an online server connection. Sign out after pending changes finish saving.
+
+Registration receipts are submitted for manual review; attaching a screenshot does not verify a payment with a payment provider. No payment gateway credentials are required for this manual UPI workflow. JSON backups include tournaments, teams, players, tournament rules, and live state; they exclude passwords and sessions. Restore merges records and must use the original organizer accounts for an administrator backup.

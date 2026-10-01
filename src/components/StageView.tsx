@@ -1,3 +1,4 @@
+import { formatAuctionPrice } from '../utils/currency';
 import React, { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
 import { Player, Team, BidRecord } from '../types';
@@ -7,6 +8,8 @@ import { Timer, TrendingUp, DollarSign, Award, Flame, UserCheck, ShieldAlert } f
 import { TeamLogo } from './TeamLogo';
 
 interface StageViewProps {
+  timerSeconds?: number;
+  currency?: import('../types').CurrencyType;
   currentPlayer: Player | null;
   currentBid: number;
   leadingTeam: Team | null;
@@ -19,6 +22,8 @@ interface StageViewProps {
 }
 
 export const StageView: React.FC<StageViewProps> = ({
+  timerSeconds = 15,
+  currency = 'INR',
   currentPlayer,
   currentBid,
   leadingTeam,
@@ -28,8 +33,10 @@ export const StageView: React.FC<StageViewProps> = ({
   isUnsold,
   lastSoldInfo,
 }) => {
-  const [timeLeft, setTimeLeft] = useState(15);
+  const [timeLeft, setTimeLeft] = useState(timerSeconds);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
+
+  useEffect(() => { setTimeLeft(timerSeconds); setIsTimerRunning(false); }, [currentPlayer?.id, timerSeconds]);
 
   // Trigger countdown
   useEffect(() => {
@@ -52,7 +59,7 @@ export const StageView: React.FC<StageViewProps> = ({
   // When a new bid arrives, reset timer to 12s
   useEffect(() => {
     if (currentBid > 0 && !isSold && !isUnsold) {
-      setTimeLeft(12);
+      setTimeLeft(timerSeconds);
       setIsTimerRunning(true);
     }
   }, [currentBid, isSold, isUnsold]);
@@ -88,7 +95,9 @@ export const StageView: React.FC<StageViewProps> = ({
     }
   }, [isSold, lastSoldInfo]);
 
-  if (!currentPlayer) {
+  const displayPlayer = isSold && lastSoldInfo ? lastSoldInfo.player : currentPlayer;
+
+  if (!displayPlayer) {
     return (
       <div className="min-h-[75vh] flex flex-col items-center justify-center text-center p-8 glass-panel rounded-3xl border border-white/10 relative overflow-hidden stadium-beam">
         <div className="w-24 h-24 rounded-3xl bg-gold-500/10 border border-gold-400/30 flex items-center justify-center mb-6 shadow-glow-gold animate-bounce">
@@ -112,11 +121,7 @@ export const StageView: React.FC<StageViewProps> = ({
   }
 
   const formatPrice = (val: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-    }).format(val);
+    return formatAuctionPrice(val, currency);
   };
 
   return (
@@ -152,7 +157,7 @@ export const StageView: React.FC<StageViewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center pt-8">
         {/* Left Column: 3D Player Card */}
         <div className="lg:col-span-5 flex flex-col items-center justify-center">
-          <PlayerCard3D player={currentPlayer} isBigStage={true} />
+          <PlayerCard3D player={displayPlayer} isBigStage={true} />
         </div>
 
         {/* Right Column: Bidding Action & Status */}
@@ -171,7 +176,7 @@ export const StageView: React.FC<StageViewProps> = ({
                 CURRENT HIGHEST BID
               </span>
               <span className="text-xs text-slate-400 font-semibold bg-white/5 px-3 py-1 rounded-full border border-white/5">
-                Base: {formatPrice(currentPlayer.basePrice)}
+                Base: {formatPrice(displayPlayer.basePrice)}
               </span>
             </div>
 
@@ -224,7 +229,7 @@ export const StageView: React.FC<StageViewProps> = ({
                 <div className="flex items-center gap-3 p-4 rounded-2xl bg-white/[0.03] border border-white/5 text-slate-400">
                   <TrendingUp className="w-5 h-5 text-gold-400" />
                   <span className="text-sm font-medium">
-                    Awaiting opening bid at {formatPrice(currentPlayer.basePrice)}...
+                    Awaiting opening bid at {formatPrice(displayPlayer.basePrice)}...
                   </span>
                 </div>
               )}
@@ -325,7 +330,7 @@ export const StageView: React.FC<StageViewProps> = ({
             <ShieldAlert className="w-16 h-16 text-red-500 mx-auto mb-3" />
             <h2 className="text-2xl font-black text-white font-display">PLAYER UNSOLD</h2>
             <p className="text-slate-400 text-sm mt-2">
-              {currentPlayer.name} received no opening bids. Moving to Accelerated Round queue.
+              {displayPlayer.name} received no opening bids. Moving to Accelerated Round queue.
             </p>
           </div>
         </div>

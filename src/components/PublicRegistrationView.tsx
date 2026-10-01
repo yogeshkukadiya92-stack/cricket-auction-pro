@@ -51,13 +51,13 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
   const [role, setRole] = useState<PlayerRole>('ALL_ROUNDER');
   const [battingStyle, setBattingStyle] = useState('Right Hand Batsman');
   const [bowlingStyle, setBowlingStyle] = useState('Right Arm Fast');
-  const [matches, setMatches] = useState(15);
-  const [runs, setRuns] = useState(320);
-  const [wickets, setWickets] = useState(14);
-  const [strikeRate, setStrikeRate] = useState(142.5);
+  const [matches, setMatches] = useState(0);
+  const [runs, setRuns] = useState(0);
+  const [wickets, setWickets] = useState(0);
+  const [strikeRate, setStrikeRate] = useState(0);
   const [basePrice, setBasePrice] = useState(tournament.defaultBasePrice || 20000);
   const [photoUrl, setPhotoUrl] = useState(
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80'
+    '/player-placeholder.svg'
   );
 
   // Dynamic Custom Fields values: { fieldId: value }
@@ -101,9 +101,9 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
 
   const gpayNumber = tournament.gpayNumber || '';
   const upiId = tournament.upiId || '';
-  const gpayName = tournament.gpayName || tournament.name || 'GPL Cricket Committee';
+  const gpayName = tournament.gpayName || tournament.name || 'Tournament Organizer';
   const regFee = tournament.registrationFee ?? 0;
-  const isPaymentRequired = (regFee > 0 || tournament.paymentMandatory) && !!(upiId || gpayNumber);
+  const isPaymentRequired = regFee > 0 || !!tournament.paymentMandatory;
 
   // UPI deep link
   const cleanUpi = upiId.trim();
@@ -283,10 +283,10 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                   <div>
                     <span className="text-[10px] uppercase font-black text-emerald-400 flex items-center gap-1">
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      Google Pay Payment Verified
+                      Receipt Submitted — Awaiting Verification
                     </span>
                     <p className="text-xs font-black text-white font-mono">
-                      ₹{registeredPlayer.paymentAmount || 500} payment screenshot attached
+                      ₹{registeredPlayer.paymentAmount ?? 0} payment screenshot attached
                     </p>
                     {registeredPlayer.paymentUtr && (
                       <span className="text-[10px] text-slate-400 font-mono block">
@@ -296,7 +296,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                   </div>
                 </div>
                 <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                  PAID
+                  PENDING
                 </span>
               </div>
             ) : (

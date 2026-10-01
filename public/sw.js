@@ -6,7 +6,7 @@
  * - API requests (/api/*) are handled directly by IndexedDB + Local-First Sync Engine
  */
 
-const CACHE_NAME = 'cricket-auction-pro-shell-v2';
+const CACHE_NAME = 'cricket-auction-pro-shell-v3';
 
 const ASSETS_TO_CACHE = [
   '/',
@@ -42,7 +42,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
   // 1. Skip /api/ requests: these are managed by our Local-First Database & Resilient Sync Manager
-  if (url.pathname.startsWith('/api/')) {
+  if (event.request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/')) {
     return;
   }
 
@@ -56,7 +56,7 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(() => {
-          return caches.match('/index.html') || caches.match('/');
+          return caches.match('/index.html').then(cached => cached || caches.match('/'));
         })
     );
     return;

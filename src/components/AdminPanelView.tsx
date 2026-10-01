@@ -21,6 +21,7 @@ import {
   Calendar,
   DollarSign,
 } from 'lucide-react';
+import { dbService } from '../services/dbService';
 import { User, Tournament } from '../types';
 
 interface AdminPanelViewProps {
@@ -28,6 +29,7 @@ interface AdminPanelViewProps {
   tournaments: Tournament[];
   onSelectTournament: (t: Tournament) => void;
   onBackToApp: () => void;
+  onLogout: () => void;
   onRefreshData: () => void;
 }
 
@@ -36,6 +38,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
   tournaments,
   onSelectTournament,
   onBackToApp,
+  onLogout,
   onRefreshData,
 }) => {
   const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'USERS' | 'TOURNAMENTS' | 'DATABASE'>('OVERVIEW');
@@ -55,6 +58,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
       const usersData = await usersRes.json();
       const statsData = await statsRes.json();
 
+      if (!usersRes.ok || !statsRes.ok) throw new Error(usersData.error || statsData.error || 'Failed to load admin data');
       if (usersData.success) {
         setUsersList(usersData.users);
       }
@@ -62,7 +66,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
         setStats(statsData.stats);
       }
     } catch (err) {
-      console.error('Failed to load admin data:', err);
+      setActionMessage((err as Error).message);
     } finally {
       setLoading(false);
     }
@@ -84,6 +88,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
         body: JSON.stringify({ userId }),
       });
       const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to update user');
       if (data.success) {
         setActionMessage(`User status updated to ${data.status}`);
         setTimeout(() => setActionMessage(null), 3000);
@@ -95,7 +100,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
   };
 
   const handleExportBackup = () => {
-    window.location.href = '/api/db/export';
+    void dbService.exportBackup().then(ok => { if (!ok) setActionMessage('Backup download failed'); });
   };
 
   const handleImportBackup = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -117,7 +122,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
           fetchUsersAndStats();
           onRefreshData();
         } else {
-          alert(data.message || 'Restore failed');
+          alert(data.error || 'Restore failed');
         }
       } catch (err: any) {
         alert('Failed to parse backup JSON file.');
@@ -168,13 +173,14 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
               className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-amber-500/20"
             >
               <Trophy className="w-3.5 h-3.5" />
-              <span>Sign out</span>
+              <span>Manage Tournaments</span>
             </button>
+            <button onClick={onLogout} className="px-3 py-2 rounded-xl bg-slate-800 text-xs font-bold">Sign Out</button>
           </div>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex gap-2 border-t border-slate-800/50 pt-1 pb-1">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-wrap gap-2 border-t border-slate-800/50 pt-1 pb-1">
           <button
             onClick={() => setActiveTab('OVERVIEW')}
             className={`px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-2 ${
@@ -296,7 +302,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
                   {usersList.slice(0, 5).map((user) => (
                     <div
                       key={user.id}
-                      className="p-3 bg-slate-950/70 border border-slate-800/80 rounded-xl flex items-center justify-between"
+                      className="p-3 bg-slate-950/70 border border-slate-800/80 rounded-xl flex flex-wrap items-center justify-between gap-3"
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl bg-slate-800 flex items-center justify-center font-bold text-xs text-amber-400 border border-slate-700">
@@ -304,7 +310,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
                         </div>
                         <div>
                           <p className="text-xs font-bold text-white">{user.name}</p>
-                          <p className="text-[11px] text-slate-400">{user.email}</p>
+                          <p className="text-[11px] text-slate-400 break-all">{user.email}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -344,20 +350,20 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
                     <span className="font-mono text-emerald-400 font-bold">PostgreSQL</span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-400">File Location:</span>
+                    <span className="text-slate-400">Storage:</span>
                     <span className="font-mono text-slate-300 text-[11px]">Coolify managed database</span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-400">Journal Mode:</span>
-                    <span className="font-mono text-cyan-400 font-semibold">Daily Coolify backup</span>
+                    <span className="text-slate-400">Backup method:</span>
+                    <span className="font-mono text-cyan-400 font-semibold">Manual JSON export</span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-slate-400">Multi-Organizer Isolation:</span>
                     <span className="font-mono text-emerald-400 font-semibold">Active (Per-User Scoped)</span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-400">Live SSE Broadcast:</span>
-                    <span className="font-mono text-amber-400 font-semibold">Real-Time Event Stream</span>
+                    <span className="text-slate-400">Live updates:</span>
+                    <span className="font-mono text-amber-400 font-semibold">Every 2 seconds</span>
                   </div>
                 </div>
 
@@ -564,7 +570,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
                 ACID Database Engine Management
               </h3>
               <p className="text-xs text-slate-400 mb-6">
-                All platform data is persisted synchronously using Node.js Native SQLite 3 in Write-Ahead Logging (WAL) mode.
+                Tournament records are stored in PostgreSQL; auction commands commit atomically.
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -576,7 +582,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
                     </div>
                     <h4 className="font-bold text-white text-sm mb-1">Export Full Platform JSON Backup</h4>
                     <p className="text-xs text-slate-400">
-                      Downloads an immediate JSON dump containing all tournaments, teams, players, bids, rules, and users.
+                      Downloads tournament records, teams, players, tournament rules and live auction state. Account passwords and sessions are excluded.
                     </p>
                   </div>
                   <button
@@ -596,7 +602,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
                     </div>
                     <h4 className="font-bold text-white text-sm mb-1">Restore Database from Backup</h4>
                     <p className="text-xs text-slate-400">
-                      Select a valid Cricket Auction Pro backup file (.json) to restore records directly into SQLite.
+                      Select a valid Cricket Auction Pro backup file (.json) to merge records into PostgreSQL on the original installation.
                     </p>
                   </div>
                   <label className="mt-4 w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-2 cursor-pointer border border-slate-700">

@@ -109,7 +109,7 @@ export const PlayerCard3D: React.FC<PlayerCard3DProps> = ({ player, isBigStage =
         {/* Player Portrait Container - Full & Clear Visibility */}
         <div className="relative w-full h-[78%] overflow-hidden bg-gradient-to-b from-obsidian-900 to-obsidian-950">
           <img
-            src={player.photoUrl}
+            src={player.photoUrl || "/player-placeholder.svg"}
             alt={player.name}
             className="w-full h-full object-cover object-top sm:object-center transition-transform duration-500 hover:scale-105"
             loading="lazy"

@@ -1,3 +1,4 @@
+import { formatAuctionPrice } from '../utils/currency';
 import React, { useState, useEffect } from 'react';
 import {
   Trophy,
@@ -43,7 +44,7 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
 
   // Sync selectedTeamTab if teams change
   useEffect(() => {
-    if (!selectedTeamTab && teams.length > 0) {
+    if (!teams.some(t => t.id === selectedTeamTab) && teams.length > 0) {
       setSelectedTeamTab(teams[0].id);
     }
   }, [teams, selectedTeamTab]);
@@ -57,14 +58,7 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
     .sort((a, b) => (b.soldPrice || 0) - (a.soldPrice || 0))
     .slice(0, 5);
 
-  const formatPrice = (val?: number) => {
-    if (!val) return '₹0';
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-    }).format(val);
-  };
+  const formatPrice = (val?: number) => formatAuctionPrice(val || 0, tournament.rules?.currency);
 
   const handleShare = () => {
     const url = window.location.origin + window.location.pathname + `?mode=summary&tournamentId=${tournament.id}`;
@@ -80,7 +74,7 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
     <div className="min-h-screen bg-slate-950 text-white font-sans selection:bg-amber-500 selection:text-slate-950">
       {/* Top Floating Spectator Header */}
       <header className="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 px-4 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 p-1 flex items-center justify-center shrink-0">
               <TeamLogo logo={tournament.logoUrl || '🏆'} name={tournament.name} className="w-full h-full text-lg" />
@@ -131,7 +125,7 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
               <div className="flex items-center gap-5">
                 <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-slate-800 border-2 border-amber-400/80 overflow-hidden shrink-0 shadow-lg">
                   <img
-                    src={currentPlayer.photoUrl}
+                    src={currentPlayer.photoUrl || "/player-placeholder.svg"}
                     alt={currentPlayer.name}
                     className="w-full h-full object-cover"
                   />
@@ -287,7 +281,7 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
                         className="p-3 bg-slate-950 border border-slate-800 rounded-2xl flex items-center gap-3 relative overflow-hidden"
                       >
                         <div className="w-11 h-11 rounded-xl bg-slate-800 border border-slate-700 overflow-hidden shrink-0">
-                          <img src={p.photoUrl} alt={p.name} className="w-full h-full object-cover" />
+                          <img src={p.photoUrl || "/player-placeholder.svg"} alt={p.name} className="w-full h-full object-cover" />
                         </div>
                         <div className="truncate flex-1">
                           <div className="flex items-center justify-between">
@@ -339,7 +333,7 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
                     >
                       <div className="flex items-center gap-3 truncate">
                         <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 overflow-hidden shrink-0">
-                          <img src={player.photoUrl} alt={player.name} className="w-full h-full object-cover" />
+                          <img src={player.photoUrl || "/player-placeholder.svg"} alt={player.name} className="w-full h-full object-cover" />
                         </div>
                         <div className="truncate">
                           <h4 className="text-xs font-bold text-white truncate">{player.name}</h4>

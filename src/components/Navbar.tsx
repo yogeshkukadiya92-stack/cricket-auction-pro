@@ -36,7 +36,6 @@ interface NavbarProps {
   onSelectTournament?: (id: string) => void;
   onCreateNewTournament?: () => void;
   onOpenDatabaseModal?: () => void;
-  onEraseDemoData?: () => void;
   currentUser?: User | null;
   onOpenAuthModal?: () => void;
   onLogout?: () => void;
@@ -51,7 +50,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   onSelectTournament,
   onCreateNewTournament,
   onOpenDatabaseModal,
-  onEraseDemoData,
   currentUser,
   onOpenAuthModal,
   onLogout,
@@ -303,16 +301,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           )}
 
           {/* Erase All Demo Data Button */}
-          {onEraseDemoData && (
-            <button
-              onClick={onEraseDemoData}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-bold transition-all cursor-pointer"
-              title="Erase All Demo Data and Start Fresh"
-            >
-              <Trash2 className="w-3.5 h-3.5 text-red-400" />
-              <span className="hidden md:inline">Erase Demo Data</span>
-            </button>
-          )}
+
 
           <button
             onClick={toggleSound}

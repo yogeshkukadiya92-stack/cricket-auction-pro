@@ -1,3 +1,4 @@
+import { formatAuctionPrice } from '../utils/currency';
 import React, { useState } from 'react';
 import { Tournament, Team, Player, ViewMode } from '../types';
 import { TeamLogo, isImageLogo } from './TeamLogo';
@@ -69,7 +70,7 @@ export const TournamentDashboardView: React.FC<TournamentDashboardViewProps> = (
   const approvedCount = tourneyPlayers.filter((p) => p.approvalStatus === 'APPROVED').length;
   const pendingCount = tourneyPlayers.filter((p) => p.approvalStatus === 'PENDING' || !p.approvalStatus).length;
   const paidCount = tourneyPlayers.filter(
-    (p) => p.paymentStatus === 'PAID' || p.paymentStatus === 'VERIFIED'
+    (p) => p.paymentStatus === 'VERIFIED'
   ).length;
 
   const soldCount = tourneyPlayers.filter((p) => p.status === 'SOLD').length;
@@ -81,11 +82,7 @@ export const TournamentDashboardView: React.FC<TournamentDashboardViewProps> = (
   const totalMoneySpent = totalPurseAllocated - totalPurseRemaining;
 
   const formatPrice = (val: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-    }).format(val);
+    return formatAuctionPrice(val, tournament.rules?.currency);
   };
 
   const getPublicRegistrationUrl = () => {
@@ -613,7 +610,7 @@ export const TournamentDashboardView: React.FC<TournamentDashboardViewProps> = (
                       <td className="p-3.5">
                         <div className="flex items-center gap-3">
                           <img
-                            src={player.photoUrl}
+                            src={player.photoUrl || "/player-placeholder.svg"}
                             alt={player.name}
                             className="w-9 h-9 rounded-xl object-cover border border-white/10"
                           />
