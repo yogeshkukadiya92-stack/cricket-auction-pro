@@ -7,6 +7,7 @@ import { TeamLogo, isImageLogo } from './TeamLogo';
 interface TeamsManagerViewProps {
   teams: Team[];
   tournament: Tournament;
+  tournaments: Tournament[];
   onAddTeam: (team: Team) => void;
   onUpdateTeam: (team: Team) => void;
   onDeleteTeam: (teamId: string) => void;
@@ -17,6 +18,7 @@ interface TeamsManagerViewProps {
 export const TeamsManagerView: React.FC<TeamsManagerViewProps> = ({
   teams,
   tournament,
+  tournaments,
   onAddTeam,
   onUpdateTeam,
   onDeleteTeam,
@@ -25,6 +27,13 @@ export const TeamsManagerView: React.FC<TeamsManagerViewProps> = ({
 }) => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
+  const [selectedTournamentId, setSelectedTournamentId] = useState(tournament.id);
+  const [tournamentSearch, setTournamentSearch] = useState('');
+  const [createdMessage, setCreatedMessage] = useState('');
+  const selectedTournament = tournaments.find((item) => item.id === selectedTournamentId);
+  const matchingTournaments = tournaments.filter((item) =>
+    `${item.name} ${item.season} ${item.year}`.toLocaleLowerCase().includes(tournamentSearch.trim().toLocaleLowerCase())
+  );
 
   // New Team Form State
   const [name, setName] = useState('');
@@ -135,11 +144,11 @@ export const TeamsManagerView: React.FC<TeamsManagerViewProps> = ({
 
   const handleCreateTeam = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || !selectedTournament) return;
 
     const newTeam: Team = {
       id: `team-${Date.now()}`,
-      tournamentId: tournament.id,
+      tournamentId: selectedTournament.id,
       name: name.trim(),
       shortCode: shortCode.trim().toUpperCase() || name.substring(0, 3).toUpperCase(),
       logo: logo.trim() || '🏏',
@@ -152,6 +161,7 @@ export const TeamsManagerView: React.FC<TeamsManagerViewProps> = ({
     };
 
     onAddTeam(newTeam);
+    setCreatedMessage(`${newTeam.name} added to ${selectedTournament.name} • ${selectedTournament.season} • ${selectedTournament.year}.`);
     setIsAddModalOpen(false);
     // Reset
     setName('');
@@ -239,13 +249,22 @@ export const TeamsManagerView: React.FC<TeamsManagerViewProps> = ({
         </div>
 
         <button
-          onClick={() => setIsAddModalOpen(true)}
+          onClick={() => {
+            setSelectedTournamentId(tournament.id);
+            setTournamentSearch('');
+            setPurse(tournament.totalPursePerTeam || tournament.rules?.pursePerTeam || 1000000);
+            setRtm(tournament.rules?.rtmCardsPerTeam ?? 2);
+            setCreatedMessage('');
+            setIsAddModalOpen(true);
+          }}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs bg-gold-500 hover:bg-gold-400 text-black shadow-glow-gold active:scale-95 transition-all"
         >
           <Plus className="w-4 h-4" />
           Add New Team
         </button>
       </div>
+
+      {createdMessage && <p role="status" className="text-sm text-emerald-400">{createdMessage}</p>}
 
       {/* Teams Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -339,11 +358,44 @@ export const TeamsManagerView: React.FC<TeamsManagerViewProps> = ({
       {/* Add New Team Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-obsidian-950/85 backdrop-blur-md p-4 overflow-y-auto">
-          <div className="relative max-w-lg w-full rounded-3xl p-6 bg-obsidian-900 border border-white/10 shadow-2xl">
+          <div className="relative max-w-lg w-full max-h-[90dvh] overflow-y-auto rounded-3xl p-6 bg-obsidian-900 border border-white/10 shadow-2xl">
             <h3 className="text-2xl font-black text-white font-display mb-1">ADD FRANCHISE TEAM</h3>
             <p className="text-xs text-slate-400 mb-6">Create a team with logo, custom color, and purse.</p>
 
             <form onSubmit={handleCreateTeam} className="space-y-4">
+              <div className="p-4 rounded-2xl bg-gold-500/5 border border-gold-400/20 space-y-3">
+                <label htmlFor="team-tournament-search" className="text-xs font-bold text-slate-300 block">Select Tournament</label>
+                <input
+                  id="team-tournament-search"
+                  type="search"
+                  placeholder="Search tournaments by name, season or year"
+                  value={tournamentSearch}
+                  onChange={(e) => setTournamentSearch(e.target.value)}
+                  className="w-full bg-obsidian-950 border border-white/10 rounded-xl px-3.5 py-2 text-sm text-white focus:border-gold-400 focus:outline-none"
+                />
+                <div role="group" aria-label="Available tournaments" className="max-h-36 overflow-y-auto space-y-2">
+                  {matchingTournaments.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      aria-pressed={selectedTournamentId === item.id}
+                      onClick={() => {
+                        setSelectedTournamentId(item.id);
+                        setPurse(item.totalPursePerTeam || item.rules?.pursePerTeam || 1000000);
+                        setRtm(item.rules?.rtmCardsPerTeam ?? 2);
+                      }}
+                      className={`w-full flex items-center justify-between gap-3 text-left rounded-xl px-3 py-2 border transition-colors ${selectedTournamentId === item.id ? 'border-gold-400 bg-gold-500/10 text-gold-300' : 'border-white/10 text-slate-300 hover:bg-white/5'}`}
+                    >
+                      <span><span className="block text-sm font-bold">{item.name}</span><span className="block text-xs opacity-75">{item.season} • {item.year}</span></span>
+                      {selectedTournamentId === item.id && <Check className="w-4 h-4 shrink-0" />}
+                    </button>
+                  ))}
+                  {matchingTournaments.length === 0 && <p className="text-xs text-slate-400 py-2">No tournaments found.</p>}
+                </div>
+                <p role="status" className="text-xs text-gold-300">
+                  {selectedTournament ? `Team will be saved to: ${selectedTournament.name} • ${selectedTournament.season} • ${selectedTournament.year}` : 'Select a tournament to create the team.'}
+                </p>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-bold text-slate-300 block mb-1">Team Name</label>
@@ -506,7 +558,8 @@ export const TeamsManagerView: React.FC<TeamsManagerViewProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-xl text-xs font-black bg-gold-500 hover:bg-gold-400 text-black shadow-glow-gold active:scale-95 cursor-pointer"
+                  disabled={!selectedTournament}
+                  className="px-5 py-2.5 rounded-xl text-xs font-black bg-gold-500 hover:bg-gold-400 text-black shadow-glow-gold active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Create Team
                 </button>

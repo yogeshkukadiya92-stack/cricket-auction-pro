@@ -534,7 +534,7 @@ export function App() {
   const handleAddTeam = (newTeam: Team) => {
     const teamWithTourney: Team = {
       ...newTeam,
-      tournamentId: tournament.id,
+      tournamentId: newTeam.tournamentId || tournament.id,
     };
     dbService.queueSync({ team: teamWithTourney });
     setTeams((prev) => [...prev, teamWithTourney]);
@@ -860,6 +860,7 @@ export function App() {
           <TeamsManagerView
             teams={activeTeams}
             tournament={tournament}
+            tournaments={visibleTournaments}
             onAddTeam={handleAddTeam}
             onUpdateTeam={handleUpdateTeam}
             onDeleteTeam={handleDeleteTeam}
