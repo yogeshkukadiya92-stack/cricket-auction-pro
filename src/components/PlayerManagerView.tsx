@@ -1,3 +1,4 @@
+import { PlayerCorrections } from './PlayerCorrections';
 import { exportRegistrationsExcel, downloadRegistrationImages } from '../utils/registrationExport';
 import { formatAuctionPrice } from '../utils/currency';
 import React, { useState, useRef } from 'react';
@@ -33,6 +34,8 @@ import {
 } from 'lucide-react';
 
 interface PlayerManagerViewProps {
+  teams: import('../types').Team[];
+  onCorrect: (action: string, playerId: string, teamId?: string, amount?: number) => Promise<void>;
   customFields?: import('../types').CustomFormField[];
   currency?: import('../types').CurrencyType;
   defaultBasePrice?: number;
@@ -48,6 +51,8 @@ interface PlayerManagerViewProps {
 }
 
 export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
+  teams,
+  onCorrect,
   customFields = [],
   currency = 'INR',
   defaultBasePrice = 20000,
@@ -172,6 +177,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
 
   return (
     <div className="space-y-6">
+      <PlayerCorrections tournamentId={tournamentId} players={players} teams={teams} onCorrect={onCorrect} />
       {/* Top Banner and Quick Stats */}
       <div className="p-6 rounded-3xl glass-panel border border-white/10 flex flex-wrap items-center justify-between gap-4">
         <div>

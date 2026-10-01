@@ -1,3 +1,4 @@
+import { correctPlayer } from '../shared/playerCorrection.js';
 import { normalizeMobile, isUploadedImage } from '../shared/registrationValidation.js';
 import { getBidBudget } from '../shared/auctionBudget.js';
 import express from 'express';
@@ -51,6 +52,10 @@ async function migrate() {
     CREATE TABLE IF NOT EXISTS players (
       tournament_id text NOT NULL REFERENCES tournaments(id) ON DELETE CASCADE,
       id text NOT NULL, data jsonb NOT NULL, PRIMARY KEY(tournament_id,id)
+    );
+    CREATE TABLE IF NOT EXISTS deleted_players (
+      tournament_id text NOT NULL REFERENCES tournaments(id) ON DELETE CASCADE,
+      id text NOT NULL, data jsonb NOT NULL, deleted_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY(tournament_id,id)
     );
     CREATE TABLE IF NOT EXISTS organizer_settings (
       organizer_id uuid PRIMARY KEY REFERENCES organizers(id) ON DELETE CASCADE,
@@ -180,6 +185,45 @@ app.get('/api/db/bootstrap', requireUser, async (req, res) => {
   res.json({ success: true, dbType: 'PostgreSQL', tournaments: tournaments.rows.map(x => x.data), teams: teams.rows.map(x => x.data), players: players.rows.map(x => x.data), rules: settings.rows[0]?.rules || null, liveState: settings.rows[0]?.live_state || null });
 });
 
+app.get('/api/tournaments/:id/deleted-players', requireUser, async (req, res) => {
+  if (!await owns(req.params.id, req.user.id)) return bad(res, 404, 'Tournament not found');
+  const rows = await pool.query('SELECT data,deleted_at FROM deleted_players WHERE tournament_id=$1 ORDER BY deleted_at DESC', [req.params.id]);
+  res.json({ players: rows.rows.map(r => ({ ...r.data, deletedAt: r.deleted_at })) });
+});
+app.post('/api/tournaments/:id/player-correction', requireUser, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    if (!await owns(req.params.id, req.user.id, client)) throw new Error('Tournament not found');
+    const tournament = await client.query('SELECT data FROM tournaments WHERE id=$1 FOR UPDATE', [req.params.id]);
+    const { action, playerId, teamId, amount } = req.body || {};
+    if (!['SOLD','UNSOLD','AVAILABLE','DELETE','RESTORE'].includes(action)) throw new Error('Invalid correction');
+    const rows = await client.query('SELECT data FROM players WHERE tournament_id=$1', [req.params.id]);
+    const teamRows = await client.query('SELECT data FROM teams WHERE tournament_id=$1', [req.params.id]);
+    if (action === 'RESTORE') {
+      const archived = await client.query('SELECT data FROM deleted_players WHERE tournament_id=$1 AND id=$2', [req.params.id, playerId]);
+      if (!archived.rowCount || rows.rows.some(r => r.data.id === playerId)) throw new Error('Deleted player unavailable or already restored');
+      const original = archived.rows[0].data;
+      if (rows.rows.some(r => normalizeMobile(r.data.mobile) && normalizeMobile(r.data.mobile) === normalizeMobile(original.mobile))) throw new Error('Mobile number already registered');
+      const { soldPrice, soldToTeamId, ...restored } = original;
+      await client.query('INSERT INTO players(tournament_id,id,data) VALUES($1,$2,$3)', [req.params.id, playerId, { ...restored, status: 'AVAILABLE' }]);
+      await client.query('DELETE FROM deleted_players WHERE tournament_id=$1 AND id=$2', [req.params.id, playerId]);
+    } else {
+      const result = correctPlayer(rows.rows.map(r => r.data), teamRows.rows.map(r => r.data), playerId, action, teamId, amount, tournament.rows[0].data.rules || {});
+      for (const team of result.teams) await client.query('UPDATE teams SET data=$3 WHERE tournament_id=$1 AND id=$2', [req.params.id, team.id, team]);
+      if (action === 'DELETE') {
+        const original = rows.rows.find(r => r.data.id === playerId).data;
+        await client.query('INSERT INTO deleted_players(tournament_id,id,data) VALUES($1,$2,$3) ON CONFLICT(tournament_id,id) DO UPDATE SET data=excluded.data,deleted_at=now()', [req.params.id, playerId, original]);
+        await client.query('DELETE FROM players WHERE tournament_id=$1 AND id=$2', [req.params.id, playerId]);
+      } else await client.query('UPDATE players SET data=$3 WHERE tournament_id=$1 AND id=$2', [req.params.id, playerId, result.player]);
+    }
+    // Remove stale bids and selection for the corrected player.
+    await client.query("UPDATE tournament_live_state SET data=data || '{\"currentPlayerId\":\"\",\"currentBid\":0,\"leadingTeam\":null,\"bidsHistory\":[],\"lastEvent\":null}'::jsonb WHERE tournament_id=$1 AND data->>'currentPlayerId'=$2", [req.params.id, playerId]);
+    await client.query('COMMIT'); res.json({ success: true });
+  } catch (err) { await client.query('ROLLBACK'); bad(res, 409, err.message); }
+  finally { client.release(); }
+});
+
 app.get('/api/tournaments/:id/live', requireUser, async (req, res) => {
   if (!await owns(req.params.id, req.user.id)) return bad(res, 404, 'Tournament not found');
   const result = await pool.query('SELECT data FROM tournament_live_state WHERE tournament_id=$1', [req.params.id]);
@@ -303,6 +347,8 @@ async function saveEntries(client, table, entries, userId, importing = false) {
     if (table === 'players' && (!safeImage(item.photoUrl) || !safeImage(item.paymentScreenshotUrl))) throw Object.assign(new Error('Invalid player image or receipt'), { status: 400 });
     let data = item;
     if (table === 'players' && !importing) {
+      const archived = await client.query('SELECT id FROM deleted_players WHERE tournament_id=$1 AND id=$2', [item.tournamentId, item.id]);
+      if (archived.rowCount) continue;
       const existing = await client.query('SELECT data FROM players WHERE tournament_id=$1 AND id=$2', [item.tournamentId, item.id]);
       const previous = existing.rows[0]?.data;
       if (previous && ['SOLD','UNSOLD'].includes(previous.status)) data = { ...item, status: previous.status, soldPrice: previous.soldPrice, soldToTeamId: previous.soldToTeamId };
@@ -360,7 +406,9 @@ for (const [route, table] of [['teams', 'teams'], ['players', 'players']]) {
       ? "SELECT id FROM players WHERE tournament_id=$1 AND data->>'soldToTeamId'=$2 AND data->>'status'='SOLD'"
       : "SELECT id FROM players WHERE tournament_id=$1 AND id=$2 AND data->>'status'='SOLD'", [tournamentId, req.params.id]);
     if (sold.rowCount) return bad(res, 409, 'Reset the auction before deleting sold records');
-    const result = await pool.query(`DELETE FROM ${table} WHERE tournament_id=$1 AND id=$2 RETURNING id`, [tournamentId, req.params.id]);
+    const result = table === 'players'
+      ? await pool.query(`WITH removed AS (DELETE FROM players WHERE tournament_id=$1 AND id=$2 RETURNING tournament_id,id,data) INSERT INTO deleted_players(tournament_id,id,data) SELECT tournament_id,id,data FROM removed ON CONFLICT(tournament_id,id) DO UPDATE SET data=excluded.data,deleted_at=now() RETURNING id`, [tournamentId, req.params.id])
+      : await pool.query(`DELETE FROM ${table} WHERE tournament_id=$1 AND id=$2 RETURNING id`, [tournamentId, req.params.id]);
     if (!result.rowCount) return bad(res, 404, 'Record not found');
     res.json({ success: true });
   });

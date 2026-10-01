@@ -580,13 +580,16 @@ export function App() {
 
   const handleLaunchAcceleratedRound = (discountPercent: number) => { void runAuctionCommand('ACCELERATE', { discountPercent }); };
 
-  const handleDeletePlayer = (playerId: string) => {
-    if (players.find(p => p.id === playerId)?.status === 'SOLD') { setSaveMessage('Reset the auction before deleting a sold player.'); return; }
-    void deleteRecord('players', playerId, () => {
-      setPlayers(prev => prev.filter(p => p.id !== playerId));
-      if (currentPlayerId === playerId) { setCurrentPlayerId(''); setCurrentBid(0); setLeadingTeam(null); setBidsHistory([]); }
-    });
+  const handlePlayerCorrection = async (action: string, playerId: string, teamId?: string, amount?: number) => {
+    await dbService.flushSync();
+    const response = await fetch(`/api/tournaments/${encodeURIComponent(activeTournamentId)}/player-correction`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, playerId, teamId, amount }) });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Correction failed');
+    const snapshot = await fetch(`/api/tournaments/${encodeURIComponent(activeTournamentId)}/snapshot`, { cache: 'no-store' });
+    if (!snapshot.ok) throw new Error('Saved, but refresh failed. Reload the page.');
+    applyAuctionSnapshot(await snapshot.json(), activeTournamentId);
   };
+  const handleDeletePlayer = (playerId: string) => { void handlePlayerCorrection('DELETE', playerId).catch(error => setSaveMessage(error.message)); };
 
   const handleApprovePlayer = (playerId: string) => {
     setPlayers((prev) =>
@@ -845,6 +848,8 @@ export function App() {
 
         {viewMode === 'PLAYERS' && (
           <PlayerManagerView
+            teams={activeTeams}
+            onCorrect={handlePlayerCorrection}
             customFields={tournament.customFields}
             currency={rules.currency}
             defaultBasePrice={tournament.defaultBasePrice}
