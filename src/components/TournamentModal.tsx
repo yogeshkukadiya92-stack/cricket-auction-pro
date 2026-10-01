@@ -587,6 +587,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
             {registrationOpen && (
               <>
               <div>
+              <p className="text-[11px] text-slate-400 mb-2">To enable direct Google Pay, enter the receiver's valid UPI ID below. The registration fee will be prefilled; a mobile number alone cannot create the payment link.</p>
               <label htmlFor="payment-requirement" className="text-xs font-bold text-slate-300 block mb-1">Payment requirement</label>
               <select id="payment-requirement" value={paymentMandatory ? 'required' : 'optional'} onChange={(e) => setPaymentMandatory(e.target.value === 'required')} className="w-full bg-obsidian-950 border border-white/10 text-white text-sm px-4 py-2.5 rounded-xl">
                 <option value="optional">Not compulsory</option>

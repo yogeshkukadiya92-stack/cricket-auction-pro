@@ -1,3 +1,4 @@
+import { getPaymentLinks } from '../../shared/paymentLinks.js';
 import React, { useState } from 'react';
 import {
   Tournament,
@@ -105,13 +106,12 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
   const regFee = tournament.registrationFee ?? 0;
   const isPaymentRequired = regFee > 0 || !!tournament.paymentMandatory;
 
-  // UPI deep link
-  const cleanUpi = upiId.trim();
-  const upiDeepLink = `upi://pay?pa=${encodeURIComponent(cleanUpi)}&pn=${encodeURIComponent(gpayName)}&am=${regFee}&cu=INR&tn=${encodeURIComponent(`${tournament.name} Player Entry Fee`)}`;
+  const paymentLinks = getPaymentLinks({ upiId, name: gpayName, amount: regFee, note: `${tournament.name} Player Entry Fee` }, navigator.userAgent);
+  const upiDeepLink = paymentLinks?.upi || '';
 
   // Dynamic QR generator link fallback
   const generatedQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=12&data=${encodeURIComponent(upiDeepLink)}`;
-  const activeQrUrl = tournament.gpayQrUrl || generatedQrUrl;
+  const activeQrUrl = tournament.gpayQrUrl || (paymentLinks ? generatedQrUrl : '');
 
   const handleCopyText = (text: string, type: 'gpay' | 'upi') => {
     navigator.clipboard.writeText(text);
@@ -642,14 +642,14 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
 
                       {/* QR Box with Scan animation / Border */}
                       <div className="relative p-3 bg-white rounded-2xl shadow-2xl border-2 border-white/40 my-1 group-hover:scale-[1.02] transition-transform">
-                        <img
+                        {activeQrUrl ? <img
                           src={activeQrUrl}
                           alt="Google Pay QR Code"
                           className="w-44 h-44 sm:w-48 sm:h-48 object-contain rounded-xl"
                           onError={(e) => {
                             (e.currentTarget as HTMLImageElement).src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><rect width="200" height="200" fill="white"/><text x="50%" y="45%" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="14" fill="black">GOOGLE PAY QR</text><text x="50%" y="60%" text-anchor="middle" font-family="sans-serif" font-weight="black" font-size="16" fill="%2310b981">₹${regFee}</text></svg>`;
                           }}
-                        />
+                        /> : <p className="w-44 p-4 text-sm text-slate-800">Payment QR unavailable. Contact the organizer for payment details.</p>}
                         <div className="absolute inset-x-3 top-3 h-0.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-75 animate-pulse" />
                       </div>
 
@@ -664,14 +664,18 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                       </div>
 
                       {/* Deep Link Button for Mobile Users */}
+                      {paymentLinks ? <>
                       <a
-                        href={upiDeepLink}
+                        href={paymentLinks.googlePay}
                         className="w-full mt-2.5 py-2.5 px-3 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-500 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs flex items-center justify-center gap-2 shadow active:scale-95 transition-all"
                       >
                         <Smartphone className="w-3.5 h-3.5" />
-                        <span>Open in Google Pay (Pay Directly)</span>
+                        <span>Pay ₹{regFee.toLocaleString('en-IN')} with Google Pay</span>
                         <ExternalLink className="w-3 h-3 opacity-80" />
                       </a>
+                      <a href={paymentLinks.upi} className="w-full py-2.5 text-center text-xs font-bold text-gold-300 underline">Pay with another UPI app</a>
+                      <p className="text-[11px] text-slate-400 text-center">Open on your phone with Google Pay installed. If it doesn't open, use another UPI app or scan the QR. After payment, return here and upload the screenshot.</p>
+                      </> : <p className="mt-3 text-xs text-amber-300">Direct payment requires a valid UPI ID and a positive registration fee. Contact the organizer or use the displayed mobile number in your payment app.</p>}
                     </div>
 
                     {/* Right: GPay Number, UPI ID and Screenshot Upload (md:col-span-7) */}
