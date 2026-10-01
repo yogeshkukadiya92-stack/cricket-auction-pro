@@ -1,7 +1,8 @@
+import { PlayerAuctionHistory } from './PlayerAuctionHistory';
 import { PlayerCorrections } from './PlayerCorrections';
 import { exportRegistrationsExcel, downloadRegistrationImages } from '../utils/registrationExport';
 import { formatAuctionPrice } from '../utils/currency';
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Player, PlayerRole, PlayerCategory } from '../types';
 import {
   downloadSampleCsvTemplate,
@@ -106,6 +107,9 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
 
   // Form State
   const [name, setName] = useState('');
+  const [mobile, setMobile] = useState('');
+  const [profileDetails, setProfileDetails] = useState<{city?: string; email?: string}>({});
+  const [profileMessage, setProfileMessage] = useState('');
   const [role, setRole] = useState<PlayerRole>('ALL_ROUNDER');
   const [category, setCategory] = useState<PlayerCategory>('SET_A');
   const [basePrice, setBasePrice] = useState<number>(defaultBasePrice);
@@ -118,6 +122,32 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
   const [photoUrl, setPhotoUrl] = useState(
     '/player-placeholder.svg'
   );
+
+  useEffect(() => {
+    setProfileMessage('');
+    if (!isAddModalOpen) return;
+    let normalized = mobile.replace(/\D/g, '');
+    if (normalized.length === 12 && normalized.startsWith('91')) normalized = normalized.slice(2);
+    if (normalized.length === 11 && normalized.startsWith('0')) normalized = normalized.slice(1);
+    if (!/^[6-9]\d{9}$/.test(normalized)) return;
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/tournaments/${encodeURIComponent(tournamentId)}/player-profile`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({mobile:normalized}), signal:controller.signal });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Profile lookup failed');
+        if (controller.signal.aborted) return;
+        const p = result.profile;
+        if (!p) { setProfileMessage('New mobile number — fill player details.'); return; }
+        setProfileDetails({city:p.city,email:p.email});
+        setName(p.name || ''); setPhotoUrl(p.photoUrl || '/player-placeholder.svg'); setRole(p.role || 'ALL_ROUNDER');
+        setBattingStyle(p.battingStyle || ''); setBowlingStyle(p.bowlingStyle || '');
+        setMatches(p.stats?.matches || 0); setRuns(p.stats?.runs || 0); setWickets(p.stats?.wickets || 0); setStrikeRate(p.stats?.strikeRate || 0);
+        setProfileMessage('Previous profile filled. Review and update details before adding.');
+      } catch(e) { if(!controller.signal.aborted) setProfileMessage((e as Error).message); }
+    }, 400);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [mobile, tournamentId, isAddModalOpen]);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -135,6 +165,9 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
     const newPlayer: Player = {
       id: `ply-${Date.now()}`,
       name: name.trim(),
+      mobile: mobile.trim(),
+      registeredAt: new Date().toISOString(),
+      ...profileDetails,
       photoUrl,
       role,
       category,
@@ -155,6 +188,8 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
     setIsAddModalOpen(false);
     // Reset fields
     setName('');
+    setMobile('');
+    setProfileDetails({});
   };
 
   const filteredPlayers = players.filter((p) => {
@@ -468,6 +503,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
                   {player.paymentScreenshotUrl && <a href={player.paymentScreenshotUrl} download={`${player.id}_payment-receipt`} className="block text-amber-300">Download payment screenshot<img src={player.paymentScreenshotUrl} alt="Payment screenshot" loading="lazy" className="mt-2 max-h-64 rounded-lg" /></a>}
                 </div>
               </details>
+              <PlayerAuctionHistory tournamentId={tournamentId} playerId={player.id} />
               {/* Custom Form Data Preview */}
               {player.customData && Object.keys(player.customData).length > 0 && (
                 <div className="mt-2.5 pt-2 border-t border-white/5 space-y-1">
@@ -582,7 +618,16 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
 
             <form onSubmit={handleCreatePlayer} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
+                <div className="mb-4">
+                <label className="text-xs font-bold text-slate-300 block mb-1">Mobile number — autofill existing player</label>
+                <input aria-label="Player mobile number" type="tel" value={mobile} onChange={e => setMobile(e.target.value)} placeholder="10-digit mobile number" className="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 text-white" />
+                <div className="grid sm:grid-cols-2 gap-2 mt-2">
+                  <input aria-label="Player city" value={profileDetails.city || ''} onChange={e=>setProfileDetails(p=>({...p,city:e.target.value}))} placeholder="City" className="p-2 rounded-xl bg-slate-900 text-white" />
+                  <input aria-label="Player email" type="email" value={profileDetails.email || ''} onChange={e=>setProfileDetails(p=>({...p,email:e.target.value}))} placeholder="Email" className="p-2 rounded-xl bg-slate-900 text-white" />
+                </div>
+                {profileMessage && <p role="status" className="text-xs text-amber-300 mt-2">{profileMessage}</p>}
+              </div>
+              <div>
                   <label className="text-xs font-bold text-slate-300 block mb-1">Full Name</label>
                   <input
                     type="text"

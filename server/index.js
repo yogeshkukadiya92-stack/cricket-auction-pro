@@ -53,6 +53,9 @@ async function migrate() {
       tournament_id text NOT NULL REFERENCES tournaments(id) ON DELETE CASCADE,
       id text NOT NULL, data jsonb NOT NULL, PRIMARY KEY(tournament_id,id)
     );
+    CREATE TABLE IF NOT EXISTS player_profiles (
+      mobile text PRIMARY KEY, data jsonb NOT NULL, updated_at timestamptz NOT NULL DEFAULT now()
+    );
     CREATE TABLE IF NOT EXISTS deleted_players (
       tournament_id text NOT NULL REFERENCES tournaments(id) ON DELETE CASCADE,
       id text NOT NULL, data jsonb NOT NULL, deleted_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY(tournament_id,id)
@@ -68,6 +71,20 @@ async function migrate() {
     UPDATE tournaments t SET data=jsonb_set(t.data,'{rules}',s.rules)
       FROM organizer_settings s WHERE s.organizer_id=t.organizer_id AND s.rules IS NOT NULL AND NOT (t.data ? 'rules');
   `);
+  const existingPlayers = await pool.query("SELECT tournament_id,id,data FROM players WHERE data->>'mobile' IS NOT NULL ORDER BY data->>'registeredAt' NULLS FIRST");
+  for (const {data: player, tournament_id: tournamentId, id: playerId} of existingPlayers.rows) {
+    await savePlayerProfile(pool, player);
+    const normalized = normalizeMobile(player.mobile);
+    if (/^[6-9]\d{9}$/.test(normalized) && normalized !== player.mobile) await pool.query("UPDATE players SET data=jsonb_set(data,'{mobile}',$3::jsonb) WHERE tournament_id=$1 AND id=$2", [tournamentId, playerId, JSON.stringify(normalized)]);
+  }
+  await pool.query("CREATE INDEX IF NOT EXISTS players_mobile_lookup ON players ((data->>'mobile'))");
+}
+
+async function savePlayerProfile(client, player) {
+  const mobile = normalizeMobile(player.mobile);
+  if (!/^[6-9]\d{9}$/.test(mobile)) return;
+  const data = { name: player.name, photoUrl: player.photoUrl, role: player.role, battingStyle: player.battingStyle, bowlingStyle: player.bowlingStyle, city: player.city, email: player.email, stats: player.stats, registeredAt: player.registeredAt || '1970-01-01T00:00:00.000Z' };
+  await client.query("INSERT INTO player_profiles(mobile,data) VALUES($1,$2) ON CONFLICT(mobile) DO UPDATE SET data=excluded.data,updated_at=now() WHERE excluded.data->>'registeredAt' >= coalesce(player_profiles.data->>'registeredAt','')", [mobile, data]);
 }
 
 function limit(req, res, next) {
@@ -183,6 +200,25 @@ app.get('/api/db/bootstrap', requireUser, async (req, res) => {
     pool.query('SELECT rules,live_state FROM organizer_settings WHERE organizer_id=$1', [id]),
   ]);
   res.json({ success: true, dbType: 'PostgreSQL', tournaments: tournaments.rows.map(x => x.data), teams: teams.rows.map(x => x.data), players: players.rows.map(x => x.data), rules: settings.rows[0]?.rules || null, liveState: settings.rows[0]?.live_state || null });
+});
+
+app.post('/api/tournaments/:id/player-profile', requireUser, limit, async (req, res) => {
+  if (!await owns(req.params.id, req.user.id)) return bad(res, 404, 'Tournament not found');
+  const mobile = normalizeMobile(req.body?.mobile);
+  if (!/^[6-9]\d{9}$/.test(mobile)) return bad(res, 400, 'Enter a valid 10-digit mobile number');
+  const profile = await pool.query('SELECT data FROM player_profiles WHERE mobile=$1', [mobile]);
+  res.set('Cache-Control', 'no-store');
+  res.json({ profile: profile.rows[0]?.data || null });
+});
+
+app.get('/api/tournaments/:id/players/:playerId/history', requireUser, async (req, res) => {
+  if (!await owns(req.params.id, req.user.id)) return bad(res, 404, 'Tournament not found');
+  const result = await pool.query('SELECT data FROM players WHERE tournament_id=$1 AND id=$2', [req.params.id, req.params.playerId]);
+  const mobile = normalizeMobile(result.rows[0]?.data.mobile);
+  if (!mobile) return res.json({ history: [] });
+  const rows = await pool.query("SELECT p.data,t.data AS tournament,tm.data AS team FROM players p JOIN tournaments t ON t.id=p.tournament_id LEFT JOIN teams tm ON tm.tournament_id=p.tournament_id AND tm.id=p.data->>'soldToTeamId' WHERE p.data->>'status'='SOLD' AND p.tournament_id<>$1 AND p.data->>'mobile'=$2", [req.params.id, mobile]);
+  res.set('Cache-Control', 'no-store');
+  res.json({ history: rows.rows.filter(r => normalizeMobile(r.data.mobile) === mobile).map(r => ({ tournament: r.tournament.name, season: r.tournament.season, team: r.team?.name || '', price: r.data.soldPrice, currency: r.tournament.rules?.currency || 'INR' })) });
 });
 
 app.get('/api/tournaments/:id/deleted-players', requireUser, async (req, res) => {
@@ -345,13 +381,13 @@ async function saveEntries(client, table, entries, userId, importing = false) {
     if (table === 'teams' && (!Number.isFinite(item.totalPurse) || item.totalPurse <= 0 || !Number.isFinite(item.remainingPurse))) throw Object.assign(new Error('Invalid team purse'), { status: 400 });
     if (table === 'players' && (!Number.isFinite(item.basePrice) || item.basePrice < 0 || !['AVAILABLE','IN_AUCTION','SOLD','UNSOLD'].includes(item.status))) throw Object.assign(new Error('Invalid player price or status'), { status: 400 });
     if (table === 'players' && (!safeImage(item.photoUrl) || !safeImage(item.paymentScreenshotUrl))) throw Object.assign(new Error('Invalid player image or receipt'), { status: 400 });
-    let data = item;
+    let data = table === 'players' && item.mobile ? { ...item, mobile: normalizeMobile(item.mobile) } : item;
     if (table === 'players' && !importing) {
       const archived = await client.query('SELECT id FROM deleted_players WHERE tournament_id=$1 AND id=$2', [item.tournamentId, item.id]);
       if (archived.rowCount) continue;
       const existing = await client.query('SELECT data FROM players WHERE tournament_id=$1 AND id=$2', [item.tournamentId, item.id]);
       const previous = existing.rows[0]?.data;
-      if (previous && ['SOLD','UNSOLD'].includes(previous.status)) data = { ...item, status: previous.status, soldPrice: previous.soldPrice, soldToTeamId: previous.soldToTeamId };
+      if (previous && ['SOLD','UNSOLD'].includes(previous.status)) data = { ...data, status: previous.status, soldPrice: previous.soldPrice, soldToTeamId: previous.soldToTeamId };
       else if (item.status === 'SOLD') throw Object.assign(new Error('Use the auction desk to mark a player sold'), { status: 400 });
     }
     if (table === 'teams' && !importing) {
@@ -361,6 +397,7 @@ async function saveEntries(client, table, entries, userId, importing = false) {
       data = { ...item, remainingPurse };
     }
     await client.query(`INSERT INTO ${table}(tournament_id,id,data) VALUES($1,$2,$3) ON CONFLICT(tournament_id,id) DO UPDATE SET data=excluded.data`, [item.tournamentId, item.id, data]);
+    if (table === 'players') await savePlayerProfile(client, data);
   }
 }
 
@@ -479,6 +516,7 @@ app.post('/api/public/tournaments/:id/register', limit, async (req, res) => {
       return bad(res, 409, 'This mobile number is already registered in this tournament. Only one registration per mobile number is allowed.');
     }
     await client.query('INSERT INTO players(tournament_id,id,data) VALUES($1,$2,$3)', [req.params.id, registered.id, registered]);
+    await savePlayerProfile(client, registered);
     await client.query('COMMIT');
   } catch (error) { await client.query('ROLLBACK'); throw error; }
   finally { client.release(); }

@@ -1,3 +1,4 @@
+import { PlayerAuctionHistory } from './PlayerAuctionHistory';
 import { getBidBudget } from '../../shared/auctionBudget.js';
 import { formatAuctionPrice } from '../utils/currency';
 import React, { useState } from 'react';
@@ -307,6 +308,7 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
                 />
                 <div>
                   <h4 className="text-sm font-bold text-white">{currentPlayer.name}</h4>
+                  <PlayerAuctionHistory tournamentId={currentPlayer.tournamentId} playerId={currentPlayer.id} />
                   <p className="text-xs text-gold-400">{currentPlayer.role} • {currentPlayer.category}</p>
                 </div>
               </div>

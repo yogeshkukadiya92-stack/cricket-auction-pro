@@ -1,3 +1,4 @@
+import { PlayerAuctionHistory } from './PlayerAuctionHistory';
 import { formatAuctionPrice } from '../utils/currency';
 import React, { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
@@ -181,6 +182,7 @@ export const StageView: React.FC<StageViewProps> = ({
 
         {/* Right Column: Bidding Action & Status */}
         <div className="lg:col-span-7 flex flex-col space-y-6">
+          <PlayerAuctionHistory tournamentId={tournamentId} playerId={displayPlayer.id} />
           {/* Current Live Bid Display */}
           <div className="relative overflow-hidden rounded-3xl p-6 lg:p-8 bg-gradient-to-br from-obsidian-850 via-obsidian-900 to-obsidian-950 border border-white/10 shadow-2xl">
             {/* Ambient Back Glow */}

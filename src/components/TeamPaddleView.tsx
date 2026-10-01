@@ -1,3 +1,4 @@
+import { PlayerAuctionHistory } from './PlayerAuctionHistory';
 import { getBidBudget } from '../../shared/auctionBudget.js';
 import { formatAuctionPrice } from '../utils/currency';
 import React, { useState } from 'react';
@@ -152,6 +153,7 @@ export const TeamPaddleView: React.FC<TeamPaddleViewProps> = ({
             <div className="text-left">
               <span className="text-xs uppercase font-extrabold text-gold-400 tracking-wider">NOW BIDDING FOR</span>
               <h4 className="text-2xl font-black text-white font-display">{currentPlayer.name}</h4>
+              <PlayerAuctionHistory tournamentId={currentPlayer.tournamentId} playerId={currentPlayer.id} />
               <p className="text-xs text-slate-400">{currentPlayer.role} • Base {formatPrice(currentPlayer.basePrice)}</p>
             </div>
           </div>
