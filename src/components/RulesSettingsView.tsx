@@ -21,15 +21,18 @@ export const RulesSettingsView: React.FC<RulesSettingsViewProps> = ({
   const [currency, setCurrency] = useState<CurrencyType>(rules.currency);
   const [timerSeconds, setTimerSeconds] = useState(rules.timerSeconds);
   const [bidIncrement, setBidIncrement] = useState(rules.bidIncrement || defaultBidIncrement);
+  const [minimumPlayerReserve, setMinimumPlayerReserve] = useState(rules.minimumPlayerReserve || defaultBidIncrement);
   const [saved, setSaved] = useState(false);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (Number(minPlayers) < 1 || Number(maxPlayers) < Number(minPlayers) || Number(purse) <= 0 || Number(timerSeconds) < 1) { alert('Enter a positive purse and timer; maximum squad size must be at least the minimum.'); return; }
     if (!Number.isFinite(bidIncrement) || bidIncrement <= 0) { alert("Enter a positive bid increment"); return; }
+    if (!Number.isSafeInteger(minimumPlayerReserve) || minimumPlayerReserve <= 0) { alert("Enter a positive minimum amount per remaining player"); return; }
     onUpdateRules({
       ...rules,
       bidIncrement: Number(bidIncrement),
+      minimumPlayerReserve,
       pursePerTeam: Number(purse),
       minPlayersPerTeam: Number(minPlayers),
       maxPlayersPerTeam: Number(maxPlayers),
@@ -124,6 +127,12 @@ export const RulesSettingsView: React.FC<RulesSettingsViewProps> = ({
           <label htmlFor="rules-bid-increment" className="text-xs font-bold text-slate-300 block mb-1.5">Bid increase by *</label>
           <input id="rules-bid-increment" type="number" min="1" step="1" required value={bidIncrement} onChange={(e) => setBidIncrement(Number(e.target.value))} className="w-full bg-obsidian-950 border border-white/10 rounded-xl px-4 py-2 text-sm font-bold text-white" />
           <p className="mt-2 text-xs text-slate-400">Every bid click adds this fixed amount, regardless of the current bid. Opening bid uses the player's base price.</p>
+        </div>
+
+        <div>
+          <label htmlFor="minimum-player-reserve" className="text-xs font-bold text-slate-300 block mb-1.5">Minimum amount per remaining player *</label>
+          <input id="minimum-player-reserve" type="number" min="1" step="1" required value={minimumPlayerReserve} onChange={(e) => setMinimumPlayerReserve(Number(e.target.value))} className="w-full bg-obsidian-950 border border-white/10 rounded-xl px-4 py-2 text-sm font-bold text-white" />
+          <p className="mt-2 text-xs text-slate-400">Reserved for each unfilled minimum squad slot, excluding the player currently being bid on. Maximum bid = purse left minus this reserve.</p>
         </div>
 
         <div className="flex items-center justify-between pt-4 border-t border-white/10">

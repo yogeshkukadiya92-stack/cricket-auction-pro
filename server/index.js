@@ -1,3 +1,4 @@
+import { getBidBudget } from '../shared/auctionBudget.js';
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import bcrypt from 'bcryptjs';
@@ -221,13 +222,14 @@ app.post('/api/tournaments/:id/auction', requireUser, async (req, res) => {
     } else {
       const player = players.find(p => p.id === state.currentPlayerId);
       if (!eligible(player) || body.playerId !== player.id) fail('Auction lot changed; refresh and try again');
+      const settings = await client.query("SELECT data->'rules' AS rules FROM tournaments WHERE id=$1", [req.params.id]);
+      const rules = settings.rows[0]?.rules || {};
       if (body.action === 'BID') {
         const team = teams.find(t => t.id === body.teamId);
         const amount = body.amount;
-        const settings = await client.query("SELECT data->'rules' AS rules FROM tournaments WHERE id=$1", [req.params.id]);
-        const rules = settings.rows[0]?.rules || {};
         if (!team || !Number.isFinite(amount) || amount < player.basePrice || amount <= state.currentBid) fail('Bid must exceed the current bid and meet the base price');
-        if (!rules.allowNegativePurse && amount > team.remainingPurse) fail('Team does not have enough purse');
+        const budget = getBidBudget(team, players, rules);
+        if ((rules.minimumPlayerReserve || !rules.allowNegativePurse) && amount > budget.maxBid) fail(`Maximum bid is ${budget.maxBid}; ${budget.reserve} must remain reserved for the squad`);
         if (players.filter(p => p.status === 'SOLD' && p.soldToTeamId === team.id).length >= (rules.maxPlayersPerTeam || 15)) fail('Team squad is full');
         const record = { id: randomUUID(), playerId: player.id, teamId: team.id, teamName: team.name, amount, timestamp: Date.now() };
         state = { ...state, currentBid: amount, leadingTeam: team, bidsHistory: [record, ...(state.bidsHistory || [])] };
@@ -238,6 +240,9 @@ app.post('/api/tournaments/:id/auction', requireUser, async (req, res) => {
         if (body.action === 'SOLD') {
           const winner = teams.find(t => t.id === state.leadingTeam?.id);
           if (!winner || !state.currentBid || body.amount !== state.currentBid || body.teamId !== winner.id) fail('Winning bid changed; review it before marking sold');
+          const budget = getBidBudget(winner, players, rules);
+          if ((rules.minimumPlayerReserve || !rules.allowNegativePurse) && state.currentBid > budget.maxBid) fail(`Winning bid exceeds the current maximum of ${budget.maxBid}; undo the bid or update squad rules`);
+          if (budget.bought >= (rules.maxPlayersPerTeam || 15)) fail('Team squad is full');
           const sold = { ...player, status: 'SOLD', soldToTeamId: winner.id, soldPrice: state.currentBid };
           const updatedTeam = { ...winner, remainingPurse: winner.remainingPurse - state.currentBid };
           await client.query('UPDATE players SET data=$3 WHERE tournament_id=$1 AND id=$2', [req.params.id, player.id, sold]);
@@ -321,6 +326,7 @@ app.post('/api/db/sync', requireUser, async (req, res) => {
     await saveEntries(client, 'players', [...(Array.isArray(body.players) ? body.players : []), ...(body.player ? [body.player] : [])], req.user.id);
     if (body.rules) {
       const r = body.rules;
+      if (r?.minimumPlayerReserve !== undefined && (!Number.isSafeInteger(r.minimumPlayerReserve) || r.minimumPlayerReserve <= 0)) throw Object.assign(new Error("Invalid minimum player reserve"), { status: 400 });
       if (!object(r) || !Number.isFinite(r.pursePerTeam) || r.pursePerTeam <= 0 || !Number.isInteger(r.minPlayersPerTeam) || !Number.isInteger(r.maxPlayersPerTeam) || r.minPlayersPerTeam < 1 || r.maxPlayersPerTeam < r.minPlayersPerTeam || !Number.isFinite(r.timerSeconds) || r.timerSeconds < 1) throw Object.assign(new Error('Invalid auction rules'), { status: 400 });
       if (body.tournamentId) {
         if (!await owns(body.tournamentId, req.user.id, client)) throw Object.assign(new Error('Rules are outside your tournament'), { status: 403 });

@@ -1,3 +1,4 @@
+import { getBidBudget } from '../../shared/auctionBudget.js';
 import { formatAuctionPrice } from '../utils/currency';
 import React, { useState } from 'react';
 import { Player, Team, AuctionRules } from '../types';
@@ -57,8 +58,9 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
       alert(`Bid must meet the base price and exceed the current bid.`);
       return;
     }
-    if (!rules.allowNegativePurse && targetAmount > team.remainingPurse) {
-      alert(`⚠️ ${team.name} does not have enough purse! (${formatPrice(team.remainingPurse)})`);
+    const budget = getBidBudget(team, allPlayers, rules);
+    if ((rules.minimumPlayerReserve || !rules.allowNegativePurse) && targetAmount > budget.maxBid) {
+      alert(`⚠️ ${team.name} can bid at most ${formatPrice(budget.maxBid)}. ${formatPrice(budget.reserve)} is reserved for remaining players.`);
       return;
     }
     if (allPlayers.filter((player) => player.soldToTeamId === team.id).length >= rules.maxPlayersPerTeam) {
@@ -157,6 +159,7 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
               </span>
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                 {allTeams.map((team) => {
+                  const budget = getBidBudget(team, allPlayers, rules);
                   const isSelected = selectedTeam?.id === team.id;
                   const isLeading = leadingTeam?.id === team.id;
                   return (
@@ -183,11 +186,13 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
                       <div className="text-sm font-extrabold text-white truncate">{team.name}</div>
                       <div className="text-[11px] text-slate-400 font-medium">
                         Purse: {formatPrice(team.remainingPurse)}
+                        <span className="block text-gold-300 mt-1">Max bid: {formatPrice(budget.maxBid)}</span>
+                        <span className="block">Reserved: {formatPrice(budget.reserve)}</span>
                       </div>
                     </button>
                     <button
                       onClick={() => handleBidStep(nextBidAmount, team)}
-                      disabled={(!rules.allowNegativePurse && nextBidAmount > team.remainingPurse) || allPlayers.filter((player) => player.soldToTeamId === team.id).length >= rules.maxPlayersPerTeam}
+                      disabled={((rules.minimumPlayerReserve || !rules.allowNegativePurse) && nextBidAmount > budget.maxBid) || allPlayers.filter((player) => player.soldToTeamId === team.id).length >= rules.maxPlayersPerTeam}
                       className="px-3 py-3 rounded-xl bg-gold-500 hover:bg-gold-400 text-black font-black text-sm transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
                       aria-label={`Place ${formatPrice(nextBidAmount)} bid for ${team.name}`}
                     >

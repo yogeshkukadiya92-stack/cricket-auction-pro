@@ -1,3 +1,4 @@
+import { getBidBudget } from '../../shared/auctionBudget.js';
 import { formatAuctionPrice } from '../utils/currency';
 import React, { useState } from 'react';
 import { Player, Team, AuctionRules } from '../types';
@@ -54,15 +55,10 @@ export const TeamPaddleView: React.FC<TeamPaddleViewProps> = ({
       ? currentPlayer?.basePrice || 20000
       : currentBid + (rules.bidIncrement || currentPlayer?.basePrice || 20000);
 
-  // Smart Max Bid Power:
-  // Purse Left - (Slots Remaining - 1) * Avg Base Price
-  const estimatedMinPerSlot = 20000;
-  const maxSafeBid = Math.max(
-    0,
-    team.remainingPurse - Math.max(0, slotsRemaining - 1) * estimatedMinPerSlot
-  );
+  const budget = getBidBudget(team, allPlayers, rules);
+  const maxSafeBid = budget.maxBid;
+  const canAffordNextBid = !!currentPlayer && ['AVAILABLE', 'IN_AUCTION'].includes(currentPlayer.status) && teamPlayers.length < rules.maxPlayersPerTeam && (!(rules.minimumPlayerReserve || !rules.allowNegativePurse) || nextBidAmount <= maxSafeBid);
 
-  const canAffordNextBid = !!currentPlayer && ['AVAILABLE', 'IN_AUCTION'].includes(currentPlayer.status) && teamPlayers.length < rules.maxPlayersPerTeam && (rules.allowNegativePurse || team.remainingPurse >= nextBidAmount);
   const isCurrentlyLeading = leadingTeam?.id === team.id;
 
   const handlePaddlePress = () => {
@@ -136,9 +132,10 @@ export const TeamPaddleView: React.FC<TeamPaddleViewProps> = ({
           <div className="p-3 rounded-2xl bg-obsidian-950/70 border border-white/5">
             <div className="flex items-center justify-center gap-1 text-[11px] font-bold text-slate-400 mb-0.5">
               <ShieldCheck className="w-3.5 h-3.5 text-gold-400" />
-              Max Safe Bid
+              Maximum Bid
             </div>
             <div className="text-lg font-black text-gold-400">{formatPrice(maxSafeBid)}</div>
+            <p className="text-[10px] text-slate-400 mt-1">Reserved: {formatPrice(budget.reserve)} for {budget.remainingSlots} remaining players</p>
           </div>
         </div>
       </div>
@@ -198,7 +195,7 @@ export const TeamPaddleView: React.FC<TeamPaddleViewProps> = ({
           {!canAffordNextBid && (
             <div className="flex items-center justify-center gap-2 text-xs text-red-400 font-medium">
               <AlertTriangle className="w-4 h-4" />
-              Purse balance insufficient for this bid level.
+              This bid exceeds the maximum allowed after reserving the remaining squad budget.
             </div>
           )}
         </div>

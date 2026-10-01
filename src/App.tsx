@@ -492,7 +492,7 @@ export function App() {
 
   const handleUpdateTournament = (updated: Tournament) => {
     if (updated.id === activeTournamentId && updated.rules) setRules(updated.rules);
-    dbService.queueSync({ tournament: updated });
+    dbService.queueSync({ tournament: updated, ...(updated.rules ? { rules: updated.rules, tournamentId: updated.id } : {}) });
     setTournaments((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
     syncEngine.broadcast({
       type: 'TOURNAMENT_UPDATED',

@@ -45,6 +45,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
   const [coSponsors, setCoSponsors] = useState('');
 
   // Auction & Financials
+  const [minimumPlayerReserve, setMinimumPlayerReserve] = useState(20000);
   const [bidIncrement, setBidIncrement] = useState(20000);
   const [defaultBasePrice, setDefaultBasePrice] = useState(20000);
   const [totalPursePerTeam, setTotalPursePerTeam] = useState(1000000);
@@ -78,6 +79,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
       setCoSponsors(initialData.coSponsors || '');
       setDefaultBasePrice(initialData.defaultBasePrice || 20000);
       setBidIncrement(initialData.rules?.bidIncrement || initialData.defaultBasePrice || 20000);
+      setMinimumPlayerReserve(initialData.rules?.minimumPlayerReserve || initialData.defaultBasePrice || 20000);
       setTotalPursePerTeam(initialData.totalPursePerTeam || 1000000);
       setExpectedTeamsCount(initialData.expectedTeamsCount || 8);
       setGround(initialData.ground || '');
@@ -146,6 +148,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
       setError("Enter a positive bid increment");
       return;
     }
+    if (!Number.isSafeInteger(minimumPlayerReserve) || minimumPlayerReserve <= 0) { setError("Enter a positive minimum amount per remaining player"); return; }
     onSave({
       ...(initialData || {}),
       name: name.trim(),
@@ -157,7 +160,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
       sponsor: sponsor.trim(),
       coSponsors: coSponsors.trim(),
       defaultBasePrice: Number(defaultBasePrice) || 20000,
-      rules: { ...(initialData?.rules || initialRules), bidIncrement: Number(bidIncrement), pursePerTeam: Number(totalPursePerTeam) || 1000000 },
+      rules: { ...(initialData?.rules || initialRules), bidIncrement: Number(bidIncrement), minimumPlayerReserve, pursePerTeam: Number(totalPursePerTeam) || 1000000 },
       totalPursePerTeam: Number(totalPursePerTeam) || 1000000,
       expectedTeamsCount: Number(expectedTeamsCount) || 8,
       ground: ground.trim(),
@@ -406,6 +409,11 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
               3. Auction Economy & Teams Allocation
             </h4>
 
+            <div>
+              <label htmlFor="tournament-player-reserve" className="text-xs font-bold text-slate-300 block mb-1">Minimum amount per remaining player (₹) *</label>
+              <input id="tournament-player-reserve" type="number" min="1" step="1" required value={minimumPlayerReserve} onChange={(e) => setMinimumPlayerReserve(Number(e.target.value))} className="w-full bg-obsidian-950 border border-white/10 text-white font-mono font-bold text-sm px-4 py-2.5 rounded-xl" />
+              <p className="text-[10px] text-slate-400 mt-1">Reserves money for the remaining minimum squad slots. Set required squad size in Rules → Min Players / Team.</p>
+            </div>
             <div>
               <label htmlFor="tournament-bid-increment" className="text-xs font-bold text-slate-300 block mb-1">Bid increase by (₹) *</label>
               <input id="tournament-bid-increment" type="number" min="1" step="1" required value={bidIncrement} onChange={(e) => setBidIncrement(Number(e.target.value))} className="w-full bg-obsidian-950 border border-white/10 text-white font-mono font-bold text-sm px-4 py-2.5 rounded-xl" />

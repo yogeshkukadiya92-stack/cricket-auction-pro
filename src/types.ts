@@ -87,6 +87,7 @@ export interface AuctionRules {
   currency: CurrencyType;
   bidSlabs: BidSlab[];
   bidIncrement?: number;
+  minimumPlayerReserve?: number;
   rtmCardsPerTeam: number;
   allowNegativePurse: boolean;
   timerSeconds: number;
