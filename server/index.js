@@ -1,3 +1,4 @@
+import { normalizeMobile, isUploadedImage } from '../shared/registrationValidation.js';
 import { getBidBudget } from '../shared/auctionBudget.js';
 import express from 'express';
 import cookieParser from 'cookie-parser';
@@ -397,14 +398,30 @@ app.post('/api/public/tournaments/:id/register', limit, async (req, res) => {
   if (!['BATSMAN', 'BOWLER', 'ALL_ROUNDER', 'WICKET_KEEPER'].includes(player.role)) return bad(res, 400, 'Invalid player role');
   if (!object(player.stats) || ['matches','runs','wickets','strikeRate'].some(key => !Number.isFinite(player.stats[key]) || player.stats[key] < 0)) return bad(res, 400, 'Enter valid non-negative player statistics');
   if (!safeImage(player.photoUrl) || !safeImage(player.paymentScreenshotUrl)) return bad(res, 400, 'Invalid photo or payment receipt');
-  if (tournament.paymentMandatory && !player.paymentScreenshotUrl) return bad(res, 400, 'Payment receipt is required');
+  if (!isUploadedImage(player.photoUrl)) return bad(res, 400, 'Player photo upload is required');
+  if (tournament.paymentMandatory && !isUploadedImage(player.paymentScreenshotUrl)) return bad(res, 400, 'Payment receipt is required');
   for (const field of tournament.customFields || []) {
     const value = player.customData?.[field.id];
     if (field.enabled && field.required && (value === undefined || value === null || value === false || String(value).trim() === '')) return bad(res, 400, `${field.label} is required`);
   }
+  const mobile = normalizeMobile(player.mobile);
+  if (!/^[6-9]\d{9}$/.test(mobile)) return bad(res, 400, "Enter a valid 10-digit Indian mobile number");
   const { soldToTeamId, soldPrice, ...safePlayer } = player;
-  const registered = { ...safePlayer, basePrice: tournament.defaultBasePrice || 20000, paymentAmount: tournament.registrationFee || 0, id: randomUUID(), tournamentId: req.params.id, approvalStatus: 'PENDING', status: 'AVAILABLE', paymentStatus: 'PENDING', registeredAt: new Date().toISOString() };
-  await pool.query('INSERT INTO players(tournament_id,id,data) VALUES($1,$2,$3)', [req.params.id, registered.id, registered]);
+  const registered = { ...safePlayer, mobile, basePrice: tournament.defaultBasePrice || 20000, paymentAmount: tournament.registrationFee || 0, id: randomUUID(), tournamentId: req.params.id, approvalStatus: 'PENDING', status: 'AVAILABLE', paymentStatus: 'PENDING', registeredAt: new Date().toISOString() };
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    // Serialize registration checks for this tournament to reject concurrent duplicates.
+    await client.query('SELECT id FROM tournaments WHERE id=$1 FOR UPDATE', [req.params.id]);
+    const existing = await client.query("SELECT data->>'mobile' AS mobile FROM players WHERE tournament_id=$1", [req.params.id]);
+    if (existing.rows.some(row => normalizeMobile(row.mobile) === mobile)) {
+      await client.query('ROLLBACK');
+      return bad(res, 409, 'This mobile number is already registered in this tournament. Only one registration per mobile number is allowed.');
+    }
+    await client.query('INSERT INTO players(tournament_id,id,data) VALUES($1,$2,$3)', [req.params.id, registered.id, registered]);
+    await client.query('COMMIT');
+  } catch (error) { await client.query('ROLLBACK'); throw error; }
+  finally { client.release(); }
   res.status(201).json({ success: true, player: registered });
 });
 

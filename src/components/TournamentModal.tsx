@@ -62,7 +62,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
 
   // Registration & UPI
   const [registrationOpen, setRegistrationOpen] = useState(true);
-  const [paymentMandatory, setPaymentMandatory] = useState(false);
+  const [paymentMandatory, setPaymentMandatory] = useState(true);
   const [registrationFee, setRegistrationFee] = useState(0);
   const [registrationDeadline, setRegistrationDeadline] = useState('');
   const [upiId, setUpiId] = useState('');
@@ -101,7 +101,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
       setGpayName(initialData.gpayName || '');
       setSportType(initialData.sportType || 'CRICKET');
     } else {
-      setPaymentMandatory(false);
+      setPaymentMandatory(true);
       // Default clean values for new tournament
       setName('');
       setSeason('Season 1');

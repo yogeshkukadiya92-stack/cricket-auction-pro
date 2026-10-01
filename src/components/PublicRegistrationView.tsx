@@ -1,3 +1,4 @@
+import { normalizeMobile, isUploadedImage } from '../../shared/registrationValidation.js';
 import { getPaymentLinks } from '../../shared/paymentLinks.js';
 import React, { useState } from 'react';
 import {
@@ -58,7 +59,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
   const [strikeRate, setStrikeRate] = useState(0);
   const [basePrice, setBasePrice] = useState(tournament.defaultBasePrice || 20000);
   const [photoUrl, setPhotoUrl] = useState(
-    '/player-placeholder.svg'
+    ''
   );
 
   // Dynamic Custom Fields values: { fieldId: value }
@@ -132,6 +133,8 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
       return;
     }
 
+    if (!isUploadedImage(photoUrl)) { alert("Player photo upload is compulsory. Please upload your photo."); return; }
+    if (!/^[6-9]\d{9}$/.test(normalizeMobile(mobile))) { alert("Enter a valid 10-digit Indian mobile number."); return; }
     if (tournament.paymentMandatory && !paymentScreenshotUrl) {
       alert(
         '⚠️ Payment screenshot is mandatory. Please complete payment via a UPI app and upload the screenshot to proceed.'
@@ -473,11 +476,11 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
               {/* Step 3: Photo Upload */}
               <div className="space-y-3 pt-4 border-t border-white/10">
                 <span className="text-xs font-bold uppercase tracking-wider text-gold-400 block">
-                  3. Passport Size Stage Photo
+                  3. Passport Size Stage Photo * (Compulsory)
                 </span>
                 <div className="p-4 rounded-2xl bg-white/[0.02] border border-dashed border-white/20 flex flex-col sm:flex-row items-center gap-4">
                   <img
-                    src={photoUrl}
+                    src={photoUrl || "/player-placeholder.svg"}
                     alt="Preview"
                     className="w-20 h-20 rounded-2xl object-cover border-2 border-gold-400/50 shadow-md"
                   />
@@ -850,9 +853,10 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                   </div>
                 )}
 
+                {!isUploadedImage(photoUrl) && <p role="status" className="text-xs text-amber-300">Player photo is compulsory. Upload your photo to enable submission.</p>}
                 <button
                   type="submit"
-                  disabled={submitting || (tournament.paymentMandatory && !paymentScreenshotUrl)}
+                  disabled={submitting || !isUploadedImage(photoUrl) || (tournament.paymentMandatory && !paymentScreenshotUrl)}
                   className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
                     tournament.paymentMandatory && !paymentScreenshotUrl
                       ? 'bg-white/10 text-slate-500 cursor-not-allowed border border-white/10 opacity-70'
