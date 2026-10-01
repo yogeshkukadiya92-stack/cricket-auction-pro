@@ -133,7 +133,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
 
     if (tournament.paymentMandatory && !paymentScreenshotUrl) {
       alert(
-        '⚠️ Payment screenshot is mandatory. Please complete payment via Google Pay and upload the screenshot to proceed.'
+        '⚠️ Payment screenshot is mandatory. Please complete payment via a UPI app and upload the screenshot to proceed.'
       );
       return;
     }
@@ -610,7 +610,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                           )}
                         </div>
                         <h3 className="text-lg font-black text-white font-display mt-0.5">
-                          Google Pay & UPI Payment & Verification
+                          UPI Payment & Verification
                         </h3>
                       </div>
                     </div>
@@ -673,8 +673,12 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                         <span>Pay ₹{regFee.toLocaleString('en-IN')} with Google Pay</span>
                         <ExternalLink className="w-3 h-3 opacity-80" />
                       </a>
+                      <div className="grid grid-cols-2 gap-2 w-full mt-2">
+                        <a href={paymentLinks.bhim} className="py-3 px-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-center text-xs font-black">Pay ₹{regFee.toLocaleString('en-IN')} with BHIM</a>
+                        <a href={paymentLinks.paytm} className="py-3 px-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-center text-xs font-black">Pay ₹{regFee.toLocaleString('en-IN')} with Paytm</a>
+                      </div>
                       <a href={paymentLinks.upi} className="w-full py-2.5 text-center text-xs font-bold text-gold-300 underline">Pay with another UPI app</a>
-                      <p className="text-[11px] text-slate-400 text-center">Open on your phone with Google Pay installed. If it doesn't open, use another UPI app or scan the QR. After payment, return here and upload the screenshot.</p>
+                      <p className="text-[11px] text-slate-400 text-center">On Android, these buttons open the selected installed app. On iPhone, BHIM and Paytm use the UPI link; if it doesn't open, scan the QR in your chosen app. After payment, return here and upload the screenshot.</p>
                       </> : <p className="mt-3 text-xs text-amber-300">Direct payment requires a valid UPI ID and a positive registration fee. Contact the organizer or use the displayed mobile number in your payment app.</p>}
                     </div>
 

@@ -6,5 +6,9 @@ export function getPaymentLinks({ upiId, name, amount, note }, userAgent = '') {
   const googlePay = /Android/i.test(userAgent)
     ? `intent://pay?${params}#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end`
     : `gpay://upi/pay?${params}`;
-  return { upi, googlePay };
+  const android = /Android/i.test(userAgent);
+  const intent = (packageName) => `intent://pay?${params}#Intent;scheme=upi;package=${packageName};end`;
+  const bhim = android ? intent("in.org.npci.upiapp") : upi;
+  const paytm = android ? intent("net.one97.paytm") : upi;
+  return { upi, googlePay, bhim, paytm };
 }

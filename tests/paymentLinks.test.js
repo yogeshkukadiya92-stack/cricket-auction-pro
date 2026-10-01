@@ -21,3 +21,19 @@ test('mobile number alone and invalid fees cannot generate payment links', () =>
   assert.equal(getPaymentLinks({ ...details, amount: 0 }), null);
   assert.equal(getPaymentLinks({ ...details, amount: NaN }), null);
 });
+
+test('BHIM and Paytm Android links target their apps with identical payee and fee', () => {
+  const links = getPaymentLinks(details, 'Android');
+  assert.match(links.bhim, /package=in.org.npci.upiapp/);
+  assert.match(links.paytm, /package=net.one97.paytm/);
+  for (const link of [links.bhim, links.paytm]) {
+    const params = new URLSearchParams(link.split('?')[1].split('#')[0]);
+    assert.equal(params.get('pa'), details.upiId);
+    assert.equal(params.get('am'), '1500.00');
+  }
+});
+test('non-Android BHIM and Paytm provide generic UPI fallback', () => {
+  const links = getPaymentLinks(details, 'iPhone');
+  assert.equal(links.bhim, links.upi);
+  assert.equal(links.paytm, links.upi);
+});
