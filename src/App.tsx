@@ -658,7 +658,6 @@ export function App() {
       <PublicRegistrationView
         tournament={publicTournament}
         onRegisterPlayer={handleRegisterPlayer}
-        onBackToDashboard={() => { if (new URLSearchParams(window.location.search).has('tournamentId')) window.location.assign('/'); else setViewMode('TOURNAMENT_OVERVIEW'); }}
       />
     );
   }

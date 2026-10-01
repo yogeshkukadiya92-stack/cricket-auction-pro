@@ -23,7 +23,6 @@ import {
   Sparkles,
   Award,
   Share2,
-  ArrowLeft,
   Smartphone,
   Copy,
   Check,
@@ -38,13 +37,11 @@ import {
 interface PublicRegistrationViewProps {
   tournament: Tournament;
   onRegisterPlayer: (player: Player) => Promise<Player>;
-  onBackToDashboard?: () => void;
 }
 
 export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
   tournament,
   onRegisterPlayer,
-  onBackToDashboard,
 }) => {
   // Form State
   const [fullName, setFullName] = useState('');
@@ -248,15 +245,6 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
             </div>
           </div>
 
-          {onBackToDashboard && (
-            <button
-              onClick={onBackToDashboard}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/15 text-slate-300 transition-all"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              Admin Portal
-            </button>
-          )}
         </div>
       </header>
 
