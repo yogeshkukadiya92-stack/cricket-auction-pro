@@ -8,6 +8,8 @@ import { Timer, TrendingUp, DollarSign, Award, Flame, UserCheck, ShieldAlert } f
 import { TeamLogo } from './TeamLogo';
 
 interface StageViewProps {
+  tournamentName?: string;
+  tournamentId?: string;
   timerSeconds?: number;
   currency?: import('../types').CurrencyType;
   currentPlayer: Player | null;
@@ -22,6 +24,8 @@ interface StageViewProps {
 }
 
 export const StageView: React.FC<StageViewProps> = ({
+  tournamentName = "Live Auction",
+  tournamentId,
   timerSeconds = 15,
   currency = 'INR',
   currentPlayer,
@@ -33,6 +37,18 @@ export const StageView: React.FC<StageViewProps> = ({
   isUnsold,
   lastSoldInfo,
 }) => {
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [shareError, setShareError] = useState(false);
+  const shareLive = async () => {
+    try {
+      const url = new URL(window.location.pathname, window.location.origin);
+      url.searchParams.set("mode", "summary");
+      url.searchParams.set("tournamentId", tournamentId || "");
+      await navigator.clipboard.writeText(url.toString());
+      setLinkCopied(true); setShareError(false);
+      setTimeout(() => setLinkCopied(false), 2500);
+    } catch { setShareError(true); }
+  };
   const [timeLeft, setTimeLeft] = useState(timerSeconds);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
 
@@ -125,7 +141,10 @@ export const StageView: React.FC<StageViewProps> = ({
   };
 
   return (
-    <div className="relative w-full overflow-hidden rounded-3xl border border-white/10 glass-panel shadow-2xl p-6 lg:p-10 stadium-beam">
+    <div className="auction-stage relative w-full overflow-hidden rounded-3xl border border-white/10 glass-panel shadow-2xl p-6 lg:p-10 stadium-beam">
+      {tournamentId && <div className="stage-share mb-4 flex justify-end">
+        <button onClick={shareLive} className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-sm font-bold">{linkCopied ? 'Link copied!' : shareError ? 'Copy failed — try again' : 'Copy Live Spectator Link'}</button>
+      </div>}
       {/* Top Banner Ribbon */}
       <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-white/10">
         <div className="flex items-center gap-3">
@@ -137,7 +156,7 @@ export const StageView: React.FC<StageViewProps> = ({
             LIVE AUCTION
           </span>
           <span className="text-xs text-slate-400 font-semibold hidden sm:inline">
-            Mega Bidding Arena • Gujarat Premier League 2026
+            {tournamentName}
           </span>
         </div>
 
@@ -154,7 +173,7 @@ export const StageView: React.FC<StageViewProps> = ({
       </div>
 
       {/* Main Stage Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center pt-8">
+      <div className="stage-grid grid grid-cols-1 lg:grid-cols-12 gap-8 items-center pt-8">
         {/* Left Column: 3D Player Card */}
         <div className="lg:col-span-5 flex flex-col items-center justify-center">
           <PlayerCard3D player={displayPlayer} isBigStage={true} />
@@ -286,7 +305,7 @@ export const StageView: React.FC<StageViewProps> = ({
                 </div>
                 <div className="text-xs font-bold text-white truncate">{team.shortCode}</div>
                 <div className="text-[10px] text-slate-400 font-medium">
-                  {Math.round(team.remainingPurse / 1000)}k
+                  {formatPrice(team.remainingPurse)}
                 </div>
               </div>
             ))}

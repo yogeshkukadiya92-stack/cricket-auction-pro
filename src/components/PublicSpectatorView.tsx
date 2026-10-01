@@ -40,6 +40,7 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
   onExitSpectatorMode,
 }) => {
   const [selectedTeamTab, setSelectedTeamTab] = useState<string>(teams[0]?.id || '');
+  const [shareError, setShareError] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
   // Sync selectedTeamTab if teams change
@@ -60,11 +61,15 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
 
   const formatPrice = (val?: number) => formatAuctionPrice(val || 0, tournament.rules?.currency);
 
-  const handleShare = () => {
-    const url = window.location.origin + window.location.pathname + `?mode=summary&tournamentId=${tournament.id}`;
-    navigator.clipboard.writeText(url);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2500);
+  const handleShare = async () => {
+    const url = new URL(window.location.pathname, window.location.origin);
+    url.searchParams.set('mode', 'summary');
+    url.searchParams.set('tournamentId', tournament.id);
+    try {
+      await navigator.clipboard.writeText(url.toString());
+      setCopiedLink(true); setShareError(false);
+      setTimeout(() => setCopiedLink(false), 2500);
+    } catch { setShareError(true); }
   };
 
   const activeSquad = soldPlayers.filter((p) => p.soldToTeamId === selectedTeamTab);
@@ -74,13 +79,13 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
     <div className="min-h-screen bg-slate-950 text-white font-sans selection:bg-amber-500 selection:text-slate-950">
       {/* Top Floating Spectator Header */}
       <header className="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 px-4 py-3">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 p-1 flex items-center justify-center shrink-0">
               <TeamLogo logo={tournament.logoUrl || '🏆'} name={tournament.name} className="w-full h-full text-lg" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-sm sm:text-base font-extrabold text-white truncate max-w-[200px] sm:max-w-none">
                   {tournament.name}
                 </h1>
@@ -101,7 +106,7 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
               className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
             >
               {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5 text-amber-400" />}
-              <span>{copiedLink ? 'Link Copied!' : 'Share Live Link'}</span>
+              <span>{copiedLink ? 'Link Copied!' : shareError ? 'Copy failed — try again' : 'Share Live Link'}</span>
             </button>
 
             {onExitSpectatorMode && (
@@ -117,12 +122,12 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
       </header>
 
       {/* Main Container */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
         {/* CURRENT IN-AUCTION SPOTLIGHT (IF ANY PLAYER IS CURRENTLY BEING BID ON) */}
         {currentPlayer && (
-          <div className="p-6 bg-gradient-to-r from-amber-500/15 via-slate-900 to-slate-900 border-2 border-amber-500/50 rounded-3xl shadow-2xl relative overflow-hidden animate-fadeIn">
+          <div className="p-4 sm:p-6 bg-gradient-to-r from-amber-500/15 via-slate-900 to-slate-900 border-2 border-amber-500/50 rounded-3xl shadow-2xl relative overflow-hidden animate-fadeIn">
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="flex items-center gap-5">
+              <div className="flex items-center gap-3 sm:gap-5 w-full min-w-0">
                 <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-slate-800 border-2 border-amber-400/80 overflow-hidden shrink-0 shadow-lg">
                   <img
                     src={currentPlayer.photoUrl || "/player-placeholder.svg"}
@@ -135,7 +140,7 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
                     <Flame className="w-3 h-3" />
                     NOW ON THE FLOOR
                   </div>
-                  <h2 className="text-xl sm:text-2xl font-black text-white">{currentPlayer.name}</h2>
+                  <h2 className="text-lg sm:text-2xl font-black text-white break-words">{currentPlayer.name}</h2>
                   <p className="text-xs text-slate-300 mt-0.5">
                     {currentPlayer.role} • {currentPlayer.category} • {currentPlayer.city || 'State'}
                   </p>
@@ -146,11 +151,11 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
               </div>
 
               {/* Current Bid Display */}
-              <div className="text-center md:text-right bg-slate-950/80 p-4 sm:p-5 rounded-2xl border border-slate-800 shrink-0 min-w-[200px]">
+              <div className="w-full md:w-auto text-center md:text-right bg-slate-950/80 p-4 sm:p-5 rounded-2xl border border-slate-800 shrink-0 min-w-[200px]">
                 <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
                   Current Highest Bid
                 </span>
-                <div className="text-2xl sm:text-3xl font-black text-amber-400 font-mono my-1">
+                <div aria-live="polite" aria-atomic="true" className="text-4xl sm:text-5xl font-black text-amber-400 break-words font-mono my-1">
                   {formatPrice(currentBid || currentPlayer.basePrice)}
                 </div>
                 {leadingTeam ? (
@@ -165,6 +170,12 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
             </div>
           </div>
         )}
+
+        {!currentPlayer && <div className="p-6 rounded-2xl border border-slate-800 bg-slate-900 text-center"><h2 className="text-xl font-bold">Waiting for the next player</h2><p className="text-sm text-slate-400 mt-2">This page updates automatically as the auction progresses.</p></div>}
+        {currentPlayer && bidsHistory.length > 0 && <section className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
+          <h3 className="text-xs font-bold uppercase text-slate-400 mb-3">Recent live bids</h3>
+          <div className="space-y-2">{bidsHistory.filter(b => b.playerId === currentPlayer.id).slice(0, 5).map((bid, index) => <div key={bid.id} className={`flex items-center justify-between gap-3 p-3 rounded-xl ${index === 0 ? 'bg-amber-500/10 text-amber-300' : 'bg-slate-950 text-slate-300'}`}><span className="text-sm font-bold min-w-0 break-words">{bid.teamName}</span><span className="text-sm font-black shrink-0">{formatPrice(bid.amount)}</span></div>)}</div>
+        </section>}
 
         {/* QUICK METRICS BAR */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

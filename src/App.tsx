@@ -654,7 +654,7 @@ export function App() {
 
   if (viewMode === 'PUBLIC_SUMMARY' && new URLSearchParams(window.location.search).has('tournamentId')) {
     if (!publicSummary) return <main className="min-h-screen bg-obsidian-950 text-white grid place-items-center">{dataError || 'Loading tournament…'}</main>;
-    return <><div role="status" className="bg-slate-950 text-amber-300 text-center">{dataError}</div><PublicSpectatorView tournament={publicSummary.tournament} teams={publicSummary.teams} players={publicSummary.players} currentPlayer={publicSummary.players.find(p => p.id === (publicSummary as any).liveState?.currentPlayerId)} currentBid={(publicSummary as any).liveState?.currentBid} leadingTeam={publicSummary.teams.find(t => t.id === (publicSummary as any).liveState?.leadingTeam?.id)} /></>;
+    return <><div role="status" className="bg-slate-950 text-amber-300 text-center">{dataError}</div><PublicSpectatorView tournament={publicSummary.tournament} teams={publicSummary.teams} players={publicSummary.players} currentPlayer={publicSummary.players.find(p => p.id === (publicSummary as any).liveState?.currentPlayerId)} currentBid={(publicSummary as any).liveState?.currentBid} leadingTeam={publicSummary.teams.find(t => t.id === (publicSummary as any).liveState?.leadingTeam?.id)} bidsHistory={(publicSummary as any).liveState?.bidsHistory || []} /></>;
   }
   if (viewMode === 'OBS' && new URLSearchParams(window.location.search).has('tournamentId')) {
     if (!publicSummary) return <main>{dataError || 'Loading auction…'}</main>;
@@ -719,7 +719,7 @@ export function App() {
   }
 
   return (
-    <div className="min-h-screen bg-obsidian-950 text-slate-100 flex flex-col">
+    <div className={`min-h-screen bg-obsidian-950 text-slate-100 flex flex-col ${viewMode === 'STAGE' ? 'stage-mode' : ''}`}>
       {saveMessage && <div role="status" className="sticky top-0 z-50 bg-amber-950 px-4 py-2 text-amber-100 text-center">{saveMessage}<button onClick={() => dbService.flushSync().catch(() => {})} className="ml-4 underline">Retry save</button></div>}
       {/* Top Navbar */}
       <Navbar
@@ -788,6 +788,8 @@ export function App() {
 
         {viewMode === 'STAGE' && (
           <StageView
+            tournamentName={tournament.name}
+            tournamentId={tournament.id}
             timerSeconds={rules.timerSeconds}
             currency={rules.currency}
             currentPlayer={currentPlayer}

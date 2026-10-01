@@ -66,3 +66,17 @@
   );
   background-size: 200% 200%;
 }
+
+/* Projector mode contains only the live auction; Escape restores navigation. */
+:fullscreen .stage-mode > header,
+:fullscreen .stage-mode > footer,
+:fullscreen .stage-mode .stage-share { display: none; }
+:fullscreen .stage-mode > main { max-width: none; padding: clamp(12px, 2vw, 32px); }
+:fullscreen .auction-stage { min-height: calc(100dvh - 64px); padding: clamp(16px, 2vw, 32px); }
+:fullscreen .stage-grid { padding-top: 20px; gap: 24px; }
+:fullscreen .stage-grid .perspective-1000 > div { height: min(600px, calc(100dvh - 180px)); }
+@media (max-width: 639px) {
+  .auction-stage { padding: 16px; }
+  .stage-grid { gap: 20px; padding-top: 20px; }
+  .stage-grid .perspective-1000 > div { height: 460px; }
+}
