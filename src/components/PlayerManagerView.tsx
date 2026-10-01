@@ -1,3 +1,4 @@
+import { exportRegistrationsExcel, downloadRegistrationImages } from '../utils/registrationExport';
 import { formatAuctionPrice } from '../utils/currency';
 import React, { useState, useRef } from 'react';
 import { Player, PlayerRole, PlayerCategory } from '../types';
@@ -32,6 +33,7 @@ import {
 } from 'lucide-react';
 
 interface PlayerManagerViewProps {
+  customFields?: import('../types').CustomFormField[];
   currency?: import('../types').CurrencyType;
   defaultBasePrice?: number;
   tournamentId: string;
@@ -46,6 +48,7 @@ interface PlayerManagerViewProps {
 }
 
 export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
+  customFields = [],
   currency = 'INR',
   defaultBasePrice = 20000,
   tournamentId,
@@ -65,6 +68,9 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedReceiptPlayer, setSelectedReceiptPlayer] = useState<Player | null>(null);
   const [csvMessage, setCsvMessage] = useState<string | null>(null);
+  const [exportBusy, setExportBusy] = useState(false);
+  const [exportError, setExportError] = useState('');
+  const runExport = async (images = false) => { setExportBusy(true); setExportError(''); try { if (images) await downloadRegistrationImages(players); else await exportRegistrationsExcel(players, customFields); } catch (err) { setExportError((err as Error).message); } finally { setExportBusy(false); } };
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleCsvFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -206,14 +212,18 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
           </button>
 
           <button
-            onClick={() => exportPlayersToCsv(players)}
+            onClick={() => void runExport()}
+            disabled={exportBusy}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition-all"
-            title="Export all current players to CSV"
+            title="Download all registration fields and embedded photos as Excel"
           >
             <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
-            Export
+            {exportBusy ? 'Preparing…' : 'Download Excel'}
           </button>
 
+          <button disabled={exportBusy} onClick={() => void runExport(true)} className="px-3 py-2 rounded-xl text-xs bg-white/10 text-white">Download Photos ZIP</button>
+          <button onClick={async () => { try { const url = new URL(window.location.pathname, window.location.origin); url.searchParams.set('mode', 'players'); url.searchParams.set('tournamentId', tournamentId); await navigator.clipboard.writeText(url.toString()); setExportError('Live admin link copied — login required.'); } catch { setExportError('Could not copy link.'); } }} className="px-3 py-2 rounded-xl text-xs bg-white/10 text-white">Copy Live Data Link</button>
+          {exportError && <p role="status" className="text-xs text-amber-300">{exportError}</p>}
           <button
             onClick={() => setIsAddModalOpen(true)}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-black text-xs bg-gold-500 hover:bg-gold-400 text-black shadow-glow-gold active:scale-95 transition-all"
@@ -443,6 +453,15 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
                   <span className="font-bold text-emerald-400">{player.stats.strikeRate}</span>
                 </div>
               </div>
+              <details className="mt-3 border-t border-white/10 pt-2 text-xs">
+                <summary className="cursor-pointer text-amber-300">Full registration details & photos</summary>
+                <div className="space-y-2 mt-3 break-words">
+                  {Object.entries(player).filter(([k]) => !['photoUrl', 'paymentScreenshotUrl', 'customData', 'stats'].includes(k)).map(([k, v]) => <p key={k}><span className="text-slate-400">{k}: </span>{String(v ?? '')}</p>)}
+                  {Object.entries(player.customData || {}).map(([k, v]) => <div key={k}><span className="text-slate-400">{customFields.find(f => f.id === k)?.label || k}: </span>{typeof v === 'string' && v.startsWith('data:image/') ? <a href={v} download={`${player.id}_${k}.png`} className="text-amber-300">Download uploaded image</a> : <span>{typeof v === 'object' ? JSON.stringify(v) : String(v ?? '')}</span>}</div>)}
+                  {player.photoUrl && <a href={player.photoUrl} download={`${player.id}_player-photo`} className="block text-amber-300">Download player photo</a>}
+                  {player.paymentScreenshotUrl && <a href={player.paymentScreenshotUrl} download={`${player.id}_payment-receipt`} className="block text-amber-300">Download payment screenshot<img src={player.paymentScreenshotUrl} alt="Payment screenshot" loading="lazy" className="mt-2 max-h-64 rounded-lg" /></a>}
+                </div>
+              </details>
               {/* Custom Form Data Preview */}
               {player.customData && Object.keys(player.customData).length > 0 && (
                 <div className="mt-2.5 pt-2 border-t border-white/5 space-y-1">

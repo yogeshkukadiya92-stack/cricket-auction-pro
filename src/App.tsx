@@ -211,9 +211,13 @@ export function App() {
       setTeams(data.teams || []);
       setPlayers(data.players || []);
       setRules(data.tournaments?.[0]?.rules || data.rules || initialRules);
-      setActiveTournamentId(data.tournaments?.[0]?.id || '');
+      const requestedId = new URLSearchParams(window.location.search).get('tournamentId');
+      const requested = data.tournaments?.find(t => t.id === requestedId);
+      setActiveTournamentId(requested?.id || data.tournaments?.[0]?.id || '');
+      if (requested) setRules(requested.rules || initialRules);
       if (new URLSearchParams(window.location.search).get('mode') !== 'summary') {
-        setViewMode(currentUser.role === 'ADMIN' ? 'ADMIN_PANEL' : 'TOURNAMENTS');
+        if (new URLSearchParams(window.location.search).get('mode') === 'players' && requested) setViewMode('PLAYERS');
+        else setViewMode(currentUser.role === 'ADMIN' ? 'ADMIN_PANEL' : 'TOURNAMENTS');
       }
       setDataReady(true);
     }).catch((err) => setDataError(err.message));
@@ -841,6 +845,7 @@ export function App() {
 
         {viewMode === 'PLAYERS' && (
           <PlayerManagerView
+            customFields={tournament.customFields}
             currency={rules.currency}
             defaultBasePrice={tournament.defaultBasePrice}
             tournamentId={tournament.id}
