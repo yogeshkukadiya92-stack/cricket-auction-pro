@@ -32,8 +32,8 @@ test('BHIM and Paytm Android links target their apps with identical payee and fe
     assert.equal(params.get('am'), '1500.00');
   }
 });
-test('non-Android BHIM and Paytm provide generic UPI fallback', () => {
+test('iPhone BHIM and Paytm never launch a generic UPI handler such as WhatsApp', () => {
   const links = getPaymentLinks(details, 'iPhone');
-  assert.equal(links.bhim, links.upi);
-  assert.equal(links.paytm, links.upi);
+  assert.equal(links.bhim, null);
+  assert.equal(links.paytm, null);
 });

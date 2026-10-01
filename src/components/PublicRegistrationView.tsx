@@ -100,6 +100,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
     }
   };
 
+  const [manualPaymentApp, setManualPaymentApp] = useState('');
   const gpayNumber = tournament.gpayNumber || '';
   const upiId = tournament.upiId || '';
   const gpayName = tournament.gpayName || tournament.name || 'Tournament Organizer';
@@ -674,11 +675,17 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                         <ExternalLink className="w-3 h-3 opacity-80" />
                       </a>
                       <div className="grid grid-cols-2 gap-2 w-full mt-2">
-                        <a href={paymentLinks.bhim} className="py-3 px-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-center text-xs font-black">Pay ₹{regFee.toLocaleString('en-IN')} with BHIM</a>
-                        <a href={paymentLinks.paytm} className="py-3 px-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-center text-xs font-black">Pay ₹{regFee.toLocaleString('en-IN')} with Paytm</a>
+                        {(['BHIM', 'Paytm'] as const).map((app) => {
+                          const link = app === 'BHIM' ? paymentLinks.bhim : paymentLinks.paytm;
+                          const className = `py-3 px-2 rounded-xl text-white text-center text-xs font-black ${app === 'BHIM' ? 'bg-orange-600 hover:bg-orange-500' : 'bg-sky-600 hover:bg-sky-500'}`;
+                          return link ? <a key={app} href={link} className={className}>Pay ₹{regFee.toLocaleString('en-IN')} with {app}</a> : <button key={app} type="button" onClick={() => setManualPaymentApp(app)} className={className}>{app} — QR / UPI ID</button>;
+                        })}
                       </div>
-                      <a href={paymentLinks.upi} className="w-full py-2.5 text-center text-xs font-bold text-gold-300 underline">Pay with another UPI app</a>
-                      <p className="text-[11px] text-slate-400 text-center">On Android, these buttons open the selected installed app. On iPhone, BHIM and Paytm use the UPI link; if it doesn't open, scan the QR in your chosen app. After payment, return here and upload the screenshot.</p>
+                      {manualPaymentApp && <div role="status" className="w-full p-3 rounded-xl bg-white/5 text-xs text-slate-200 leading-relaxed">
+                        Open {manualPaymentApp} manually → Send / Pay to UPI ID → enter <strong className="break-all">{upiId}</strong> → pay <strong>₹{regFee.toLocaleString('en-IN')}</strong> to {gpayName}. You can also scan this QR from another screen. Return here to upload the payment screenshot.
+                      </div>}
+                      {/Android/i.test(navigator.userAgent) && <a href={paymentLinks.upi} className="w-full py-2.5 text-center text-xs font-bold text-gold-300 underline">Pay with another UPI app</a>}
+                      <p className="text-[11px] text-slate-400 text-center">On Android, these buttons open the selected installed app. On iPhone, use Google Pay directly or follow the BHIM / Paytm QR and UPI instructions. After payment, return here and upload the screenshot.</p>
                       </> : <p className="mt-3 text-xs text-amber-300">Direct payment requires a valid UPI ID and a positive registration fee. Contact the organizer or use the displayed mobile number in your payment app.</p>}
                     </div>
 
