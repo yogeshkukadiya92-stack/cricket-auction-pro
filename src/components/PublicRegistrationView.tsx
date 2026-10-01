@@ -685,7 +685,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                         Open {manualPaymentApp} manually → Send / Pay to UPI ID → enter <strong className="break-all">{upiId}</strong> → pay <strong>₹{regFee.toLocaleString('en-IN')}</strong> to {gpayName}. You can also scan this QR from another screen. Return here to upload the payment screenshot.
                       </div>}
                       {/Android/i.test(navigator.userAgent) && <a href={paymentLinks.upi} className="w-full py-2.5 text-center text-xs font-bold text-gold-300 underline">Pay with another UPI app</a>}
-                      <p className="text-[11px] text-slate-400 text-center">On Android, these buttons open the selected installed app. On iPhone, use Google Pay directly or follow the BHIM / Paytm QR and UPI instructions. After payment, return here and upload the screenshot.</p>
+                      <p className="text-[11px] text-slate-400 text-center">On Android, these buttons open the selected installed app. On iPhone, Google Pay and Paytm use their own app links. For BHIM, use the QR / UPI instructions. If an app link does not open, use the QR or UPI ID. After payment, return here and upload the screenshot.</p>
                       </> : <p className="mt-3 text-xs text-amber-300">Direct payment requires a valid UPI ID and a positive registration fee. Contact the organizer or use the displayed mobile number in your payment app.</p>}
                     </div>
 
