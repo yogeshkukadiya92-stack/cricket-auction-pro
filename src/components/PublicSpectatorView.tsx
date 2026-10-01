@@ -1,5 +1,5 @@
 import { formatAuctionPrice } from '../utils/currency';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Trophy,
   Users,
@@ -23,6 +23,7 @@ interface PublicSpectatorViewProps {
   tournament: Tournament;
   teams: Team[];
   players: Player[];
+  registrationPlayers?: Player[];
   registrationStats?: { total: number; pending: number; approved: number; rejected: number };
   currentPlayer?: Player | null;
   currentBid?: number;
@@ -37,12 +38,18 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
   players,
   currentPlayer,
   registrationStats,
+  registrationPlayers,
   currentBid = 0,
   leadingTeam,
   bidsHistory = [],
   onExitSpectatorMode,
 }) => {
   const [selectedTeamTab, setSelectedTeamTab] = useState<string>(teams[0]?.id || '');
+  const [detailFilter, setDetailFilter] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const detailRef = useRef<HTMLElement>(null);
+  const openDetails = (filter: string) => { setDetailFilter(filter); setSearch(''); };
+  useEffect(() => { if (detailFilter) detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, [detailFilter]);
   const [shareError, setShareError] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
@@ -57,6 +64,16 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
   const unsoldPlayers = players.filter((p) => p.status === 'UNSOLD');
   const availablePlayers = players.filter((p) => (!p.approvalStatus || p.approvalStatus === 'APPROVED') && (p.status === 'AVAILABLE' || p.status === 'IN_AUCTION'));
   const registrations = registrationStats || { total: players.length, pending: players.filter(p => p.approvalStatus === 'PENDING').length, approved: players.filter(p => !p.approvalStatus || p.approvalStatus === 'APPROVED').length, rejected: players.filter(p => p.approvalStatus === 'REJECTED').length };
+
+  const detailPlayers = (registrationPlayers || players).filter(p => {
+    if (detailFilter === 'Pending Approval') return p.approvalStatus === 'PENDING';
+    if (detailFilter === 'Approved Players') return !p.approvalStatus || p.approvalStatus === 'APPROVED';
+    if (detailFilter === 'Rejected Registrations') return p.approvalStatus === 'REJECTED';
+    if (detailFilter === 'Total Sold' || detailFilter === 'Total Purse Spent') return p.status === 'SOLD';
+    if (detailFilter === 'Unsold') return p.status === 'UNSOLD';
+    if (detailFilter === 'Pending Auction') return (!p.approvalStatus || p.approvalStatus === 'APPROVED') && (p.status === 'AVAILABLE' || p.status === 'IN_AUCTION');
+    return true;
+  }).filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
 
   // Calculate Top Buys
   const topBuys = [...soldPlayers]
@@ -183,40 +200,71 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[['Total Registrations', registrations.total], ['Pending Approval', registrations.pending], ['Approved Players', registrations.approved], ['Rejected Registrations', registrations.rejected]].map(([label, count]) => (
-            <div key={label} className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl">
+            <button key={label} onClick={() => openDetails(String(label))} className="p-4 text-left hover:border-amber-400 focus-visible:outline-amber-400 bg-slate-900/60 border border-slate-800 rounded-2xl">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{label}</span>
               <div className="text-2xl font-black text-white mt-1">{count}</div>
-            </div>
+              <span className="text-xs text-amber-400">View players →</span>
+            </button>
           ))}
         </div>
         {/* QUICK METRICS BAR */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl">
+          <button onClick={() => openDetails('Total Sold')} className="p-4 text-left hover:border-amber-400 focus-visible:outline-amber-400 bg-slate-900/60 border border-slate-800 rounded-2xl">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Sold</span>
             <div className="text-2xl font-black text-emerald-400 mt-1">{soldPlayers.length}</div>
             <span className="text-[10px] text-slate-500">Players Acquired</span>
-          </div>
+            <span className="block text-xs text-amber-400 mt-2">View players →</span>
+          </button>
 
-          <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl">
+          <button onClick={() => openDetails('Pending Auction')} className="p-4 text-left hover:border-amber-400 focus-visible:outline-amber-400 bg-slate-900/60 border border-slate-800 rounded-2xl">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Pending Auction</span>
             <div className="text-2xl font-black text-cyan-400 mt-1">{availablePlayers.length}</div>
             <span className="text-[10px] text-slate-500">Available to Bid</span>
-          </div>
+            <span className="block text-xs text-amber-400 mt-2">View players →</span>
+          </button>
 
-          <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl">
+          <button onClick={() => openDetails('Unsold')} className="p-4 text-left hover:border-amber-400 focus-visible:outline-amber-400 bg-slate-900/60 border border-slate-800 rounded-2xl">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Unsold</span>
             <div className="text-2xl font-black text-rose-400 mt-1">{unsoldPlayers.length}</div>
             <span className="text-[10px] text-slate-500">Pass to Round 2</span>
-          </div>
+            <span className="block text-xs text-amber-400 mt-2">View players →</span>
+          </button>
 
-          <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl">
+          <button onClick={() => openDetails('Total Purse Spent')} className="p-4 text-left hover:border-amber-400 focus-visible:outline-amber-400 bg-slate-900/60 border border-slate-800 rounded-2xl">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Purse Spent</span>
             <div className="text-xl font-black text-amber-400 font-mono mt-1">
               {formatPrice(soldPlayers.reduce((acc, p) => acc + (p.soldPrice || 0), 0))}
             </div>
             <span className="text-[10px] text-slate-500">Across all franchises</span>
-          </div>
+            <span className="block text-xs text-amber-400 mt-2">View players →</span>
+          </button>
         </div>
+
+        {detailFilter && (
+          <section ref={detailRef} className="scroll-mt-24 p-4 sm:p-6 bg-slate-900/60 border border-slate-800 rounded-3xl">
+            <div className="flex justify-between items-center gap-3 mb-4">
+              <h2 className="font-bold text-white">{detailFilter} · {detailPlayers.length} Players</h2>
+              <button onClick={() => setDetailFilter(null)} className="text-sm text-slate-300 p-2">Close ✕</button>
+            </div>
+            <input aria-label="Search players" placeholder="Search player name…" value={search} onChange={e => setSearch(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 mb-4 text-white" />
+            {detailPlayers.length === 0 ? <p role="status" className="text-slate-400 py-6 text-center">No players found in this category.</p> : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {detailPlayers.map(player => (
+                  <div key={player.id} className="flex gap-3 p-3 bg-slate-950 rounded-xl border border-slate-800">
+                    <img src={player.photoUrl || '/player-placeholder.svg'} alt={player.name} className="w-16 h-20 rounded-lg object-cover shrink-0" />
+                    <div className="min-w-0 text-sm">
+                      <h3 className="font-bold text-white break-words">{player.name}</h3>
+                      <p className="text-xs text-slate-400">{player.role}</p>
+                      <p className="text-xs text-cyan-300 mt-1">{player.approvalStatus && player.approvalStatus !== 'APPROVED' ? player.approvalStatus : player.status}</p>
+                      <p className="text-amber-300 mt-1">{player.status === 'SOLD' ? `Sold: ${formatPrice(player.soldPrice)}` : `Base: ${formatPrice(player.basePrice)}`}</p>
+                      {player.status === 'SOLD' && <p className="text-xs text-slate-300">{teams.find(t => t.id === player.soldToTeamId)?.name}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
         {/* TEAMS LEADERBOARD & SQUADS VIEWER */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
