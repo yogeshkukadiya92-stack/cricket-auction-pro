@@ -1,6 +1,7 @@
 import { correctPlayer } from '../shared/playerCorrection.js';
 import { normalizeMobile, isUploadedImage } from '../shared/registrationValidation.js';
 import { getBidBudget } from '../shared/auctionBudget.js';
+import { migratePlayerAccounts, registerPlayerRoutes } from './playerRoutes.js';
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import bcrypt from 'bcryptjs';
@@ -78,6 +79,7 @@ async function migrate() {
     if (/^[6-9]\d{9}$/.test(normalized) && normalized !== player.mobile) await pool.query("UPDATE players SET data=jsonb_set(data,'{mobile}',$3::jsonb) WHERE tournament_id=$1 AND id=$2", [tournamentId, playerId, JSON.stringify(normalized)]);
   }
   await pool.query("CREATE INDEX IF NOT EXISTS players_mobile_lookup ON players ((data->>'mobile'))");
+  await migratePlayerAccounts(pool);
 }
 
 async function savePlayerProfile(client, player) {
@@ -563,6 +565,7 @@ app.post('/api/db/import', requireUser, async (req, res) => {
   finally { client.release(); }
 });
 
+registerPlayerRoutes(app, { pool, limit, bad });
 app.get('/api/health', async (_req, res) => { await pool.query('SELECT 1'); res.json({ ok: true }); });
 app.all('/api/*path', (_req, res) => bad(res, 404, 'Not found'));
 const dist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../dist');

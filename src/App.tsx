@@ -37,6 +37,17 @@ import { syncEngine, SyncAction } from './utils/syncEngine';
 import { dbService } from './services/dbService';
 import { DatabaseBackupModal } from './components/DatabaseBackupModal';
 import { ArrowLeft } from 'lucide-react';
+import { PlayerApp } from './components/player/PlayerApp';
+import { LandingScreen } from './components/LandingScreen';
+
+const PLAYER_ROLE_KEY = 'cap_app_role';
+/** Player area opens via ?mode=player, or automatically for someone who last used it on this device. */
+const startsInPlayerMode = () => {
+  if (typeof window === 'undefined') return false;
+  const mode = new URLSearchParams(window.location.search).get('mode');
+  if (mode === 'player') return true;
+  try { return !mode && localStorage.getItem(PLAYER_ROLE_KEY) === 'player'; } catch { return false; }
+};
 
 export function App() {
   const settling = useRef(false);
@@ -115,6 +126,7 @@ export function App() {
   // Check URL params (?mode=obs for OBS, ?mode=register for public player form, ?mode=summary for live spectators)
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     if (typeof window !== 'undefined') {
+      if (startsInPlayerMode()) return 'PLAYER';
       const params = new URLSearchParams(window.location.search);
       if (params.get('mode') === 'registrations') return 'PUBLIC_REGISTRATIONS';
       if (params.get('mode') === 'obs') return 'OBS';
@@ -162,6 +174,7 @@ export function App() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.has('tournamentId') && ['obs', 'register', 'form', 'summary', 'live', 'spectator', 'registrations'].includes(params.get('mode') || '')) { setAuthChecked(true); return; }
+    if (startsInPlayerMode()) { setAuthChecked(true); return; }
     fetch('/api/auth/me').then(async (res) => {
       if (!res.ok) return null;
       return (await res.json()).user as User;
@@ -649,6 +662,19 @@ export function App() {
     } catch (error) { alert((error as Error).message); }
   };
 
+  const enterPlayerMode = () => {
+    try { localStorage.setItem(PLAYER_ROLE_KEY, 'player'); } catch { /* private mode */ }
+    window.history.replaceState(null, '', '/?mode=player');
+    setViewMode('PLAYER');
+  };
+  const exitPlayerMode = () => {
+    try { localStorage.removeItem(PLAYER_ROLE_KEY); } catch { /* private mode */ }
+    // Full reload so the organizer session (if any) is checked and loaded fresh.
+    window.location.replace('/');
+  };
+
+  if (viewMode === 'PLAYER') return <PlayerApp onExit={exitPlayerMode} />;
+
   if (viewMode === 'PUBLIC_REGISTRATIONS') return <RegistrationSummaryView />;
 
   // Dedicated clean view for public player registration (?mode=register)
@@ -672,7 +698,7 @@ export function App() {
     return <ObsOverlayView timerSeconds={publicSummary.tournament.rules?.timerSeconds} currency={publicSummary.tournament.rules?.currency} currentPlayer={publicSummary.players.find(p => p.id === state.currentPlayerId) || null} currentBid={state.currentBid || 0} leadingTeam={publicSummary.teams.find(t => t.id === state.leadingTeam?.id) || null} bidsHistory={[]} isSold={isSold} isUnsold={isUnsold} lastSoldInfo={lastSoldInfo} />;
   }
   if (!authChecked) return <main className="min-h-screen bg-obsidian-950 text-white grid place-items-center">Loading…</main>;
-  if (!currentUser) return <main className="min-h-screen bg-obsidian-950 text-white grid place-items-center"><div className="text-center"><h1 className="text-3xl font-bold text-amber-300 mb-5">Cricket Auction Pro</h1><button onClick={() => setIsAuthModalOpen(true)} className="rounded-xl bg-amber-400 text-slate-950 px-8 py-3 font-bold">Organizer sign in or register</button></div><AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onSuccess={handleLoginSuccess} /></main>;
+  if (!currentUser) return <LandingScreen onPlayer={enterPlayerMode} onOrganizer={() => setIsAuthModalOpen(true)}><AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onSuccess={handleLoginSuccess} /></LandingScreen>;
   if (!dataReady) return <main className="min-h-screen bg-obsidian-950 text-white grid place-items-center"><div>{dataError || 'Loading your tournaments…'}{dataError && <button onClick={() => window.location.reload()} className="ml-4 underline">Retry</button>}</div></main>;
 
   if (currentUser.role === 'ADMIN' && viewMode === 'ADMIN_PANEL') return <AdminPanelView

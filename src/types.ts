@@ -162,4 +162,5 @@ export type ViewMode =
   | 'PUBLIC_REGISTER'
   | 'PUBLIC_SUMMARY'
   | 'PUBLIC_REGISTRATIONS'
-  | 'ADMIN_PANEL';
+  | 'ADMIN_PANEL'
+  | 'PLAYER';

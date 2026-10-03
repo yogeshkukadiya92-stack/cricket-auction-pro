@@ -8,9 +8,20 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "start": "node server/index.js",
-    "admin:create": "node server/create-admin.js"
+    "admin:create": "node server/create-admin.js",
+    "cap:sync": "cap sync",
+    "ios": "cap sync ios && cap open ios",
+    "android": "cap sync android && cap open android",
+    "ios:run": "cap run ios",
+    "android:run": "cap run android",
+    "mobile:assets": "npx -y @capacitor/assets generate --iconBackgroundColor \"#04070D\" --splashBackgroundColor \"#04070D\" --splashBackgroundColorDark \"#04070D\" --ios --android"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/ios": "^8.5.2",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.4",
     "bcryptjs": "^3.0.3",
     "canvas-confetti": "^1.9.4",
     "clsx": "^2.1.1",
@@ -25,6 +36,7 @@
     "tailwind-merge": "^3.0.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.2",
     "@types/canvas-confetti": "^1.9.0",
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.6",

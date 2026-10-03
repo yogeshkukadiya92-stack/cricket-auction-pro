@@ -33,3 +33,10 @@ database/*.sqlite-journal
 .env
 .env.*
 !.env.example
+
+# Native mobile build output
+ios/DerivedData
+ios/App/build
+android/.gradle
+android/build
+android/app/build

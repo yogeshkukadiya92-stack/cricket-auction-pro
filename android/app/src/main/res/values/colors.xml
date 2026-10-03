@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Cricket Auction Pro obsidian background (matches web theme obsidian-950) -->
+    <color name="obsidian">#04070D</color>
+</resources>
