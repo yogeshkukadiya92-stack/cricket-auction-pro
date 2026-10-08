@@ -149,6 +149,35 @@ export function App() {
     setViewMode(mode);
   };
 
+  const registrationPreviewReturn = useRef<ViewMode | null>(null);
+  const openRegistrationPreview = () => {
+    registrationPreviewReturn.current = viewMode;
+    window.history.pushState({ ...window.history.state, capRegistrationPreview: true }, '');
+    setViewMode('PUBLIC_REGISTER');
+  };
+  const leaveRegistration = () => {
+    if (registrationPreviewReturn.current) {
+      window.history.back();
+      return;
+    }
+    // Shared links can open in a fresh tab with no previous app page.
+    window.location.assign(window.location.pathname);
+  };
+  useEffect(() => {
+    const restorePreview = () => {
+      if (registrationPreviewReturn.current) {
+        const previous = registrationPreviewReturn.current;
+        registrationPreviewReturn.current = null;
+        setViewMode(previous);
+      } else if (window.history.state?.capRegistrationPreview) {
+        registrationPreviewReturn.current = 'FORM_BUILDER';
+        setViewMode('PUBLIC_REGISTER');
+      }
+    };
+    window.addEventListener('popstate', restorePreview);
+    return () => window.removeEventListener('popstate', restorePreview);
+  }, []);
+
   // Additional Feature Modals (Fortune Wheel, Excel Bulk Upload)
   const [isFortuneWheelOpen, setIsFortuneWheelOpen] = useState(false);
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
@@ -683,6 +712,7 @@ export function App() {
     return (
       <PublicRegistrationView
         tournament={publicTournament}
+        onBack={leaveRegistration}
         onRegisterPlayer={handleRegisterPlayer}
       />
     );
@@ -894,7 +924,7 @@ export function App() {
           <RegistrationFormBuilder
             tournament={tournament}
             onUpdateTournament={handleUpdateTournament}
-            onPreviewPublicForm={() => setViewMode('PUBLIC_REGISTER')}
+            onPreviewPublicForm={openRegistrationPreview}
           />
         )}
 

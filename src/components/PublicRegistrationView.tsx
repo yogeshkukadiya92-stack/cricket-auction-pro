@@ -18,6 +18,7 @@ import {
   AlertCircle,
   Trophy,
   ArrowRight,
+  ArrowLeft,
   Shield,
   Zap,
   Sparkles,
@@ -36,11 +37,13 @@ import {
 
 interface PublicRegistrationViewProps {
   tournament: Tournament;
+  onBack: () => void;
   onRegisterPlayer: (player: Player) => Promise<Player>;
 }
 
 export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
   tournament,
+  onBack,
   onRegisterPlayer,
 }) => {
   // Form State
@@ -204,6 +207,9 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
     return (
       <div className="min-h-screen bg-obsidian-950 text-white flex flex-col items-center justify-center p-4 sm:p-6 stadium-beam">
         <div className="max-w-lg w-full rounded-3xl p-8 bg-gradient-to-b from-obsidian-850 via-obsidian-900 to-obsidian-950 border-2 border-emerald-500/80 shadow-glow-emerald text-center space-y-6">
+          <button type="button" onClick={onBack} className="shrink-0 inline-flex items-center gap-2 rounded-xl border border-white/15 px-3 py-2 text-sm font-bold text-white hover:bg-white/10">
+            <ArrowLeft className="w-4 h-4" /> Back
+          </button>
           <div className="w-20 h-20 rounded-full bg-emerald-500/20 border border-emerald-400/50 mx-auto flex items-center justify-center text-4xl animate-bounce">
             🎉
           </div>
@@ -244,7 +250,9 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
               </p>
             </div>
           </div>
-
+          <button type="button" onClick={onBack} className="shrink-0 inline-flex items-center gap-2 rounded-xl border border-white/15 px-3 py-2 text-sm font-bold text-white hover:bg-white/10">
+            <ArrowLeft className="w-4 h-4" /> Back
+          </button>
         </div>
       </header>
 
