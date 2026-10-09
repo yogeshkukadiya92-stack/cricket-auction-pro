@@ -7,7 +7,7 @@ export function registerOrganizerAccountRoutes(app, { pool, requireUser, limit, 
   });
   app.post('/api/auth/password', requireUser, limit, async (req, res) => {
     const { currentPassword, newPassword } = req.body || {};
-    if (typeof newPassword !== 'string' || newPassword.length < 12 || newPassword.length > 128) return res.status(400).json({ error: 'New password must contain 12–128 characters' });
+    if (typeof newPassword !== 'string' || (!/^\d{5}$/.test(newPassword) && newPassword.length < 12) || newPassword.length > 128) return res.status(400).json({ error: 'New password must contain exactly 5 digits or 12–128 characters' });
     const result = await pool.query('SELECT password_hash FROM organizers WHERE id=$1', [req.user.id]);
     if (typeof currentPassword !== 'string' || currentPassword.length > 128 || !await bcrypt.compare(currentPassword, result.rows[0].password_hash)) return res.status(400).json({ error: 'Current password is incorrect' });
     const client = await pool.connect();

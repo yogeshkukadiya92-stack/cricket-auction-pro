@@ -97,7 +97,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         onClose();
       } else {
         if (!name.trim()) throw new Error('Please enter your full name or organizer name.');
-        if (password.length < 12) throw new Error('Password must be at least 12 characters.');
+        if (!/^\d{5}$/.test(password) && password.length < 12) throw new Error('Password must contain exactly 5 digits or at least 12 characters.');
 
         const res = await fetch('/api/auth/register', {
           method: 'POST',

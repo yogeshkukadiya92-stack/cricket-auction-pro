@@ -140,7 +140,7 @@ app.post('/api/auth/register', limit, async (req, res) => {
   const name = String(req.body?.name || '').trim();
   const email = String(req.body?.email || '').trim().toLowerCase();
   const password = String(req.body?.password || '');
-  if (!name || name.length > 100 || !/^\S+@\S+\.\S+$/.test(email) || email.length > 255 || password.length < 12 || password.length > 128) return bad(res, 400, 'Enter a name, valid email and password of at least 12 characters');
+  if (!name || name.length > 100 || !/^\S+@\S+\.\S+$/.test(email) || email.length > 255 || (!/^\d{5}$/.test(password) && password.length < 12) || password.length > 128) return bad(res, 400, 'Enter a name, valid email and password of exactly 5 digits or at least 12 characters');
   try {
     const result = await pool.query('INSERT INTO organizers(id,name,email,password_hash) VALUES($1,$2,$3,$4) RETURNING id,name,email,role,status', [randomUUID(), name, email, await bcrypt.hash(password, 12)]);
     await session(res, result.rows[0]);

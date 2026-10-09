@@ -59,7 +59,7 @@ export function OrganizerProfileView({ user, tournaments, onUpdateUser, onBack, 
     <form onSubmit={changePassword} className="glass-panel rounded-3xl p-5 space-y-4">
       <h2 className="font-bold flex gap-2 items-center"><KeyRound className="w-4 h-4 text-gold-400" /> Change password</h2>
       <label className="block text-sm space-y-2"><span>Current password</span><input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} required maxLength={128} autoComplete="current-password" className={input} /></label>
-      <label className="block text-sm space-y-2"><span>New password</span><input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required minLength={12} maxLength={128} autoComplete="new-password" placeholder="At least 12 characters" className={input} /></label>
+      <label className="block text-sm space-y-2"><span>New password</span><input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required minLength={5} pattern="([0-9]{5}|.{12,128})" maxLength={128} autoComplete="new-password" placeholder="5 digits or at least 12 characters" className={input} /></label>
       <button disabled={busy} className="w-full rounded-xl border border-white/10 bg-white/5 font-bold py-3 disabled:opacity-50">Update password</button>
     </form>
   </section>;

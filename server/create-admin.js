@@ -22,10 +22,10 @@ async function secret(label) {
 
 let pool;
 try {
-  const password = await secret('New admin password (at least 12 characters): ');
+  const password = await secret('New admin password (5 digits or at least 12 characters): ');
   const confirmation = await secret('Confirm admin password: ');
   prompt.close();
-  if (password.length < 12 || password.length > 128 || password !== confirmation) throw new Error('Passwords must match and contain 12 to 128 characters');
+  if ((!/^\d{5}$/.test(password) && password.length < 12) || password.length > 128 || password !== confirmation) throw new Error('Passwords must match and contain exactly 5 digits or 12 to 128 characters');
   pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
   const client = await pool.connect();
   try {

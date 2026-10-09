@@ -38,6 +38,10 @@ test('organizer profile writes only the session owner name; password change vali
   const update = queries.find(q => q.sql.startsWith('UPDATE organizers SET password'));
   assert.equal(update.params[0], 'owner');
   assert.ok(await bcrypt.compare('new-password-456', update.params[1]));
+  assert.equal((await request('/api/auth/password', 'POST', { currentPassword: 'old-password-123', newPassword: '01234' })).status, 200);
+  const pinUpdate = queries.filter(q => q.sql.startsWith('UPDATE organizers SET password')).at(-1);
+  assert.ok(await bcrypt.compare('01234', pinUpdate.params[1]));
+  for (const invalid of ['1234', '123456', '12a34']) assert.equal((await request('/api/auth/password', 'POST', { currentPassword: 'old-password-123', newPassword: invalid })).status, 400);
   const deletion = queries.find(q => q.sql.startsWith('DELETE FROM sessions'));
   assert.deepEqual(deletion.params, ['owner', 'hash:current-token']);
   assert.ok(deletion.sql.includes('token_hash<>$2'));
