@@ -9,9 +9,4 @@ export default defineConfig({
     allowedHosts: true,
     proxy: { '/api': 'http://localhost:3000' },
   },
-  build: {
-    rollupOptions: {
-      external: ['exceljs', 'jszip'],
-    },
-  },
 });

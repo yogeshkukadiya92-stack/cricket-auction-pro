@@ -19,8 +19,7 @@ async function excelImage(data: string): Promise<string> {
 }
 
 export async function exportRegistrationsExcel(players: Player[], fields: CustomFormField[] = []) {
-  // @ts-ignore
-  const { default: ExcelJS } = await import(/* @vite-ignore */ 'exceljs');
+  const { default: ExcelJS } = await import('exceljs');
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet('Registrations');
   const keys = [...new Set(players.flatMap(p => Object.keys(p)))].filter(k => !['photoUrl', 'paymentScreenshotUrl', 'customData', 'stats'].includes(k));
@@ -49,8 +48,7 @@ export async function exportRegistrationsExcel(players: Player[], fields: Custom
 }
 
 export async function downloadRegistrationImages(players: Player[]) {
-  // @ts-ignore
-  const { default: JSZip } = await import(/* @vite-ignore */ 'jszip');
+  const { default: JSZip } = await import('jszip');
   const zip = new JSZip();
   let count = 0;
   for (const p of players) {
