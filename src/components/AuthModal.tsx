@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Mail,
   Lock,
   User as UserIcon,
   Trophy,
+  Shield,
   ArrowRight,
   AlertCircle,
   CheckCircle2,
   Sparkles,
-  Shield,
 } from 'lucide-react';
 import { User } from '../types';
 
@@ -17,7 +18,7 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (user: User) => void;
-  initialMode?: 'LOGIN' | 'REGISTER';
+  initialMode?: 'LOGIN' | 'REGISTER' | 'ADMIN_LOGIN';
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({
@@ -26,7 +27,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onSuccess,
   initialMode = 'LOGIN',
 }) => {
-  const [mode, setMode] = useState<'LOGIN' | 'REGISTER'>(initialMode);
+  const [mode, setMode] = useState<'LOGIN' | 'REGISTER' | 'ADMIN_LOGIN'>(initialMode);
   const [role, setRole] = useState<'ORGANIZER' | 'USER'>('ORGANIZER');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -34,6 +35,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setMode(initialMode);
+    setError(null);
+    setSuccessMsg(null);
+    setPassword('');
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, [isOpen, initialMode]);
 
   if (!isOpen) return null;
 
@@ -70,21 +82,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setLoading(true);
 
     try {
-      if (mode === 'LOGIN') {
+      if (mode !== 'REGISTER') {
         const res = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email.trim(), password }),
+          body: JSON.stringify({ email: email.trim(), password, ...(mode === 'ADMIN_LOGIN' ? { loginAs: 'ADMIN' } : {}) }),
         });
         const data = await res.json();
         if (!res.ok || !data.success) {
           throw new Error(data.error || 'Login failed. Please check your credentials.');
         }
         setSuccessMsg(`Welcome back, ${data.user.name}!`);
-        setTimeout(() => {
-          onSuccess(data.user);
-          onClose();
-        }, 600);
+        onSuccess(data.user);
+        onClose();
       } else {
         if (!name.trim()) throw new Error('Please enter your full name or organizer name.');
         if (password.length < 12) throw new Error('Password must be at least 12 characters.');
@@ -103,10 +113,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           throw new Error(data.error || 'Registration failed. Please try again.');
         }
         setSuccessMsg('Account created successfully! Logging you in...');
-        setTimeout(() => {
-          onSuccess(data.user);
-          onClose();
-        }, 600);
+        onSuccess(data.user);
+        onClose();
       }
     } catch (err: any) {
       setError(err.message || 'Something went wrong.');
@@ -115,24 +123,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
-      <div className="relative w-full max-w-md bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden text-white">
-        {/* Glow ambient header */}
-        <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-64 h-32 bg-amber-500/20 blur-3xl rounded-full pointer-events-none" />
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain bg-obsidian-950 p-4" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
+      <div className="relative w-full max-w-md bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden text-white my-auto shrink-0">
 
         {/* Modal Header */}
         <div className="relative p-6 pb-4 flex items-start justify-between border-b border-slate-800/80">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-amber-500/20">
-              <Trophy className="w-6 h-6" />
+            <div className="shrink-0 w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-amber-500/20">
+{mode === 'ADMIN_LOGIN' ? <Shield className="w-6 h-6" /> : <Trophy className="w-6 h-6" />}
             </div>
             <div>
-              <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-                Cricket Auction Pro
+              <h2 id="auth-modal-title" className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                {mode === 'ADMIN_LOGIN' ? 'Admin Login' : 'Cricket Auction Pro'}
               </h2>
               <p className="text-xs text-slate-400">
-                {mode === 'LOGIN'
+                {mode === 'ADMIN_LOGIN' ? 'Sign in with your administrator account' : mode === 'LOGIN'
                   ? 'Sign in to access your auctions and tournaments'
                   : 'Create an organizer account to host live auctions'}
               </p>
@@ -140,7 +146,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white rounded-xl bg-slate-800/50 hover:bg-slate-800 transition"
+            aria-label="Close sign in"
+            className="shrink-0 p-2 text-slate-400 hover:text-white rounded-xl bg-slate-800/50 hover:bg-slate-800 transition"
           >
             <X className="w-5 h-5" />
           </button>
@@ -148,11 +155,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         {/* Mode Toggle Tabs */}
         <div className="px-6 pt-4">
-          <div className="grid grid-cols-2 p-1 bg-slate-950/60 rounded-xl border border-slate-800">
+          <div className="grid grid-cols-3 p-1 bg-slate-950/60 rounded-xl border border-slate-800">
             <button
               type="button"
               onClick={() => {
                 setMode('LOGIN');
+                setPassword('');
                 setError(null);
               }}
               className={`py-2 text-xs font-semibold rounded-lg transition-all ${
@@ -161,12 +169,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              Sign In
+              Organizer Login
             </button>
+            <button type="button" disabled={loading} onClick={() => { setMode('ADMIN_LOGIN'); setPassword(''); setError(null); }} className={`py-3 text-xs font-semibold rounded-lg transition-all ${mode === 'ADMIN_LOGIN' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold' : 'text-slate-400 hover:text-white'}`}>Admin Login</button>
             <button
               type="button"
               onClick={() => {
                 setMode('REGISTER');
+                setPassword('');
                 setError(null);
               }}
               className={`py-2 text-xs font-semibold rounded-lg transition-all ${
@@ -257,13 +267,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           )}
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1.5">
+            <label htmlFor="organizer-login-email" className="block text-xs font-medium text-slate-300 mb-1.5">
               Email Address <span className="text-amber-400">*</span>
             </label>
             <div className="relative">
               <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
               <input
                 type="email"
+                id="organizer-login-email"
+                autoComplete="username"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -275,10 +287,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-medium text-slate-300">
+              <label htmlFor="organizer-login-password" className="block text-xs font-medium text-slate-300">
                 Password <span className="text-amber-400">*</span>
               </label>
-              {mode === 'LOGIN' && (
+              {mode !== 'REGISTER' && (
                 <span className="text-[11px] text-slate-500">Use your account password</span>
               )}
             </div>
@@ -286,6 +298,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
               <input
                 type="password"
+                id="organizer-login-password"
+                autoComplete={mode === 'REGISTER' ? 'new-password' : 'current-password'}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -304,7 +318,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <span className="inline-block w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
             ) : (
               <>
-                <span>{mode === 'LOGIN' ? 'Sign In to Workspace' : `Create ${role === 'USER' ? 'Player' : 'Organizer'} Account`}</span>
+                <span>{mode === 'ADMIN_LOGIN' ? 'Open Admin Panel' : mode === 'LOGIN' ? 'Sign In to Workspace' : `Create ${role === 'USER' ? 'Player' : 'Organizer'} Account`}</span>
                 <ArrowRight className="w-4 h-4" />
               </>
             )}
@@ -358,6 +372,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };

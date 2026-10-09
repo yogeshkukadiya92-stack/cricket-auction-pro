@@ -1,3 +1,5 @@
+import { OrganizerProfileView } from './components/OrganizerProfileView';
+import { OrganizerMobileNav } from './components/OrganizerMobileNav';
 import { RegistrationSummaryView } from './components/RegistrationSummaryView';
 import React, { useState, useEffect, useRef } from 'react';
 import {
@@ -73,6 +75,7 @@ export function App() {
   // Authentication & Current User State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authInitialMode, setAuthInitialMode] = useState<'LOGIN' | 'ADMIN_LOGIN'>('LOGIN');
 
   // Two-Portal Platform Architecture: 'ORGANIZER' vs 'USER'
   const [activePortal, setActivePortal] = useState<AppPortal>(() => {
@@ -184,13 +187,24 @@ export function App() {
   });
 
   const selectViewMode = (mode: ViewMode) => {
-    if (!tournament.id && !['TOURNAMENTS', 'ADMIN_PANEL'].includes(mode)) { setViewMode('TOURNAMENTS'); return; }
+    if (!tournament.id && !['TOURNAMENTS', 'ADMIN_PANEL', 'ORGANIZER_PROFILE'].includes(mode)) { setViewMode('TOURNAMENTS'); return; }
+    if (mode === 'ADMIN_PANEL' && currentUser?.role !== 'ADMIN') return;
     if (mode === 'OBS') {
       window.open(`/?mode=obs&tournamentId=${encodeURIComponent(tournament.id)}`, '_blank', 'noopener,noreferrer');
       return;
     }
+    window.history.replaceState({ ...window.history.state, capOrganizerMode: viewMode }, '');
+    window.history.pushState({ capOrganizerMode: mode }, '');
     setViewMode(mode);
   };
+
+  useEffect(() => {
+    const onBack = (event: PopStateEvent) => {
+      if (event.state?.capOrganizerMode) setViewMode(event.state.capOrganizerMode);
+    };
+    window.addEventListener('popstate', onBack);
+    return () => window.removeEventListener('popstate', onBack);
+  }, []);
 
   const registrationPreviewReturn = useRef<ViewMode | null>(null);
   const openRegistrationPreview = () => {
@@ -782,17 +796,17 @@ export function App() {
     return <ObsOverlayView timerSeconds={publicSummary.tournament.rules?.timerSeconds} currency={publicSummary.tournament.rules?.currency} currentPlayer={publicSummary.players.find(p => p.id === state.currentPlayerId) || null} currentBid={state.currentBid || 0} leadingTeam={publicSummary.teams.find(t => t.id === state.leadingTeam?.id) || null} bidsHistory={[]} isSold={isSold} isUnsold={isUnsold} lastSoldInfo={lastSoldInfo} />;
   }
   if (!authChecked) return <main className="min-h-screen bg-obsidian-950 text-white grid place-items-center">Loading…</main>;
-  if (!currentUser) return <LandingScreen onPlayer={enterPlayerMode} onOrganizer={() => setIsAuthModalOpen(true)}><AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onSuccess={handleLoginSuccess} /></LandingScreen>;
+  if (!currentUser) return <LandingScreen onPlayer={enterPlayerMode} onOrganizer={() => { setAuthInitialMode('LOGIN'); setIsAuthModalOpen(true); }} onAdmin={() => { setAuthInitialMode('ADMIN_LOGIN'); setIsAuthModalOpen(true); }}><AuthModal initialMode={authInitialMode} isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onSuccess={handleLoginSuccess} /></LandingScreen>;
   if (!dataReady) return <main className="min-h-screen bg-obsidian-950 text-white grid place-items-center"><div>{dataError || 'Loading your tournaments…'}{dataError && <button onClick={() => window.location.reload()} className="ml-4 underline">Retry</button>}</div></main>;
 
-  if (currentUser.role === 'ADMIN' && viewMode === 'ADMIN_PANEL') return <AdminPanelView
+  if (currentUser.role === 'ADMIN' && viewMode === 'ADMIN_PANEL') return <div className="pb-24 lg:pb-0"><div className="bg-slate-950 px-4 py-2 text-right"><button onClick={() => selectViewMode('ORGANIZER_PROFILE')} className="text-sm font-bold text-amber-400 min-h-11">My Profile</button></div><AdminPanelView
     currentUser={currentUser}
     tournaments={tournaments}
     onSelectTournament={(t) => window.open(`/?mode=summary&tournamentId=${encodeURIComponent(t.id)}`, '_blank', 'noopener,noreferrer')}
     onBackToApp={() => setViewMode('TOURNAMENTS')}
     onLogout={handleLogout}
     onRefreshData={() => dbService.fetchBootstrapData().then((data) => { if (data?.tournaments) setTournaments(data.tournaments); })}
-  />;
+  /><OrganizerMobileNav user={currentUser} mode={viewMode} onSelect={selectViewMode} /></div>;
 
   // Dedicated clean view for public live spectator summary (?mode=summary)
   if (viewMode === 'PUBLIC_SUMMARY') {
@@ -868,8 +882,9 @@ export function App() {
         }}
       />
 
+      {activePortal === 'ORGANIZER' && <OrganizerMobileNav user={currentUser} mode={viewMode} onSelect={selectViewMode} />}
       {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 pb-28 sm:pb-28 lg:pb-8">
 
         {/* PART 2: USER / PLAYER PORTAL */}
         {(activePortal === 'USER' || viewMode === 'USER_PORTAL') && viewMode !== 'ADMIN_PANEL' && (
@@ -933,6 +948,7 @@ export function App() {
           )
         )}
 
+        {viewMode === 'ORGANIZER_PROFILE' && <OrganizerProfileView key={currentUser.id} user={currentUser} tournaments={visibleTournaments} onUpdateUser={setCurrentUser} onBack={() => selectViewMode('TOURNAMENTS')} onAdmin={() => selectViewMode('ADMIN_PANEL')} onPlayer={enterPlayerMode} onLogout={handleLogout} />}
         {viewMode === 'TOURNAMENT_OVERVIEW' && (
           <TournamentDashboardView
             tournament={tournament}

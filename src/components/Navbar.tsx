@@ -303,7 +303,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         )}
 
         {/* Utility Controls (Live Sync, Erase Demo Data, Sound, Fullscreen, User / Auth) */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 max-w-full">
           {/* Admin Panel Button (Exclusive to ADMIN role) */}
           {currentUser?.role === 'ADMIN' && (
             <button
@@ -323,17 +323,17 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* User Account / Sign In Pill */}
           {currentUser ? (
             <div className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-xl bg-obsidian-950/80 border border-white/10">
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-amber-500 to-amber-300 text-slate-950 flex items-center justify-center font-black text-xs">
+              <button onClick={() => onSelectMode('ORGANIZER_PROFILE')} aria-label="Open my profile" className="w-9 h-9 rounded-lg bg-gradient-to-tr from-amber-500 to-amber-300 text-slate-950 flex items-center justify-center font-black text-xs">
                 {currentUser.name.charAt(0).toUpperCase()}
-              </div>
-              <div className="hidden md:block text-left">
+              </button>
+              <button onClick={() => onSelectMode('ORGANIZER_PROFILE')} className="hidden md:block text-left">
                 <p className="text-xs font-bold text-white leading-tight truncate max-w-[120px]">
                   {currentUser.name}
                 </p>
                 <span className="text-[9px] font-mono text-gold-400 leading-none block">
                   {currentUser.role}
                 </span>
-              </div>
+              </button>
               {onLogout && (
                 <button
                   onClick={onLogout}

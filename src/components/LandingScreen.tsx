@@ -1,14 +1,15 @@
 import React, { useRef } from 'react';
-import { Briefcase, ChevronRight, Radio, Trophy, UserRound, Users } from 'lucide-react';
+import { Briefcase, ChevronRight, Radio, Shield, Trophy, UserRound, Users } from 'lucide-react';
 
 interface LandingScreenProps {
   onPlayer: () => void;
   onOrganizer: () => void;
+  onAdmin: () => void;
   children?: React.ReactNode;
 }
 
 /** Entry screen: choose Player (mobile login) or Organizer (e-mail login). */
-export const LandingScreen: React.FC<LandingScreenProps> = ({ onPlayer, onOrganizer, children }) => (
+export const LandingScreen: React.FC<LandingScreenProps> = ({ onPlayer, onOrganizer, onAdmin, children }) => (
   <main className="relative min-h-screen overflow-hidden bg-obsidian-950 text-white flex flex-col">
     <div aria-hidden className="pointer-events-none absolute inset-0">
       <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[40rem] h-[40rem] rounded-full bg-gold-500/15 blur-3xl animate-beam" />
@@ -41,6 +42,7 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({ onPlayer, onOrgani
           title="I'm an Organizer" text="Run tournaments, teams and the auction desk"
           className="from-white/[0.08] to-white/[0.02] text-white"
         />
+        <ChoiceCard id="landing-admin-login" onClick={onAdmin} icon={Shield} delay={220} title="Admin Panel" text="Sign in with your administrator account" className="from-white/[0.08] to-white/[0.02] text-white" />
       </div>
     </section>
     {children}

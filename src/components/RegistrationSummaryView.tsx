@@ -132,7 +132,7 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
 
       try {
         const response = await fetch(
-          `/api/public/tournaments/${encodeURIComponent(tournamentId)}/registrations`,
+          `/api/public/tournaments/${encodeURIComponent(tournamentId)}/players-directory`,
           { cache: 'no-store', signal: controller.signal }
         );
 

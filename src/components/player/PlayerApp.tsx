@@ -139,7 +139,7 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({ onExit }) => {
 const TABS: Array<{ id: Tab; label: string; icon: React.ElementType }> = [
   { id: 'home', label: 'My Auctions', icon: Home },
   { id: 'players', label: 'Players', icon: Users },
-  { id: 'account', label: 'Account', icon: UserRound },
+  { id: 'account', label: 'Profile', icon: UserRound },
 ];
 
 const TabBar: React.FC<{ tab: Tab; onChange: (tab: Tab) => void }> = ({ tab, onChange }) => {
@@ -207,7 +207,7 @@ const AccountTab: React.FC<AccountTabProps> = ({ me, onOpenMyProfile, onLogout, 
 
       <div className="glass-panel rounded-3xl divide-y divide-white/[0.06] overflow-hidden">
         <MenuRow icon={UserRound} label="View my public profile" onClick={onOpenMyProfile} disabled={!player.id} />
-        <MenuRow icon={Briefcase} label="Organizer login" onClick={onExit} />
+        <MenuRow icon={Briefcase} label="Organizer / Admin login" onClick={onExit} />
         <MenuRow icon={LogOut} label="Sign out" onClick={onLogout} danger />
       </div>
 

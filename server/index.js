@@ -1,3 +1,5 @@
+import { registerOrganizerAccountRoutes } from './organizerAccountRoutes.js';
+import { registerRegistrationRoutes } from './registrationRoutes.js';
 import { correctPlayer } from '../shared/playerCorrection.js';
 import { normalizeMobile, isUploadedImage } from '../shared/registrationValidation.js';
 import { getBidBudget } from '../shared/auctionBudget.js';
@@ -152,9 +154,12 @@ app.post('/api/auth/login', limit, async (req, res) => {
   const email = String(req.body?.email || '').trim().toLowerCase();
   const result = await pool.query('SELECT * FROM organizers WHERE email=$1', [email]);
   if (!result.rowCount || !await bcrypt.compare(String(req.body?.password || ''), result.rows[0].password_hash)) return bad(res, 401, 'Invalid email or password');
+  if (req.body?.loginAs === 'ADMIN' && result.rows[0].role !== 'ADMIN') return bad(res, 403, 'Administrator account required. Use Organizer Login for your account.');
   if (result.rows[0].status !== 'ACTIVE') return bad(res, 403, 'Account is blocked');
   await session(res, result.rows[0]);
 });
+
+registerOrganizerAccountRoutes(app, { pool, requireUser, limit, bcrypt, hashToken, cookieName });
 
 app.get('/api/auth/me', requireUser, (req, res) => res.json({ success: true, user: req.user }));
 app.post('/api/auth/logout', requireUser, async (req, res) => {
@@ -459,8 +464,8 @@ app.get('/api/public/tournaments/:id', async (req, res) => {
   const { userId, creatorEmail, ...tournament } = result.rows[0].data;
   res.json({ success: true, tournament });
 });
-// Owner-share view exposes public identity, photo, stats and cricket role without login.
-app.get('/api/public/tournaments/:id/registrations', async (req, res) => {
+// Public directory exposes only approved cricket profiles; full form responses require ownership.
+app.get('/api/public/tournaments/:id/players-directory', async (req, res) => {
   const result = await pool.query('SELECT data FROM tournaments WHERE id=$1', [req.params.id]);
   if (!result.rowCount) return bad(res, 404, 'Tournament not found');
   const rows = await pool.query("SELECT data FROM players WHERE tournament_id=$1 ORDER BY data->>'registeredAt' DESC NULLS LAST", [req.params.id]);
@@ -481,7 +486,7 @@ app.get('/api/public/tournaments/:id/registrations', async (req, res) => {
       registrationOpen: tournament.registrationOpen !== false,
       defaultBasePrice: tournament.defaultBasePrice,
     },
-    players: rows.rows.map(({ data: player }) => ({
+    players: rows.rows.filter(({ data: p }) => !p.approvalStatus || p.approvalStatus === 'APPROVED').map(({ data: player }) => ({
       id: player.id,
       name: player.name,
       photoUrl: player.photoUrl,
@@ -497,6 +502,7 @@ app.get('/api/public/tournaments/:id/registrations', async (req, res) => {
     })),
   });
 });
+registerRegistrationRoutes(app, { pool, requireUser, owns });
 
 app.get('/api/public/tournaments/:id/summary', async (req, res) => {
   const result = await pool.query('SELECT data FROM tournaments WHERE id=$1', [req.params.id]);

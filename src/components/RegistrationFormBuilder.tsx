@@ -1,3 +1,4 @@
+import { RegistrationResponsesView } from './RegistrationResponsesView';
 import React, { useState } from 'react';
 import { Tournament, CustomFormField, FormFieldType } from '../types';
 import {
@@ -32,6 +33,7 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
   onUpdateTournament,
   onPreviewPublicForm,
 }) => {
+  const [tab, setTab] = useState<'settings' | 'responses'>('settings');
   const [copied, setCopied] = useState(false);
   const [showQr, setShowQr] = useState(false);
   const [customFields, setCustomFields] = useState<CustomFormField[]>(
@@ -166,6 +168,10 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
+      <div className="flex gap-2" role="tablist" aria-label="Registration form">
+        {(['settings', 'responses'] as const).map(value => <button key={value} role="tab" aria-selected={tab === value} onClick={() => setTab(value)} className={`px-5 py-3 rounded-xl font-bold text-sm ${tab === value ? 'bg-gold-500 text-black' : 'bg-white/5 text-slate-300'}`}>{value === 'settings' ? 'Form Settings' : 'Form Responses'}</button>)}
+      </div>
+      {tab === 'responses' ? <RegistrationResponsesView key={tournament.id} tournamentId={tournament.id} embedded /> : <>
       {/* 1. Public Shareable Link Hero Card */}
       <div className="p-6 lg:p-8 rounded-3xl bg-gradient-to-r from-obsidian-850 via-obsidian-900 to-obsidian-850 border-2 border-gold-400/50 shadow-glow-gold relative overflow-hidden">
         <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
@@ -635,6 +641,7 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
           </button>
         </div>
       </div>
+      </>}
     </div>
   );
 };

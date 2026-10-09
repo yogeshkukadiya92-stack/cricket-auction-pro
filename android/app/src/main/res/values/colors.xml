@@ -2,4 +2,7 @@
 <resources>
     <!-- Cricket Auction Pro obsidian background (matches web theme obsidian-950) -->
     <color name="obsidian">#04070D</color>
+    <color name="colorPrimary">#F59E0B</color>
+    <color name="colorPrimaryDark">#04070D</color>
+    <color name="colorAccent">#F59E0B</color>
 </resources>
