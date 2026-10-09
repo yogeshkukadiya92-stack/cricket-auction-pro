@@ -168,5 +168,6 @@ export type ViewMode =
   | 'PUBLIC_REGISTRATIONS'
   | 'ADMIN_PANEL'
   | 'USER_PORTAL'
-  | 'PLAYER';
+  | 'PLAYER'
+  | 'SIMULATOR';
 

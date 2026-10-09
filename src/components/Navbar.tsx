@@ -26,6 +26,7 @@ import {
   LogOut,
   Sparkles,
   Eye,
+  Smartphone,
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -97,6 +98,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { mode: 'TEAMS' as ViewMode, label: 'Franchises', icon: Shield },
     { mode: 'SQUADS' as ViewMode, label: 'Squads', icon: FileSpreadsheet },
     { mode: 'PUBLIC_SUMMARY' as ViewMode, label: 'Live Spectator', icon: Eye },
+    { mode: 'SIMULATOR' as ViewMode, label: '📱 Simulator', icon: Smartphone, highlight: true },
     { mode: 'OBS' as ViewMode, label: 'OBS Stream', icon: Radio },
     { mode: 'RULES' as ViewMode, label: 'Rules', icon: Settings },
   ];
@@ -365,6 +367,21 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="hidden xl:inline">Fortune Wheel</span>
             </button>
           )}
+
+          {/* Mobile App Simulator Launcher */}
+          <button
+            type="button"
+            onClick={() => onSelectMode('SIMULATOR')}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer shadow-md ${
+              currentMode === 'SIMULATOR'
+                ? 'bg-gradient-to-r from-gold-500 to-amber-500 text-slate-950 font-black border-gold-400 shadow-glow-gold'
+                : 'bg-gold-500/10 hover:bg-gold-500/20 text-gold-400 border-gold-500/30'
+            }`}
+            title="Interactive Mobile App Simulator (iPhone 17 & Android Preview)"
+          >
+            <Smartphone className="w-3.5 h-3.5 text-gold-400" />
+            <span className="hidden xl:inline">Simulator</span>
+          </button>
 
           {/* SQLite Database Status & Backup Launcher */}
           {onOpenDatabaseModal && (
