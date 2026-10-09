@@ -32,6 +32,8 @@ import {
   ShieldCheck,
   Receipt,
   X,
+  Copy,
+  Users,
 } from 'lucide-react';
 
 interface PlayerManagerViewProps {
@@ -263,7 +265,24 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
           </button>
 
           <button disabled={exportBusy} onClick={() => void runExport(true)} className="px-3 py-2 rounded-xl text-xs bg-white/10 text-white">Download Photos ZIP</button>
-          <button onClick={async () => { try { const url = new URL(window.location.pathname, window.location.origin); url.searchParams.set('mode', 'players'); url.searchParams.set('tournamentId', tournamentId); await navigator.clipboard.writeText(url.toString()); setExportError('Live admin link copied — login required.'); } catch { setExportError('Could not copy link.'); } }} className="px-3 py-2 rounded-xl text-xs bg-white/10 text-white">Copy Live Data Link</button>
+          <button
+            onClick={async () => {
+              try {
+                const url = new URL(window.location.pathname, window.location.origin);
+                url.searchParams.set('mode', 'registrations');
+                url.searchParams.set('tournamentId', tournamentId);
+                await navigator.clipboard.writeText(url.toString());
+                setExportError('✅ Public registrations link copied — anyone can view without login!');
+              } catch {
+                setExportError('Could not copy link.');
+              }
+            }}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 transition-all active:scale-95 shadow-sm"
+            title="Public registration directory link — no login needed"
+          >
+            <Eye className="w-3.5 h-3.5 text-cyan-400" />
+            Share Registrations Link (No Login)
+          </button>
           {exportError && <p role="status" className="text-xs text-amber-300">{exportError}</p>}
           <button
             onClick={() => setIsAddModalOpen(true)}
@@ -325,6 +344,53 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
               Customize Form (Google Forms)
             </button>
           )}
+        </div>
+      </div>
+
+      {/* Public Registrations Directory Banner (No Login Required) */}
+      <div className="p-5 rounded-3xl bg-gradient-to-r from-obsidian-900 via-obsidian-850 to-obsidian-900 border border-cyan-500/30 shadow-glow-cyan flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="p-3 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 shadow">
+            <Users className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h4 className="text-base font-black text-white font-display">
+                Public Registered Players List
+              </h4>
+              <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                NO LOGIN REQUIRED • જાહેર લિંક
+              </span>
+            </div>
+            <p className="text-xs text-slate-300 mt-0.5">
+              Share this link so players, team owners, and spectators can see who and how many have registered without needing an account.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => {
+              const url = `${window.location.origin}${window.location.pathname}?mode=registrations&tournamentId=${encodeURIComponent(tournamentId)}`;
+              navigator.clipboard.writeText(url);
+              setExportError('✅ Public registrations link copied — anyone can view without login!');
+              alert('✅ Public registrations link copied! Anyone can view without login.');
+            }}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-200 border border-cyan-500/40 active:scale-95 transition-all"
+          >
+            <Copy className="w-3.5 h-3.5" />
+            Copy Public Link
+          </button>
+
+          <a
+            href={`/?mode=registrations&tournamentId=${encodeURIComponent(tournamentId)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-md transition-all active:scale-95"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            Preview List ↗
+          </a>
         </div>
       </div>
 

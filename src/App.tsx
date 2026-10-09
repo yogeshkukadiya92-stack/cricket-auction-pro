@@ -172,6 +172,9 @@ export function App() {
       if (params.get('mode') === 'summary' || params.get('mode') === 'live' || params.get('mode') === 'spectator') {
         return 'PUBLIC_SUMMARY';
       }
+      if (params.get('mode') === 'players' && params.has('tournamentId') && !document.cookie.includes('__Host-cap_session')) {
+        return 'PUBLIC_REGISTRATIONS';
+      }
     }
     return 'TOURNAMENT_OVERVIEW';
   });
@@ -239,6 +242,7 @@ export function App() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.has('tournamentId') && ['obs', 'register', 'form', 'summary', 'live', 'spectator', 'registrations'].includes(params.get('mode') || '')) { setAuthChecked(true); return; }
+    if (params.has('tournamentId') && params.get('mode') === 'players' && !document.cookie.includes('__Host-cap_session')) { setAuthChecked(true); return; }
     if (startsInPlayerMode()) { setAuthChecked(true); return; }
     fetch('/api/auth/me').then(async (res) => {
       if (!res.ok) return null;
@@ -740,7 +744,7 @@ export function App() {
 
   if (viewMode === 'PLAYER') return <PlayerApp onExit={exitPlayerMode} />;
 
-  if (viewMode === 'PUBLIC_REGISTRATIONS') return <RegistrationSummaryView />;
+  if (viewMode === 'PUBLIC_REGISTRATIONS') return <RegistrationSummaryView fallbackTournaments={tournaments} fallbackPlayers={players} />;
 
   // Dedicated clean view for public player registration (?mode=register)
   if (viewMode === 'PUBLIC_REGISTER') {
