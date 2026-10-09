@@ -1,6 +1,5 @@
 import { PlayerAuctionHistory } from './PlayerAuctionHistory';
 import { PlayerCorrections } from './PlayerCorrections';
-import { exportRegistrationsExcel, downloadRegistrationImages } from '../utils/registrationExport';
 import { formatAuctionPrice } from '../utils/currency';
 import React, { useState, useRef, useEffect } from 'react';
 import { Player, PlayerRole, PlayerCategory } from '../types';
@@ -78,7 +77,19 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
   const [csvMessage, setCsvMessage] = useState<string | null>(null);
   const [exportBusy, setExportBusy] = useState(false);
   const [exportError, setExportError] = useState('');
-  const runExport = async (images = false) => { setExportBusy(true); setExportError(''); try { if (images) await downloadRegistrationImages(players); else await exportRegistrationsExcel(players, customFields); } catch (err) { setExportError((err as Error).message); } finally { setExportBusy(false); } };
+  const runExport = async (images = false) => {
+    setExportBusy(true);
+    setExportError('');
+    try {
+      const { exportRegistrationsExcel, downloadRegistrationImages } = await import('../utils/registrationExport');
+      if (images) await downloadRegistrationImages(players);
+      else await exportRegistrationsExcel(players, customFields);
+    } catch (err) {
+      setExportError((err as Error).message);
+    } finally {
+      setExportBusy(false);
+    }
+  };
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleCsvFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

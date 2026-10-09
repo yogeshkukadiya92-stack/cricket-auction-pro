@@ -7,6 +7,25 @@ export default defineConfig({
     port: 5174,
     host: '0.0.0.0',
     allowedHosts: true,
-    proxy: { '/api': 'http://localhost:3000' },
+    hmr: {
+      overlay: false,
+    },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('error', (_err, _req, res) => {
+            if (res && 'writeHead' in res && !res.headersSent) {
+              res.writeHead(502, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: 'Backend API offline', offline: true }));
+            }
+          });
+        },
+      },
+    },
+  },
+  optimizeDeps: {
+    include: ['exceljs', 'jszip'],
   },
 });
