@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ViewMode, Tournament, User } from '../types';
+import { ViewMode, Tournament, User, AppPortal } from '../types';
 import { sounds } from '../soundEffects';
 import { TeamLogo } from './TeamLogo';
 import {
@@ -40,6 +40,8 @@ interface NavbarProps {
   onOpenAuthModal?: () => void;
   onLogout?: () => void;
   onOpenFortuneWheel?: () => void;
+  activePortal?: AppPortal;
+  onSelectPortal?: (portal: AppPortal) => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -54,6 +56,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenAuthModal,
   onLogout,
   onOpenFortuneWheel,
+  activePortal = 'ORGANIZER',
+  onSelectPortal,
 }) => {
   const [soundEnabled, setSoundEnabled] = useState(sounds.enabled);
   const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
@@ -197,30 +201,104 @@ export const Navbar: React.FC<NavbarProps> = ({
           )}
         </div>
 
-        {/* View Mode Switcher Pills */}
-        <nav className="flex items-center gap-1.5 p-1 rounded-2xl bg-obsidian-950/80 border border-white/10 overflow-x-auto max-w-full">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = currentMode === item.mode;
-            return (
-              <button
-                key={item.mode}
-                onClick={() => {
-                  sounds.playTick();
-                  onSelectMode(item.mode);
-                }}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-                  isActive
-                    ? 'bg-gradient-to-r from-gold-500 to-amber-400 text-black shadow-glow-gold font-black'
-                    : 'text-slate-400 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-black' : 'text-slate-400'}`} />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-        </nav>
+        {/* Portal Switcher (Organizer Portal vs Player/User Portal) */}
+        {onSelectPortal && (
+          <div className="flex items-center p-1 rounded-2xl bg-obsidian-950/90 border border-white/10 shadow-inner">
+            <button
+              onClick={() => {
+                sounds.playTick();
+                onSelectPortal('ORGANIZER');
+                if (currentMode === 'USER_PORTAL') {
+                  onSelectMode('TOURNAMENT_OVERVIEW');
+                }
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
+                activePortal === 'ORGANIZER'
+                  ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md shadow-amber-500/20'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Trophy className="w-3.5 h-3.5" />
+              <span>Organizer</span>
+            </button>
+
+            <button
+              onClick={() => {
+                sounds.playTick();
+                onSelectPortal('USER');
+                onSelectMode('USER_PORTAL');
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
+                activePortal === 'USER'
+                  ? 'bg-gradient-to-r from-cyan-500 to-cyan-600 text-slate-950 shadow-md shadow-cyan-500/20'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <UserIcon className="w-3.5 h-3.5" />
+              <span>Player / User</span>
+            </button>
+          </div>
+        )}
+
+        {/* View Mode Switcher Pills (Organizer Suite) */}
+        {activePortal === 'ORGANIZER' ? (
+          <nav className="flex items-center gap-1.5 p-1 rounded-2xl bg-obsidian-950/80 border border-white/10 overflow-x-auto max-w-full">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = currentMode === item.mode;
+              return (
+                <button
+                  key={item.mode}
+                  onClick={() => {
+                    sounds.playTick();
+                    onSelectMode(item.mode);
+                  }}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                    isActive
+                      ? 'bg-gradient-to-r from-gold-500 to-amber-400 text-black shadow-glow-gold font-black'
+                      : 'text-slate-400 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-black' : 'text-slate-400'}`} />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+        ) : (
+          /* View Mode Switcher Pills (User / Player Suite) */
+          <nav className="flex items-center gap-1.5 p-1 rounded-2xl bg-obsidian-950/80 border border-white/10 overflow-x-auto max-w-full">
+            <button
+              onClick={() => {
+                sounds.playTick();
+                onSelectMode('USER_PORTAL');
+              }}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                currentMode === 'USER_PORTAL'
+                  ? 'bg-gradient-to-r from-cyan-500 to-cyan-600 text-slate-950 shadow-md font-black'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Trophy className="w-3.5 h-3.5" />
+              <span>Tournaments & My Registrations</span>
+            </button>
+
+            <button
+              onClick={() => {
+                sounds.playTick();
+                onSelectMode('PUBLIC_SUMMARY');
+              }}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                currentMode === 'PUBLIC_SUMMARY'
+                  ? 'bg-gradient-to-r from-amber-500 to-amber-400 text-slate-950 shadow-md font-black'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Tv className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Live Spectator Arena</span>
+            </button>
+          </nav>
+        )}
 
         {/* Utility Controls (Live Sync, Erase Demo Data, Sound, Fullscreen, User / Auth) */}
         <div className="flex items-center gap-2">

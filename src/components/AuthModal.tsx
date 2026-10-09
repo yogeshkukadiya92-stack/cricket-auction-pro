@@ -8,6 +8,8 @@ import {
   ArrowRight,
   AlertCircle,
   CheckCircle2,
+  Sparkles,
+  Shield,
 } from 'lucide-react';
 import { User } from '../types';
 
@@ -25,6 +27,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   initialMode = 'LOGIN',
 }) => {
   const [mode, setMode] = useState<'LOGIN' | 'REGISTER'>(initialMode);
+  const [role, setRole] = useState<'ORGANIZER' | 'USER'>('ORGANIZER');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -33,6 +36,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   if (!isOpen) return null;
+
+  const handleQuickLogin = async (demoEmail: string, demoPass: string) => {
+    setError(null);
+    setSuccessMsg(null);
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: demoEmail, password: demoPass }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Quick login failed.');
+      }
+      setSuccessMsg(`Logged in as ${data.user.name}`);
+      setTimeout(() => {
+        onSuccess(data.user);
+        onClose();
+      }, 500);
+    } catch (err: any) {
+      setError(err.message || 'Quick login failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,22 +197,63 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           )}
 
           {mode === 'REGISTER' && (
-            <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                Full Name / Organizer Name <span className="text-amber-400">*</span>
-              </label>
-              <div className="relative">
-                <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Virat Patel (Premier League)"
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/50 transition"
-                />
+            <>
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                  I want to join as <span className="text-amber-400">*</span>
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setRole('ORGANIZER')}
+                    className={`p-2.5 rounded-xl border text-left transition ${
+                      role === 'ORGANIZER'
+                        ? 'bg-amber-500/15 border-amber-500/60 text-amber-300 shadow-sm'
+                        : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 text-xs font-bold mb-0.5">
+                      <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Organizer</span>
+                    </div>
+                    <p className="text-[10px] text-slate-400">Host & manage leagues</p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setRole('USER')}
+                    className={`p-2.5 rounded-xl border text-left transition ${
+                      role === 'USER'
+                        ? 'bg-cyan-500/15 border-cyan-500/60 text-cyan-300 shadow-sm'
+                        : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 text-xs font-bold mb-0.5">
+                      <UserIcon className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Player / User</span>
+                    </div>
+                    <p className="text-[10px] text-slate-400">Join & track my auctions</p>
+                  </button>
+                </div>
               </div>
-            </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                  {role === 'ORGANIZER' ? 'Full Name / Committee Name' : 'Player Full Name'} <span className="text-amber-400">*</span>
+                </label>
+                <div className="relative">
+                  <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <input
+                    type="text"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder={role === 'ORGANIZER' ? "e.g. Surat Premier League Committee" : "e.g. Rohit Sharma"}
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/50 transition"
+                  />
+                </div>
+              </div>
+            </>
           )}
 
           <div>
@@ -234,13 +304,59 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <span className="inline-block w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
             ) : (
               <>
-                <span>{mode === 'LOGIN' ? 'Sign In to Workspace' : 'Create My Account'}</span>
+                <span>{mode === 'LOGIN' ? 'Sign In to Workspace' : `Create ${role === 'USER' ? 'Player' : 'Organizer'} Account`}</span>
                 <ArrowRight className="w-4 h-4" />
               </>
             )}
           </button>
         </form>
 
+        {/* Quick Demo Access Section */}
+        <div className="p-6 pt-2 border-t border-slate-800/80 bg-slate-950/40">
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <span className="text-[11px] uppercase tracking-wider font-bold text-slate-400">
+              Quick 1-Click Demo Login
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={() => handleQuickLogin('admin@cricketauction.pro', 'admin123')}
+              className="p-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-xl text-left transition group"
+            >
+              <div className="flex items-center gap-1 text-amber-400 text-[11px] font-bold mb-0.5">
+                <Shield className="w-3 h-3" />
+                <span>Super Admin</span>
+              </div>
+              <p className="text-[9px] text-slate-400 truncate">admin@...</p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleQuickLogin('organizer@cricketauction.pro', 'user123')}
+              className="p-2 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 rounded-xl text-left transition group"
+            >
+              <div className="flex items-center gap-1 text-cyan-400 text-[11px] font-bold mb-0.5">
+                <Trophy className="w-3 h-3" />
+                <span>Organizer</span>
+              </div>
+              <p className="text-[9px] text-slate-400 truncate">organizer@...</p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleQuickLogin('player@cricketauction.pro', 'player123')}
+              className="p-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-xl text-left transition group"
+            >
+              <div className="flex items-center gap-1 text-emerald-400 text-[11px] font-bold mb-0.5">
+                <UserIcon className="w-3 h-3" />
+                <span>Player / User</span>
+              </div>
+              <p className="text-[9px] text-slate-400 truncate">player@...</p>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

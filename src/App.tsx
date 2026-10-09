@@ -12,10 +12,12 @@ import {
   BidRecord,
   ViewMode,
   User,
+  AppPortal,
 } from './types';
 import { Navbar } from './components/Navbar';
 import { TournamentDashboardView } from './components/TournamentDashboardView';
 import { TournamentsListView } from './components/TournamentsListView';
+import { UserPortalView } from './components/UserPortalView';
 import { TournamentModal } from './components/TournamentModal';
 import { StageView } from './components/StageView';
 import { AuctioneerConsole } from './components/AuctioneerConsole';
@@ -71,13 +73,43 @@ export function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
+  // Two-Portal Platform Architecture: 'ORGANIZER' vs 'USER'
+  const [activePortal, setActivePortal] = useState<AppPortal>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const portalParam = params.get('portal');
+      if (portalParam === 'user' || portalParam === 'player') return 'USER';
+      if (portalParam === 'organizer' || portalParam === 'admin') return 'ORGANIZER';
+      if (params.get('mode') === 'user' || params.get('mode') === 'portal') return 'USER';
+    }
+    const savedPortal = localStorage.getItem('cap_active_portal');
+    if (savedPortal === 'USER' || savedPortal === 'ORGANIZER') return savedPortal;
+    const savedUser = localStorage.getItem('cap_current_user');
+    if (savedUser) {
+      try {
+        const u = JSON.parse(savedUser);
+        if (u.role === 'USER') return 'USER';
+      } catch {}
+    }
+    return 'ORGANIZER';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('cap_active_portal', activePortal);
+  }, [activePortal]);
+
   const handleLoginSuccess = (user: User) => {
     setCurrentUser(user);
     setIsAuthModalOpen(false);
     if (user.role === 'ADMIN') {
+      setActivePortal('ORGANIZER');
       setViewMode('ADMIN_PANEL');
+    } else if (user.role === 'USER') {
+      setActivePortal('USER');
+      setViewMode('USER_PORTAL');
     } else {
-      setViewMode('TOURNAMENTS');
+      setActivePortal('ORGANIZER');
+      setViewMode('TOURNAMENT_OVERVIEW');
     }
   };
 
@@ -95,7 +127,11 @@ export function App() {
     setTournaments([]);
     setTeams([]);
     setPlayers([]);
-    setViewMode('TOURNAMENTS');
+    if (activePortal === 'USER') {
+      setViewMode('USER_PORTAL');
+    } else {
+      setViewMode('TOURNAMENTS');
+    }
   };
 
   // Multiple Tournaments state
@@ -803,10 +839,82 @@ export function App() {
         onOpenAuthModal={() => setIsAuthModalOpen(true)}
         onLogout={handleLogout}
         onOpenFortuneWheel={() => setIsFortuneWheelOpen(true)}
+        activePortal={activePortal}
+        onSelectPortal={(portal) => {
+          setActivePortal(portal);
+          if (portal === 'USER') {
+            setViewMode('USER_PORTAL');
+          } else {
+            setViewMode('TOURNAMENT_OVERVIEW');
+          }
+        }}
       />
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+
+        {/* PART 2: USER / PLAYER PORTAL */}
+        {(activePortal === 'USER' || viewMode === 'USER_PORTAL') && viewMode !== 'ADMIN_PANEL' && (
+          <UserPortalView
+            tournaments={tournaments}
+            teams={teams}
+            players={players}
+            currentUser={currentUser}
+            onSelectTournament={handleSelectTournament}
+            onOpenRegisterForTournament={(t) => {
+              handleSelectTournament(t.id);
+              setViewMode('PUBLIC_REGISTER');
+            }}
+            onOpenSpectatorForTournament={(t) => {
+              handleSelectTournament(t.id);
+              setViewMode('PUBLIC_SUMMARY');
+            }}
+            onSwitchToOrganizerPortal={() => {
+              setActivePortal('ORGANIZER');
+              setViewMode('TOURNAMENT_OVERVIEW');
+            }}
+            onOpenAuthModal={() => setIsAuthModalOpen(true)}
+            onUpdateCurrentUser={(updated) => setCurrentUser(updated)}
+          />
+        )}
+
+        {/* PART 1: ORGANIZER PORTAL SUITE */}
+        {activePortal === 'ORGANIZER' && viewMode !== 'USER_PORTAL' && (
+          <>
+            {viewMode === 'ADMIN_PANEL' && (
+          currentUser?.role === 'ADMIN' ? (
+            <AdminPanelView
+              currentUser={currentUser}
+              tournaments={tournaments}
+              onSelectTournament={(t) => {
+                handleSelectTournament(t.id);
+              }}
+              onBackToApp={() => setViewMode('TOURNAMENT_OVERVIEW')}
+              onRefreshData={() => {
+                dbService.fetchBootstrapData().then((data) => {
+                  if (data?.tournaments) setTournaments(data.tournaments);
+                  if (data?.teams) setTeams(data.teams);
+                  if (data?.players) setPlayers(data.players);
+                });
+              }}
+              onLogout={handleLogout}
+            />
+          ) : (
+            <div className="p-8 text-center space-y-4 max-w-md mx-auto my-12 bg-slate-900/60 border border-slate-800 rounded-3xl">
+              <h3 className="text-xl font-bold text-rose-400">Super Admin Access Required</h3>
+              <p className="text-xs text-slate-400">
+                You must be signed in with a Super Administrator account to view and manage platform data.
+              </p>
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold rounded-xl text-xs shadow-lg shadow-amber-500/20"
+              >
+                Sign In as Admin
+              </button>
+            </div>
+          )
+        )}
+
         {viewMode === 'TOURNAMENT_OVERVIEW' && (
           <TournamentDashboardView
             tournament={tournament}
@@ -961,6 +1069,8 @@ export function App() {
             onResetAuction={handleResetAuction}
           />
         )}
+      </>
+    )}
       </main>
 
       {/* Create / Edit Tournament Modal */}

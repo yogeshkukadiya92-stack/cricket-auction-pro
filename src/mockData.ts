@@ -159,7 +159,85 @@ export const initialTeams: Team[] = [
   },
 ];
 
-// Completely clean for Live Production - No Demo Players!
-export const initialPlayers: Player[] = [];
+export const secondTournament: Tournament = {
+  id: 'tourney-mumbai-2026',
+  name: 'Mumbai T20 Champions League',
+  year: 2026,
+  season: 'Season 3',
+  status: 'UPCOMING',
+  logoUrl: '',
+  sponsor: 'Jio Platforms',
+  coSponsors: 'CEAT, Gulf Oil',
+  defaultBasePrice: 30000,
+  startDate: '2026-12-05',
+  endDate: '2026-12-20',
+  ground: 'Wankhede Stadium',
+  city: 'Mumbai',
+  expectedTeamsCount: 6,
+  ballType: 'Leather Ball',
+  totalPursePerTeam: 2000000,
+  registrationOpen: true,
+  registrationFee: 800,
+  registrationDeadline: '2026-11-25',
+  sportType: 'CRICKET',
+};
 
-export const initialTournaments: Tournament[] = [initialTournament];
+export const thirdTournament: Tournament = {
+  id: 'tourney-surat-2026',
+  name: 'Surat Diamond Corporate League',
+  year: 2026,
+  season: 'Season 2',
+  status: 'UPCOMING',
+  logoUrl: '',
+  sponsor: 'Kiran Gems',
+  defaultBasePrice: 15000,
+  startDate: '2027-01-10',
+  endDate: '2027-01-25',
+  ground: 'Lalbhai Contractor Stadium',
+  city: 'Surat',
+  expectedTeamsCount: 10,
+  ballType: 'Tennis Ball',
+  totalPursePerTeam: 500000,
+  registrationOpen: true,
+  registrationFee: 300,
+  registrationDeadline: '2027-01-01',
+  sportType: 'CRICKET',
+};
+
+export const initialPlayers: Player[] = [
+  {
+    id: 'ply-sample-rohit',
+    tournamentId: 'tourney-live-2026',
+    name: 'Rohit Sharma (Player)',
+    email: 'player@cricketauction.pro',
+    mobile: '+91 98250 12345',
+    city: 'Surat',
+    role: 'BATSMAN',
+    battingStyle: 'Right Hand Batsman',
+    bowlingStyle: 'Right Arm Off Break',
+    basePrice: 50000,
+    category: 'MARQUEE',
+    stats: {
+      matches: 48,
+      runs: 1650,
+      wickets: 8,
+      strikeRate: 148.5,
+    },
+    status: 'SOLD',
+    soldToTeamId: 'team-srt',
+    soldPrice: 185000,
+    lotOrder: 1,
+    approvalStatus: 'APPROVED',
+    paymentStatus: 'VERIFIED',
+    paymentUtr: 'UPI-202610-88992',
+    paymentAmount: 500,
+    photoUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&auto=format&fit=crop&q=80',
+  },
+];
+
+export const initialTournaments: Tournament[] = [
+  initialTournament,
+  secondTournament,
+  thirdTournament,
+];
+

@@ -135,16 +135,20 @@ export interface Tournament {
   sportType?: 'CRICKET' | 'FOOTBALL' | 'KABADDI' | 'VOLLEYBALL' | 'OTHER';
 }
 
-export type UserRole = 'ADMIN' | 'ORGANIZER';
+export type UserRole = 'ADMIN' | 'ORGANIZER' | 'USER';
+
+export type AppPortal = 'ORGANIZER' | 'USER';
 
 export interface User {
   id: string;
   name: string;
   email: string;
+  mobile?: string;
   role: UserRole;
   status: 'ACTIVE' | 'BLOCKED';
   createdAt?: string;
   tournamentsCount?: number;
+  playerProfile?: Partial<Player>;
 }
 
 export type ViewMode =
@@ -163,4 +167,6 @@ export type ViewMode =
   | 'PUBLIC_SUMMARY'
   | 'PUBLIC_REGISTRATIONS'
   | 'ADMIN_PANEL'
+  | 'USER_PORTAL'
   | 'PLAYER';
+
