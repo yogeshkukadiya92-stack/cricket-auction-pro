@@ -4,18 +4,20 @@ const tournamentFields = ['id', 'name', 'season', 'year', 'sponsor', 'ground', '
 const playerFields = ['id', 'name', 'role', 'battingStyle', 'bowlingStyle', 'city', 'basePrice', 'stats', 'approvalStatus', 'status', 'registeredAt'];
 // Project public fields in PostgreSQL so photos and private form responses never
 // travel through the directory query. The existing tournament/id keys cover these reads.
-const projection = fields => fields.map(field => `'${field}', data->'${field}'`).join(', ');
+export const publicProjection = fields => fields.map(field => `'${field}', data->'${field}'`).join(', ');
 const approved = "(coalesce(data->>'approvalStatus','') IN ('','APPROVED'))";
-const imageProjection = field => `CASE WHEN data->>'${field}' LIKE 'data:image/%' THEN NULL ELSE data->>'${field}' END AS image_url, (data->>'${field}' LIKE 'data:image/%') AS uploaded_image`;
+export const publicImageProjection = field => `CASE WHEN data->>'${field}' LIKE 'data:image/%' THEN NULL ELSE data->>'${field}' END AS image_url, (data->>'${field}' LIKE 'data:image/%') AS uploaded_image`;
+
+export const publicImageUrl = (row, path) => row.uploaded_image ? path : row.image_url || '';
 
 export function registerPublicDirectoryRoutes(app, { pool }) {
   const base = '/api/public/tournaments/:id/players-directory';
   app.get(base, async (req, res) => {
     res.set('Cache-Control', 'no-store');
     const root = `/api/public/tournaments/${encodeURIComponent(req.params.id)}/players-directory`;
-    const result = await pool.query(`SELECT jsonb_build_object(${projection(tournamentFields)}) AS data, ${imageProjection('logoUrl')} FROM tournaments WHERE id=$1`, [req.params.id]);
+    const result = await pool.query(`SELECT jsonb_build_object(${publicProjection(tournamentFields)}) AS data, ${publicImageProjection('logoUrl')} FROM tournaments WHERE id=$1`, [req.params.id]);
     if (!result.rowCount) return res.status(404).json({ error: 'Tournament not found' });
-    const rows = await pool.query(`SELECT jsonb_build_object(${projection(playerFields)}) AS data, ${imageProjection('photoUrl')} FROM players WHERE tournament_id=$1 AND ${approved} ORDER BY data->>'registeredAt' DESC NULLS LAST, id`, [req.params.id]);
+    const rows = await pool.query(`SELECT jsonb_build_object(${publicProjection(playerFields)}) AS data, ${publicImageProjection('photoUrl')} FROM players WHERE tournament_id=$1 AND ${approved} ORDER BY data->>'registeredAt' DESC NULLS LAST, id`, [req.params.id]);
     const row = result.rows[0];
     res.json({
       success: true,
@@ -34,6 +36,10 @@ export function registerPublicDirectoryRoutes(app, { pool }) {
   };
   app.get(`${base}/logo`, async (req, res) => {
     const result = await pool.query("SELECT data->>'logoUrl' AS image FROM tournaments WHERE id=$1", [req.params.id]);
+    sendImage(res, result.rows[0]?.image);
+  });
+  app.get(`${base}/teams/:teamId/logo`, async (req, res) => {
+    const result = await pool.query("SELECT data->>'logo' AS image FROM teams WHERE tournament_id=$1 AND id=$2", [req.params.id, req.params.teamId]);
     sendImage(res, result.rows[0]?.image);
   });
   app.get(`${base}/:playerId/photo`, async (req, res) => {

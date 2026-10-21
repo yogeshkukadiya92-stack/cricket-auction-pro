@@ -26,19 +26,26 @@ export const PlayerLiveAuction: React.FC<PlayerLiveAuctionProps> = ({ tournament
 
   useEffect(() => {
     let cancelled = false;
+    let refreshing = false;
+    let controller: AbortController | undefined;
     const refresh = async () => {
+      if (cancelled || refreshing || document.visibilityState === 'hidden') return;
+      refreshing = true;
+      controller = new AbortController();
+      const requestController = controller;
+      const timeout = window.setTimeout(() => requestController.abort(), 15000);
       try {
-        const res = await fetch(`/api/public/tournaments/${encodeURIComponent(tournamentId)}/summary`, { cache: 'no-store' });
+        const res = await fetch(`/api/public/tournaments/${encodeURIComponent(tournamentId)}/summary`, { cache: 'no-store', signal: requestController.signal });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Tournament unavailable');
         if (!cancelled) { setSummary(data); setError(''); }
       } catch (err) {
         if (!cancelled) setError((err as Error).message === 'Failed to fetch' ? 'Reconnecting…' : (err as Error).message);
-      }
+      } finally { window.clearTimeout(timeout); refreshing = false; }
     };
     void refresh();
     const timer = setInterval(() => { if (document.visibilityState === 'visible') void refresh(); }, 2000);
-    return () => { cancelled = true; clearInterval(timer); };
+    return () => { cancelled = true; controller?.abort(); clearInterval(timer); };
   }, [tournamentId]);
 
   if (!summary) {

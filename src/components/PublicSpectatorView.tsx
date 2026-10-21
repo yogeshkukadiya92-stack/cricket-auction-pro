@@ -251,7 +251,7 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {detailPlayers.map(player => (
                   <div key={player.id} className="flex gap-3 p-3 bg-slate-950 rounded-xl border border-slate-800">
-                    <img src={player.photoUrl || '/player-placeholder.svg'} alt={player.name} className="w-16 h-20 rounded-lg object-cover shrink-0" />
+                    <img loading="lazy" decoding="async" src={player.photoUrl || '/player-placeholder.svg'} alt={player.name} className="w-16 h-20 rounded-lg object-cover shrink-0" />
                     <div className="min-w-0 text-sm">
                       <h3 className="font-bold text-white break-words">{player.name}</h3>
                       <p className="text-xs text-slate-400">{player.role}</p>
@@ -362,7 +362,7 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
                         className="p-3 bg-slate-950 border border-slate-800 rounded-2xl flex items-center gap-3 relative overflow-hidden"
                       >
                         <div className="w-11 h-11 rounded-xl bg-slate-800 border border-slate-700 overflow-hidden shrink-0">
-                          <img src={p.photoUrl || "/player-placeholder.svg"} alt={p.name} className="w-full h-full object-cover" />
+                          <img loading="lazy" decoding="async" src={p.photoUrl || "/player-placeholder.svg"} alt={p.name} className="w-full h-full object-cover" />
                         </div>
                         <div className="truncate flex-1">
                           <div className="flex items-center justify-between">
@@ -414,7 +414,7 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
                     >
                       <div className="flex items-center gap-3 truncate">
                         <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 overflow-hidden shrink-0">
-                          <img src={player.photoUrl || "/player-placeholder.svg"} alt={player.name} className="w-full h-full object-cover" />
+                          <img loading="lazy" decoding="async" src={player.photoUrl || "/player-placeholder.svg"} alt={player.name} className="w-full h-full object-cover" />
                         </div>
                         <div className="truncate">
                           <h4 className="text-xs font-bold text-white truncate">{player.name}</h4>

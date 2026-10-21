@@ -287,20 +287,24 @@ function AppContent() {
     if (!id) return;
     let cancelled = false;
     let refreshing = false;
+    let controller: AbortController | undefined;
     const refresh = async () => {
       if (cancelled || refreshing || document.visibilityState === 'hidden') return;
       refreshing = true;
+      controller = new AbortController();
+      const requestController = controller;
+      const timeout = window.setTimeout(() => requestController.abort(), 15000);
       try {
-        const res = await fetch(`/api/public/tournaments/${encodeURIComponent(id)}/summary`, { cache: 'no-store' });
+        const res = await fetch(`/api/public/tournaments/${encodeURIComponent(id)}/summary`, { cache: 'no-store', signal: requestController.signal });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Tournament unavailable');
         if (!cancelled) { consumeAuctionEvent(data.liveState?.lastEvent); setPublicSummary(data); setDataError(''); }
-      } catch (err) { if (!cancelled) setDataError((err as Error).message); }
-      finally { refreshing = false; }
+      } catch (err) { if (!cancelled) setDataError(requestController.signal.aborted ? 'Loading took too long. Please retry.' : (err as Error).message); }
+      finally { window.clearTimeout(timeout); refreshing = false; }
     };
     void refresh();
     const timer = setInterval(refresh, 2000);
-    return () => { cancelled = true; clearInterval(timer); };
+    return () => { cancelled = true; controller?.abort(); clearInterval(timer); };
   }, [viewMode]);
 
   // Load only the signed-in organizer's records from the server.
@@ -766,7 +770,7 @@ function AppContent() {
   }
 
   if (viewMode === 'PUBLIC_SUMMARY' && new URLSearchParams(window.location.search).has('tournamentId')) {
-    if (!publicSummary) return <main className="min-h-screen bg-obsidian-950 text-white grid place-items-center">{dataError || 'Loading tournament…'}</main>;
+    if (!publicSummary) return <main className="min-h-screen bg-obsidian-950 text-white grid place-items-center"><div role="status">{dataError || 'Loading tournament…'}{dataError && <button className="ml-4 underline" onClick={() => window.location.reload()}>Retry</button>}</div></main>;
     return <><div role="status" className="bg-slate-950 text-amber-300 text-center">{dataError}</div><PublicSpectatorView tournament={publicSummary.tournament} teams={publicSummary.teams} players={publicSummary.players} registrationStats={publicSummary.registrationStats} registrationPlayers={publicSummary.registrationPlayers} currentPlayer={publicSummary.players.find(p => p.id === (publicSummary as any).liveState?.currentPlayerId)} currentBid={(publicSummary as any).liveState?.currentBid} leadingTeam={publicSummary.teams.find(t => t.id === (publicSummary as any).liveState?.leadingTeam?.id)} bidsHistory={(publicSummary as any).liveState?.bidsHistory || []} /></>;
   }
   if (viewMode === 'OBS' && new URLSearchParams(window.location.search).has('tournamentId')) {
