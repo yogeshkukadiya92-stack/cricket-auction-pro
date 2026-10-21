@@ -1,3 +1,4 @@
+import { StageAuctionSummary } from './StageAuctionSummary';
 import { StageBidControls } from './StageBidControls';
 import { PlayerAuctionHistory } from './PlayerAuctionHistory';
 import { formatAuctionPrice } from '../utils/currency';
@@ -48,6 +49,8 @@ export const StageView: React.FC<StageViewProps> = ({
   allPlayers = [], rules, auctionBusy = false, onPlaceBid, onSold, onUnsold, onUndoBid, onNextPlayer,
 }) => {
   const stageControls = rules && onPlaceBid ? <StageBidControls teams={allTeams} players={allPlayers} rules={rules} currentPlayer={currentPlayer} currentBid={currentBid} leadingTeam={leadingTeam} busy={auctionBusy || isSold || isUnsold} onBid={onPlaceBid} onSold={onSold} onUnsold={onUnsold} onUndo={onUndoBid} onNext={onNextPlayer} /> : null;
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const summaryButton = <button type="button" onClick={() => setSummaryOpen(true)} className="rounded-xl bg-gold-500 px-4 py-2.5 text-black text-sm font-black">Summary · {allPlayers.filter(p => p.status === 'SOLD').length}/{allPlayers.length} sold</button>;
   const [linkCopied, setLinkCopied] = useState(false);
   const [shareError, setShareError] = useState(false);
   const shareLive = async () => {
@@ -124,6 +127,8 @@ export const StageView: React.FC<StageViewProps> = ({
 
   const displayPlayer = isSold && lastSoldInfo ? lastSoldInfo.player : currentPlayer;
 
+  if (summaryOpen) return <StageAuctionSummary players={allPlayers} teams={allTeams} tournamentName={tournamentName} currency={currency} onBack={() => setSummaryOpen(false)} />;
+
   if (!displayPlayer) {
     return (
       <div className="min-h-[75vh] flex flex-col items-center justify-center text-center p-8 glass-panel rounded-3xl border border-white/10 relative overflow-hidden stadium-beam">
@@ -139,6 +144,7 @@ export const StageView: React.FC<StageViewProps> = ({
         <p className="text-slate-300 max-w-lg text-sm sm:text-base leading-relaxed">
           Draw the next player below to start bidding on this screen.
         </p>
+        <div className="mt-4">{summaryButton}</div>
         <div className="w-full max-w-4xl mt-6">{stageControls}</div>
         <div className="mt-6 flex items-center gap-2 text-xs font-bold text-slate-400">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -172,6 +178,7 @@ export const StageView: React.FC<StageViewProps> = ({
           </span>
         </div>
 
+        {summaryButton}
         {/* 15s Countdown Box */}
         <div className="flex items-center gap-3 bg-obsidian-950/80 px-4 py-2 rounded-2xl border border-white/10">
           <Timer className={`w-5 h-5 ${timeLeft <= 5 ? 'text-red-500 animate-bounce' : 'text-gold-400'}`} />
