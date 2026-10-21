@@ -1,3 +1,4 @@
+import { compressRecordImages } from './imageCompression.js';
 import { registerPublicSummaryRoutes } from './publicSummaryRoutes.js';
 import { approveRegistration, migrateAutomaticApproval } from '../shared/playerApproval.js';
 import { registerPublicDirectoryRoutes } from './publicDirectoryRoutes.js';
@@ -379,7 +380,7 @@ async function saveTournament(client, tournament, user) {
     const existing = await client.query('SELECT o.id,o.email FROM tournaments t JOIN organizers o ON o.id=t.organizer_id WHERE t.id=$1', [tournament.id]);
     if (existing.rowCount) owner = existing.rows[0];
   }
-  const data = { ...tournament, userId: owner.id, creatorEmail: owner.email };
+  const data = await compressRecordImages({ ...tournament, userId: owner.id, creatorEmail: owner.email }, ['logoUrl', 'gpayQrUrl']);
   const result = await client.query(`INSERT INTO tournaments(id,organizer_id,data) VALUES($1,$2,$3) ON CONFLICT(id) DO UPDATE SET data=CASE WHEN tournaments.data ? 'rules' THEN jsonb_set(excluded.data,'{rules}',tournaments.data->'rules') ELSE excluded.data END,updated_at=now() WHERE tournaments.organizer_id=$2 RETURNING id`, [data.id, owner.id, data]);
   if (!result.rowCount) throw Object.assign(new Error('Tournament belongs to another organizer'), { status: 403 });
 }
@@ -408,6 +409,7 @@ async function saveEntries(client, table, entries, userId, importing = false) {
       if (remainingPurse < 0) throw Object.assign(new Error('Team purse cannot be less than its purchases'), { status: 400 });
       data = { ...item, remainingPurse };
     }
+    data = await compressRecordImages(data, table === 'players' ? ['photoUrl', 'paymentScreenshotUrl'] : ['logo']);
     await client.query(`INSERT INTO ${table}(tournament_id,id,data) VALUES($1,$2,$3) ON CONFLICT(tournament_id,id) DO UPDATE SET data=excluded.data`, [item.tournamentId, item.id, data]);
     if (table === 'players') await savePlayerProfile(client, data);
   }
@@ -493,7 +495,8 @@ app.post('/api/public/tournaments/:id/register', limit, async (req, res) => {
   const mobile = normalizeMobile(player.mobile);
   if (!/^[6-9]\d{9}$/.test(mobile)) return bad(res, 400, "Enter a valid 10-digit Indian mobile number");
   const { soldToTeamId, soldPrice, ...safePlayer } = player;
-  const registered = { ...safePlayer, mobile, basePrice: tournament.defaultBasePrice || 20000, paymentAmount: tournament.registrationFee || 0, id: randomUUID(), tournamentId: req.params.id, approvalStatus: 'APPROVED', status: 'AVAILABLE', paymentStatus: 'PENDING', registeredAt: new Date().toISOString() };
+  const compressedPlayer = await compressRecordImages(safePlayer, ['photoUrl', 'paymentScreenshotUrl']);
+  const registered = { ...compressedPlayer, mobile, basePrice: tournament.defaultBasePrice || 20000, paymentAmount: tournament.registrationFee || 0, id: randomUUID(), tournamentId: req.params.id, approvalStatus: 'APPROVED', status: 'AVAILABLE', paymentStatus: 'PENDING', registeredAt: new Date().toISOString() };
   const client = await pool.connect();
   try {
     await client.query('BEGIN');

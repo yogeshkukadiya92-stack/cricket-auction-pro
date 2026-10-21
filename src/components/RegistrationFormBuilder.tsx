@@ -1,3 +1,4 @@
+import { processUploadedImage } from '../utils/imageUtils';
 import { RegistrationResponsesView } from './RegistrationResponsesView';
 import React, { useState } from 'react';
 import { Tournament, CustomFormField, FormFieldType } from '../types';
@@ -156,13 +157,7 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
   const handleQrUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          setGpayQrUrl(reader.result);
-        }
-      };
-      reader.readAsDataURL(file);
+      processUploadedImage(file, 1280, setGpayQrUrl);
     }
   };
 

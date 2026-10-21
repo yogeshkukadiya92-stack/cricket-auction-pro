@@ -1,3 +1,4 @@
+import { compressUploadedImage } from './imageCompression.js';
 import { decodeDataImage } from '../shared/playerAccess.js';
 
 const tournamentFields = ['id', 'name', 'season', 'year', 'sponsor', 'ground', 'city', 'registrationFee', 'registrationOpen', 'defaultBasePrice'];
@@ -26,24 +27,24 @@ export function registerPublicDirectoryRoutes(app, { pool }) {
     });
   });
 
-  const sendImage = (res, value) => {
+  const sendImage = async (res, value) => {
     // Recheck approval on every photo request, including after moderation changes.
     res.set('Cache-Control', 'no-store');
-    const image = decodeDataImage(value);
+    const image = decodeDataImage(await compressUploadedImage(value));
     if (!image) return res.status(404).json({ error: 'Image not found' });
     res.set('X-Content-Type-Options', 'nosniff');
     res.type(image.mime).send(image.buffer);
   };
   app.get(`${base}/logo`, async (req, res) => {
     const result = await pool.query("SELECT data->>'logoUrl' AS image FROM tournaments WHERE id=$1", [req.params.id]);
-    sendImage(res, result.rows[0]?.image);
+    await sendImage(res, result.rows[0]?.image);
   });
   app.get(`${base}/teams/:teamId/logo`, async (req, res) => {
     const result = await pool.query("SELECT data->>'logo' AS image FROM teams WHERE tournament_id=$1 AND id=$2", [req.params.id, req.params.teamId]);
-    sendImage(res, result.rows[0]?.image);
+    await sendImage(res, result.rows[0]?.image);
   });
   app.get(`${base}/:playerId/photo`, async (req, res) => {
     const result = await pool.query(`SELECT data->>'photoUrl' AS image FROM players WHERE tournament_id=$1 AND id=$2 AND ${approved}`, [req.params.id, req.params.playerId]);
-    sendImage(res, result.rows[0]?.image);
+    await sendImage(res, result.rows[0]?.image);
   });
 }
