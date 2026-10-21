@@ -1,3 +1,4 @@
+import { StageBidControls } from './StageBidControls';
 import { PlayerAuctionHistory } from './PlayerAuctionHistory';
 import { formatAuctionPrice } from '../utils/currency';
 import React, { useEffect, useState } from 'react';
@@ -22,6 +23,13 @@ interface StageViewProps {
   isUnsold: boolean;
   lastSoldInfo: { player: Player; team: Team; price: number } | null;
   onNextPlayer?: () => void;
+  allPlayers?: Player[];
+  rules?: import('../types').AuctionRules;
+  auctionBusy?: boolean;
+  onPlaceBid?: (team: Team, amount: number) => void;
+  onSold?: () => void;
+  onUnsold?: () => void;
+  onUndoBid?: () => void;
 }
 
 export const StageView: React.FC<StageViewProps> = ({
@@ -37,7 +45,9 @@ export const StageView: React.FC<StageViewProps> = ({
   isSold,
   isUnsold,
   lastSoldInfo,
+  allPlayers = [], rules, auctionBusy = false, onPlaceBid, onSold, onUnsold, onUndoBid, onNextPlayer,
 }) => {
+  const stageControls = rules && onPlaceBid ? <StageBidControls teams={allTeams} players={allPlayers} rules={rules} currentPlayer={currentPlayer} currentBid={currentBid} leadingTeam={leadingTeam} busy={auctionBusy || isSold || isUnsold} onBid={onPlaceBid} onSold={onSold} onUnsold={onUnsold} onUndo={onUndoBid} onNext={onNextPlayer} /> : null;
   const [linkCopied, setLinkCopied] = useState(false);
   const [shareError, setShareError] = useState(false);
   const shareLive = async () => {
@@ -127,8 +137,9 @@ export const StageView: React.FC<StageViewProps> = ({
           AUCTION STAGE READY
         </h2>
         <p className="text-slate-300 max-w-lg text-sm sm:text-base leading-relaxed">
-          To begin bidding, summon a player to the podium from the <strong>Auctioneer Desk</strong> (use Random Draw or select a player).
+          Draw the next player below to start bidding on this screen.
         </p>
+        <div className="w-full max-w-4xl mt-6">{stageControls}</div>
         <div className="mt-6 flex items-center gap-2 text-xs font-bold text-slate-400">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
           <span>Real-time Broadcast & Multi-Device Sync Active</span>
@@ -291,27 +302,8 @@ export const StageView: React.FC<StageViewProps> = ({
             )}
           </div>
 
-          {/* Quick Franchise Status Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-2">
-            {allTeams.map((team) => (
-              <div
-                key={team.id}
-                className={`p-2.5 rounded-xl border text-center transition-all ${
-                  leadingTeam?.id === team.id
-                    ? 'border-gold-400 bg-gold-500/10 shadow-glow-gold'
-                    : 'border-white/5 bg-white/[0.02]'
-                }`}
-              >
-                <div className="w-8 h-8 mx-auto mb-1 flex items-center justify-center overflow-hidden">
-                  <TeamLogo logo={team.logo} name={team.name} className="w-full h-full text-xl" />
-                </div>
-                <div className="text-xs font-bold text-white truncate">{team.shortCode}</div>
-                <div className="text-[10px] text-slate-400 font-medium">
-                  {formatPrice(team.remainingPurse)}
-                </div>
-              </div>
-            ))}
-          </div>
+          {stageControls}
+
         </div>
       </div>
 

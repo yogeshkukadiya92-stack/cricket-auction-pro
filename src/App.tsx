@@ -67,6 +67,7 @@ function AppContent() {
   const serverPlayers = useRef('');
   const [saveMessage, setSaveMessage] = useState('');
   const [auctionError, setAuctionError] = useState('');
+  const [auctionBusy, setAuctionBusy] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [dataReady, setDataReady] = useState(false);
   const [liveReady, setLiveReady] = useState(false);
@@ -511,6 +512,7 @@ function AppContent() {
   const runAuctionCommand = async (action: string, extra: Record<string, unknown> = {}) => {
     if (settling.current || !liveReady) return;
     settling.current = true;
+    setAuctionBusy(true);
     const id = activeTournamentId;
     mutationRevision.current++;
     try {
@@ -524,7 +526,7 @@ function AppContent() {
       applyAuctionSnapshot(data, id);
       setAuctionError('');
     } catch (error) { setAuctionError((error as Error).message); }
-    finally { settling.current = false; }
+    finally { settling.current = false; setAuctionBusy(false); }
   };
   const handlePlaceBid = (team: Team, amount: number) => { void runAuctionCommand('BID', { teamId: team.id, amount }); };
   const handleSold = () => { void runAuctionCommand('SOLD', { teamId: leadingTeam?.id, amount: currentBid }); };
@@ -1013,6 +1015,13 @@ function AppContent() {
             isSold={isSold}
             isUnsold={isUnsold}
             lastSoldInfo={lastSoldInfo}
+            allPlayers={activePlayers}
+            rules={rules}
+            auctionBusy={auctionBusy || !liveReady}
+            onPlaceBid={handlePlaceBid}
+            onSold={handleSold}
+            onUnsold={handleUnsold}
+            onUndoBid={handleUndoBid}
             onNextPlayer={handleRandomDraw}
           />
         )}
