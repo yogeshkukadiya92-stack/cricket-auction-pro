@@ -21,7 +21,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { Tournament, Player, PlayerRole } from '../types';
-import { initialTournaments, initialPlayers } from '../mockData';
+
 
 interface PublicPlayerInfo {
   id: string;
@@ -83,162 +83,60 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
     return new URLSearchParams(window.location.search).get('tournamentId') || '';
   }, []);
 
+  const [retryKey, setRetryKey] = useState(0);
+
   useEffect(() => {
     let isMounted = true;
-    const controller = new AbortController();
-
+    let inFlight = false;
+    let controller: AbortController | undefined;
     const fetchPublicData = async () => {
+      if (inFlight) return;
       if (!tournamentId) {
-        // If no tournament ID in URL, check fallback data
-        const fallbackT = fallbackTournaments[0] || initialTournaments[0];
-        if (fallbackT) {
-          setTournament({
-            id: fallbackT.id,
-            name: fallbackT.name,
-            season: fallbackT.season,
-            year: fallbackT.year,
-            logoUrl: fallbackT.logoUrl,
-            sponsor: fallbackT.sponsor,
-            ground: fallbackT.ground,
-            city: fallbackT.city,
-            registrationFee: fallbackT.registrationFee,
-            registrationOpen: fallbackT.registrationOpen !== false,
-            defaultBasePrice: fallbackT.defaultBasePrice,
-          });
-          const matchPlayers = fallbackPlayers.length > 0 ? fallbackPlayers : initialPlayers;
-          setPlayers(
-            matchPlayers.map((p) => ({
-              id: p.id,
-              name: p.name,
-              photoUrl: p.photoUrl,
-              role: p.role,
-              battingStyle: p.battingStyle,
-              bowlingStyle: p.bowlingStyle,
-              city: p.city,
-              basePrice: p.basePrice,
-              stats: p.stats,
-              approvalStatus: p.approvalStatus || 'APPROVED',
-              status: p.status,
-              registeredAt: p.registeredAt,
-            }))
-          );
-          setLoading(false);
-          return;
-        }
-        setError('Tournament ID is required in link.');
+        const fallback = fallbackTournaments[0];
+        if (fallback) {
+          setTournament(fallback);
+          setPlayers(fallbackPlayers.filter(p => p.tournamentId === fallback.id));
+        } else setError('Tournament ID is required in link.');
         setLoading(false);
         return;
       }
-
+      inFlight = true;
+      controller = new AbortController();
+      const requestController = controller;
+      const timeout = window.setTimeout(() => requestController.abort(), 20000);
       try {
         const response = await fetch(
           `/api/public/tournaments/${encodeURIComponent(tournamentId)}/players-directory`,
-          { cache: 'no-store', signal: controller.signal }
+          { cache: 'no-store', signal: requestController.signal }
         );
-
-        if (response.ok) {
-          const resData = await response.json();
-          if (isMounted) {
-            setTournament(resData.tournament);
-            setPlayers(resData.players || []);
-            setError('');
-            setLoading(false);
-          }
-          return;
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Could not load players. Please retry.');
+        if (!data.success || !data.tournament || !Array.isArray(data.players)) throw new Error('Invalid directory response. Please retry.');
+        if (isMounted) {
+          setTournament(data.tournament);
+          setPlayers(data.players);
+          setError('');
         }
-      } catch (err: any) {
-        if (controller.signal.aborted) return;
-      }
-
-      // Offline / LocalStorage / Fallback recovery
-      if (isMounted) {
-        try {
-          let foundTournament: any = null;
-          let foundPlayers: any[] = [];
-
-          // 1. Check passed props
-          foundTournament = fallbackTournaments.find((t) => t.id === tournamentId);
-          if (foundTournament) {
-            foundPlayers = fallbackPlayers.filter(
-              (p) => !p.tournamentId || p.tournamentId === tournamentId
-            );
-          }
-
-          // 2. Check localStorage
-          if (!foundTournament) {
-            const localTournaments = JSON.parse(
-              localStorage.getItem('cap_tournaments') || '[]'
-            );
-            foundTournament = localTournaments.find((t: any) => t.id === tournamentId);
-            const localPlayers = JSON.parse(
-              localStorage.getItem('cap_players') || '[]'
-            );
-            foundPlayers = localPlayers.filter(
-              (p: any) => !p.tournamentId || p.tournamentId === tournamentId
-            );
-          }
-
-          // 3. Fallback mock tournaments
-          if (!foundTournament) {
-            foundTournament = initialTournaments.find((t) => t.id === tournamentId) || initialTournaments[0];
-            foundPlayers = initialPlayers;
-          }
-
-          if (foundTournament) {
-            setTournament({
-              id: foundTournament.id,
-              name: foundTournament.name,
-              season: foundTournament.season,
-              year: foundTournament.year,
-              logoUrl: foundTournament.logoUrl,
-              sponsor: foundTournament.sponsor,
-              ground: foundTournament.ground,
-              city: foundTournament.city,
-              registrationFee: foundTournament.registrationFee,
-              registrationOpen: foundTournament.registrationOpen !== false,
-              defaultBasePrice: foundTournament.defaultBasePrice,
-            });
-            setPlayers(
-              foundPlayers.map((p) => ({
-                id: p.id,
-                name: p.name,
-                photoUrl: p.photoUrl,
-                role: p.role,
-                battingStyle: p.battingStyle,
-                bowlingStyle: p.bowlingStyle,
-                city: p.city,
-                basePrice: p.basePrice,
-                stats: p.stats,
-                approvalStatus: p.approvalStatus || 'APPROVED',
-                status: p.status,
-                registeredAt: p.registeredAt,
-              }))
-            );
-            setError('');
-          } else {
-            setError('Tournament details not found.');
-          }
-        } catch {
-          setError('Could not load tournament registrations.');
-        } finally {
-          setLoading(false);
-        }
+      } catch (err) {
+        if (isMounted) setError(requestController.signal.aborted
+          ? 'Loading took too long. Check your connection and retry.'
+          : (err as Error).message || 'Could not load players. Please retry.');
+      } finally {
+        window.clearTimeout(timeout);
+        inFlight = false;
+        if (isMounted) setLoading(false);
       }
     };
-
     void fetchPublicData();
-    const timer = setInterval(() => {
-      if (document.visibilityState === 'visible') {
-        void fetchPublicData();
-      }
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void fetchPublicData();
     }, 12000);
-
     return () => {
       isMounted = false;
-      controller.abort();
-      clearInterval(timer);
+      controller?.abort();
+      window.clearInterval(timer);
     };
-  }, [tournamentId, fallbackTournaments, fallbackPlayers]);
+  }, [tournamentId, fallbackTournaments, fallbackPlayers, retryKey]);
 
   // Filtered players
   const filteredPlayers = useMemo(() => {
@@ -533,13 +431,14 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
 
         {error && !loading && (
           <div className="p-6 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-center space-y-2">
-            <p className="font-bold">{error}</p>
+            <p role="alert" className="font-bold">{error}</p>
+            <button className="px-4 py-2 rounded-lg bg-rose-500/20 font-bold" onClick={() => { setError(''); setLoading(true); setRetryKey(key => key + 1); }}>Retry loading players</button>
             <p className="text-xs text-slate-400">Please verify the tournament link or check with the organizer.</p>
           </div>
         )}
 
         {/* Players Grid */}
-        {!loading && filteredPlayers.length === 0 && (
+        {!loading && !error && filteredPlayers.length === 0 && (
           <div className="p-16 text-center space-y-4 rounded-3xl bg-white/[0.02] border border-white/5">
             <div className="w-16 h-16 rounded-2xl bg-white/5 mx-auto grid place-items-center text-3xl">🏏</div>
             <h3 className="text-lg font-bold text-white">No registrations found</h3>

@@ -1,7 +1,5 @@
-import { OrganizerProfileView } from './components/OrganizerProfileView';
 import { OrganizerMobileNav } from './components/OrganizerMobileNav';
-import { RegistrationSummaryView } from './components/RegistrationSummaryView';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import {
   initialTournament,
   initialRules,
@@ -19,31 +17,34 @@ import {
 import { Navbar } from './components/Navbar';
 import { TournamentDashboardView } from './components/TournamentDashboardView';
 import { TournamentsListView } from './components/TournamentsListView';
-import { UserPortalView } from './components/UserPortalView';
-import { TournamentModal } from './components/TournamentModal';
-import { StageView } from './components/StageView';
-import { AuctioneerConsole } from './components/AuctioneerConsole';
-import { TeamPaddleView } from './components/TeamPaddleView';
-import { PlayerManagerView } from './components/PlayerManagerView';
-import { TeamsManagerView } from './components/TeamsManagerView';
-import { RulesSettingsView } from './components/RulesSettingsView';
-import { SquadSummaryView } from './components/SquadSummaryView';
-import { ObsOverlayView } from './components/ObsOverlayView';
-import { SoldPosterModal } from './components/SoldPosterModal';
-import { RegistrationFormBuilder } from './components/RegistrationFormBuilder';
-import { PublicRegistrationView } from './components/PublicRegistrationView';
 import { AuthModal } from './components/AuthModal';
-import { AdminPanelView } from './components/AdminPanelView';
-import { FortuneWheelModal } from './components/FortuneWheelModal';
-import { BulkPlayerUploadModal } from './components/BulkPlayerUploadModal';
-import { PublicSpectatorView } from './components/PublicSpectatorView';
 import { syncEngine, SyncAction } from './utils/syncEngine';
 import { dbService } from './services/dbService';
-import { DatabaseBackupModal } from './components/DatabaseBackupModal';
 import { ArrowLeft } from 'lucide-react';
-import { PlayerApp } from './components/player/PlayerApp';
 import { LandingScreen } from './components/LandingScreen';
-import { DeviceSimulatorView } from './components/DeviceSimulatorView';
+
+const OrganizerProfileView = lazy(() => import('./components/OrganizerProfileView').then(module => ({ default: module.OrganizerProfileView })));
+const RegistrationSummaryView = lazy(() => import('./components/RegistrationSummaryView').then(module => ({ default: module.RegistrationSummaryView })));
+const UserPortalView = lazy(() => import('./components/UserPortalView').then(module => ({ default: module.UserPortalView })));
+const TournamentModal = lazy(() => import('./components/TournamentModal').then(module => ({ default: module.TournamentModal })));
+const StageView = lazy(() => import('./components/StageView').then(module => ({ default: module.StageView })));
+const AuctioneerConsole = lazy(() => import('./components/AuctioneerConsole').then(module => ({ default: module.AuctioneerConsole })));
+const TeamPaddleView = lazy(() => import('./components/TeamPaddleView').then(module => ({ default: module.TeamPaddleView })));
+const PlayerManagerView = lazy(() => import('./components/PlayerManagerView').then(module => ({ default: module.PlayerManagerView })));
+const TeamsManagerView = lazy(() => import('./components/TeamsManagerView').then(module => ({ default: module.TeamsManagerView })));
+const RulesSettingsView = lazy(() => import('./components/RulesSettingsView').then(module => ({ default: module.RulesSettingsView })));
+const SquadSummaryView = lazy(() => import('./components/SquadSummaryView').then(module => ({ default: module.SquadSummaryView })));
+const ObsOverlayView = lazy(() => import('./components/ObsOverlayView').then(module => ({ default: module.ObsOverlayView })));
+const SoldPosterModal = lazy(() => import('./components/SoldPosterModal').then(module => ({ default: module.SoldPosterModal })));
+const RegistrationFormBuilder = lazy(() => import('./components/RegistrationFormBuilder').then(module => ({ default: module.RegistrationFormBuilder })));
+const PublicRegistrationView = lazy(() => import('./components/PublicRegistrationView').then(module => ({ default: module.PublicRegistrationView })));
+const AdminPanelView = lazy(() => import('./components/AdminPanelView').then(module => ({ default: module.AdminPanelView })));
+const FortuneWheelModal = lazy(() => import('./components/FortuneWheelModal').then(module => ({ default: module.FortuneWheelModal })));
+const BulkPlayerUploadModal = lazy(() => import('./components/BulkPlayerUploadModal').then(module => ({ default: module.BulkPlayerUploadModal })));
+const PublicSpectatorView = lazy(() => import('./components/PublicSpectatorView').then(module => ({ default: module.PublicSpectatorView })));
+const DatabaseBackupModal = lazy(() => import('./components/DatabaseBackupModal').then(module => ({ default: module.DatabaseBackupModal })));
+const PlayerApp = lazy(() => import('./components/player/PlayerApp').then(module => ({ default: module.PlayerApp })));
+const DeviceSimulatorView = lazy(() => import('./components/DeviceSimulatorView').then(module => ({ default: module.DeviceSimulatorView })));
 
 const PLAYER_ROLE_KEY = 'cap_app_role';
 /** Player area opens via ?mode=player, or automatically for someone who last used it on this device. */
@@ -54,7 +55,7 @@ const startsInPlayerMode = () => {
   try { return !mode && localStorage.getItem(PLAYER_ROLE_KEY) === 'player'; } catch { return false; }
 };
 
-export function App() {
+function AppContent() {
   const settling = useRef(false);
   const seenAuctionEvent = useRef('');
   const serverTournaments = useRef('');
@@ -285,13 +286,17 @@ export function App() {
     const id = new URLSearchParams(window.location.search).get('tournamentId');
     if (!id) return;
     let cancelled = false;
+    let refreshing = false;
     const refresh = async () => {
+      if (cancelled || refreshing || document.visibilityState === 'hidden') return;
+      refreshing = true;
       try {
         const res = await fetch(`/api/public/tournaments/${encodeURIComponent(id)}/summary`, { cache: 'no-store' });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Tournament unavailable');
         if (!cancelled) { consumeAuctionEvent(data.liveState?.lastEvent); setPublicSummary(data); setDataError(''); }
       } catch (err) { if (!cancelled) setDataError((err as Error).message); }
+      finally { refreshing = false; }
     };
     void refresh();
     const timer = setInterval(refresh, 2000);
@@ -424,7 +429,7 @@ export function App() {
         case 'PLAYER_REJECTED':
           setPlayers((prev) =>
             prev.map((p) =>
-              p.id === action.payload.playerId ? { ...p, approvalStatus: 'REJECTED' } : p
+              p.id === action.payload.playerId ? { ...p, approvalStatus: 'APPROVED' } : p
             )
           );
           break;
@@ -521,14 +526,17 @@ export function App() {
   useEffect(() => {
     if (!dataReady || !activeTournamentId || !['STAGE', 'AUCTIONEER', 'PADDLE', 'OBS', 'PUBLIC_SUMMARY', 'PLAYERS', 'TOURNAMENT_OVERVIEW'].includes(viewMode)) return;
     let cancelled = false;
+    let refreshing = false;
     const refresh = async () => {
-      if (settling.current || dbService.hasPending()) return;
+      if (cancelled || refreshing || document.visibilityState === 'hidden' || settling.current || dbService.hasPending()) return;
+      refreshing = true;
       try {
         const response = await fetch(`/api/tournaments/${encodeURIComponent(activeTournamentId)}/snapshot`, { cache: 'no-store' });
         if (!response.ok) return;
         const data = await response.json();
         if (!cancelled && !settling.current && !dbService.hasPending()) applyAuctionSnapshot(data, activeTournamentId);
       } catch { /* Existing data stays visible until the next successful refresh. */ }
+      finally { refreshing = false; }
     };
     const timer = setInterval(refresh, 2000);
     return () => { cancelled = true; clearInterval(timer); };
@@ -691,35 +699,6 @@ export function App() {
     applyAuctionSnapshot(await snapshot.json(), activeTournamentId);
   };
   const handleDeletePlayer = (playerId: string) => { void handlePlayerCorrection('DELETE', playerId).catch(error => setSaveMessage(error.message)); };
-
-  const handleApprovePlayer = (playerId: string) => {
-    setPlayers((prev) =>
-      prev.map((p) =>
-        p.id === playerId
-          ? { ...p, approvalStatus: 'APPROVED' }
-          : p
-      )
-    );
-    syncEngine.broadcast({
-      type: 'PLAYER_APPROVED',
-      payload: { playerId },
-    });
-    alert('✅ Player approved and added to the official auction lot!');
-  };
-
-  const handleRejectPlayer = (playerId: string) => {
-    if (confirm('Are you sure you want to reject this registration?')) {
-      setPlayers((prev) =>
-        prev.map((p) =>
-          p.id === playerId ? { ...p, approvalStatus: 'REJECTED' } : p
-        )
-      );
-      syncEngine.broadcast({
-        type: 'PLAYER_REJECTED',
-        payload: { playerId },
-      });
-    }
-  };
 
   const handleRegisterPlayer = async (newPlayer: Player): Promise<Player> => {
     if (!publicTournament) throw new Error('Tournament is unavailable');
@@ -965,8 +944,6 @@ export function App() {
               setEditingTournamentData(null);
               setIsTournamentModalOpen(true);
             }}
-            onApprovePlayer={handleApprovePlayer}
-            onRejectPlayer={handleRejectPlayer}
             onOpenFortuneWheel={() => setIsFortuneWheelOpen(true)}
             onOpenBulkUploadModal={() => setIsBulkUploadModalOpen(true)}
           />
@@ -1056,8 +1033,6 @@ export function App() {
             onBulkAddPlayers={handleBulkAddPlayers}
             onDeletePlayer={handleDeletePlayer}
             onNavigateToFormBuilder={() => setViewMode('FORM_BUILDER')}
-            onApprovePlayer={handleApprovePlayer}
-            onRejectPlayer={handleRejectPlayer}
             onVerifyPayment={(id) => setPlayers(prev => prev.map(p => p.id === id && p.paymentScreenshotUrl ? { ...p, paymentStatus: 'VERIFIED' } : p))}
           />
         )}
@@ -1108,7 +1083,7 @@ export function App() {
       </main>
 
       {/* Create / Edit Tournament Modal */}
-      <TournamentModal
+      {isTournamentModalOpen && (<TournamentModal
         isOpen={isTournamentModalOpen}
         initialData={editingTournamentData}
         onSave={(data) => {
@@ -1122,7 +1097,7 @@ export function App() {
           setIsTournamentModalOpen(false);
           setEditingTournamentData(null);
         }}
-      />
+      />)}
 
       {/* Social Media Poster Modal */}
       {posterData && (
@@ -1136,7 +1111,7 @@ export function App() {
       )}
 
       {/* SQLite Database Backup & Status Modal */}
-      <DatabaseBackupModal
+      {isDbModalOpen && (<DatabaseBackupModal
         isOpen={isDbModalOpen}
         onClose={() => setIsDbModalOpen(false)}
         tournamentsCount={tournaments.length}
@@ -1149,7 +1124,7 @@ export function App() {
             if (data?.players) setPlayers(data.players);
           });
         }}
-      />
+      />)}
 
       {/* Auth Modal (Sign In / Register / Quick 1-Click Demo) */}
       <AuthModal
@@ -1159,22 +1134,22 @@ export function App() {
       />
 
       {/* Interactive Fortune Wheel Modal */}
-      <FortuneWheelModal
+      {isFortuneWheelOpen && (<FortuneWheelModal
         isOpen={isFortuneWheelOpen}
         onClose={() => setIsFortuneWheelOpen(false)}
         teams={activeTeams}
         players={activePlayers}
         onSelectPlayer={handleSelectPlayer}
-      />
+      />)}
 
       {/* Excel / CSV Bulk Player Upload Modal */}
-      <BulkPlayerUploadModal
+      {isBulkUploadModalOpen && (<BulkPlayerUploadModal
         isOpen={isBulkUploadModalOpen}
         onClose={() => setIsBulkUploadModalOpen(false)}
         tournamentId={tournament.id}
         defaultBasePrice={tournament.defaultBasePrice}
         onBulkAddPlayers={handleBulkAddPlayers}
-      />
+      />)}
 
       {/* Offline Alert Network Banner */}
 
@@ -1184,6 +1159,10 @@ export function App() {
       </footer>
     </div>
   );
+}
+
+export function App() {
+  return <Suspense fallback={<main role="status" className="min-h-screen bg-obsidian-950 text-white grid place-items-center">Loading…</main>}><AppContent /></Suspense>;
 }
 
 export default App;

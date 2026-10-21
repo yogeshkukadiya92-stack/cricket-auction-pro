@@ -161,7 +161,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
         strikeRate: Number(strikeRate),
       },
       status: 'AVAILABLE',
-      approvalStatus: 'PENDING',
+      approvalStatus: 'APPROVED',
       registeredAt: new Date().toISOString(),
       lotOrder: Math.floor(Math.random() * 900) + 100,
       customData: customValues,
@@ -626,7 +626,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                   </div>
 
                   <p className="text-xs text-slate-300 leading-relaxed">
-                    Transfer <strong>₹{regFee}</strong> to the <strong>Google Pay Scanner</strong> or <strong>Mobile Number</strong> below, then upload your transaction screenshot. Your registration will be confirmed upon review.
+                    Transfer <strong>₹{regFee}</strong> to the <strong>Google Pay Scanner</strong> or <strong>Mobile Number</strong> below, then upload your transaction screenshot. Your registration is approved automatically after submission.
                   </p>
 
                   {/* Payment Details & QR Layout */}
@@ -777,7 +777,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                                 Screenshot uploaded successfully!
                               </span>
                               <p className="text-[11px] text-slate-300">
-                                The tournament committee will audit this screenshot and UTR to approve your lot in the auction.
+                                The tournament committee can verify your payment screenshot and UTR. Player registration is approved automatically.
                               </p>
                               <label className="inline-block text-xs font-bold text-gold-400 hover:text-gold-300 underline cursor-pointer mt-1">
                                 <span>Replace Screenshot</span>

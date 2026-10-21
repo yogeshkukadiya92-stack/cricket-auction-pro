@@ -1,3 +1,5 @@
+import { approveRegistration, migrateAutomaticApproval } from '../shared/playerApproval.js';
+import { registerPublicDirectoryRoutes } from './publicDirectoryRoutes.js';
 import { registerOrganizerAccountRoutes } from './organizerAccountRoutes.js';
 import { registerRegistrationRoutes } from './registrationRoutes.js';
 import { correctPlayer } from '../shared/playerCorrection.js';
@@ -74,6 +76,7 @@ async function migrate() {
     UPDATE tournaments t SET data=jsonb_set(t.data,'{rules}',s.rules)
       FROM organizer_settings s WHERE s.organizer_id=t.organizer_id AND s.rules IS NOT NULL AND NOT (t.data ? 'rules');
   `);
+  await migrateAutomaticApproval(pool);
   const existingPlayers = await pool.query("SELECT tournament_id,id,data FROM players WHERE data->>'mobile' IS NOT NULL ORDER BY data->>'registeredAt' NULLS FIRST");
   for (const {data: player, tournament_id: tournamentId, id: playerId} of existingPlayers.rows) {
     await savePlayerProfile(pool, player);
@@ -249,7 +252,7 @@ app.post('/api/tournaments/:id/player-correction', requireUser, async (req, res)
       const original = archived.rows[0].data;
       if (rows.rows.some(r => normalizeMobile(r.data.mobile) && normalizeMobile(r.data.mobile) === normalizeMobile(original.mobile))) throw new Error('Mobile number already registered');
       const { soldPrice, soldToTeamId, ...restored } = original;
-      await client.query('INSERT INTO players(tournament_id,id,data) VALUES($1,$2,$3)', [req.params.id, playerId, { ...restored, status: 'AVAILABLE' }]);
+      await client.query('INSERT INTO players(tournament_id,id,data) VALUES($1,$2,$3)', [req.params.id, playerId, approveRegistration({ ...restored, status: 'AVAILABLE' })]);
       await client.query('DELETE FROM deleted_players WHERE tournament_id=$1 AND id=$2', [req.params.id, playerId]);
     } else {
       const result = correctPlayer(rows.rows.map(r => r.data), teamRows.rows.map(r => r.data), playerId, action, teamId, amount, tournament.rows[0].data.rules || {});
@@ -389,6 +392,7 @@ async function saveEntries(client, table, entries, userId, importing = false) {
     if (table === 'players' && (!Number.isFinite(item.basePrice) || item.basePrice < 0 || !['AVAILABLE','IN_AUCTION','SOLD','UNSOLD'].includes(item.status))) throw Object.assign(new Error('Invalid player price or status'), { status: 400 });
     if (table === 'players' && (!safeImage(item.photoUrl) || !safeImage(item.paymentScreenshotUrl))) throw Object.assign(new Error('Invalid player image or receipt'), { status: 400 });
     let data = table === 'players' && item.mobile ? { ...item, mobile: normalizeMobile(item.mobile) } : item;
+    if (table === 'players') data = approveRegistration(data);
     if (table === 'players' && !importing) {
       const archived = await client.query('SELECT id FROM deleted_players WHERE tournament_id=$1 AND id=$2', [item.tournamentId, item.id]);
       if (archived.rowCount) continue;
@@ -464,44 +468,7 @@ app.get('/api/public/tournaments/:id', async (req, res) => {
   const { userId, creatorEmail, ...tournament } = result.rows[0].data;
   res.json({ success: true, tournament });
 });
-// Public directory exposes only approved cricket profiles; full form responses require ownership.
-app.get('/api/public/tournaments/:id/players-directory', async (req, res) => {
-  const result = await pool.query('SELECT data FROM tournaments WHERE id=$1', [req.params.id]);
-  if (!result.rowCount) return bad(res, 404, 'Tournament not found');
-  const rows = await pool.query("SELECT data FROM players WHERE tournament_id=$1 ORDER BY data->>'registeredAt' DESC NULLS LAST", [req.params.id]);
-  const tournament = result.rows[0].data;
-  res.set('Cache-Control', 'no-store');
-  res.json({
-    success: true,
-    tournament: {
-      id: tournament.id,
-      name: tournament.name,
-      season: tournament.season,
-      year: tournament.year,
-      logoUrl: tournament.logoUrl,
-      sponsor: tournament.sponsor,
-      ground: tournament.ground,
-      city: tournament.city,
-      registrationFee: tournament.registrationFee,
-      registrationOpen: tournament.registrationOpen !== false,
-      defaultBasePrice: tournament.defaultBasePrice,
-    },
-    players: rows.rows.filter(({ data: p }) => !p.approvalStatus || p.approvalStatus === 'APPROVED').map(({ data: player }) => ({
-      id: player.id,
-      name: player.name,
-      photoUrl: player.photoUrl,
-      role: player.role,
-      battingStyle: player.battingStyle,
-      bowlingStyle: player.bowlingStyle,
-      city: player.city,
-      basePrice: player.basePrice,
-      stats: player.stats || { matches: 0, runs: 0, wickets: 0, strikeRate: 0 },
-      approvalStatus: player.approvalStatus || 'APPROVED',
-      status: player.status,
-      registeredAt: player.registeredAt,
-    })),
-  });
-});
+registerPublicDirectoryRoutes(app, { pool });
 registerRegistrationRoutes(app, { pool, requireUser, owns });
 
 app.get('/api/public/tournaments/:id/summary', async (req, res) => {
@@ -516,7 +483,7 @@ app.get('/api/public/tournaments/:id/summary', async (req, res) => {
   const teams = teamRows.rows.map(({ data: t }) => ({ id: t.id, name: t.name, shortCode: t.shortCode, logo: t.logo, colorHex: t.colorHex, totalPurse: t.totalPurse, remainingPurse: t.remainingPurse }));
   const players = playerRows.rows.filter(({ data: p }) => !p.approvalStatus || p.approvalStatus === 'APPROVED').map(({ data: p }) => ({ id: p.id, name: p.name, photoUrl: p.photoUrl, role: p.role, status: p.status, soldToTeamId: p.soldToTeamId, soldPrice: p.soldPrice, basePrice: p.basePrice, category: p.category, lotOrder: p.lotOrder, battingStyle: p.battingStyle, bowlingStyle: p.bowlingStyle, stats: p.stats || { matches: 0, runs: 0, wickets: 0, strikeRate: 0 } }));
   const registrationPlayers = playerRows.rows.map(({ data: p }) => ({ id: p.id, name: p.name, photoUrl: p.photoUrl, role: p.role, approvalStatus: p.approvalStatus || 'APPROVED', status: p.status, basePrice: p.basePrice, soldPrice: p.soldPrice, soldToTeamId: p.soldToTeamId }));
-  const registrationStats = { total: playerRows.rows.length, pending: playerRows.rows.filter(({data: p}) => p.approvalStatus === 'PENDING').length, approved: players.length, rejected: playerRows.rows.filter(({data: p}) => p.approvalStatus === 'REJECTED').length };
+  const registrationStats = { total: playerRows.rows.length, pending: 0, approved: players.length, rejected: 0 };
   const state = liveRows.rows[0]?.data || {};
   res.set('Cache-Control', 'no-store');
   res.json({ success: true, tournament, teams, players, registrationPlayers, registrationStats, liveState: { currentPlayerId: state.currentPlayerId || '', currentBid: state.currentBid || 0, leadingTeam: state.leadingTeam ? { id: state.leadingTeam.id } : null, bidsHistory: (state.bidsHistory || []).slice(0, 10).map(b => ({ id: b.id, playerId: b.playerId, teamId: b.teamId, teamName: teams.find(t => t.id === b.teamId)?.name || b.teamName, amount: b.amount, timestamp: b.timestamp })), lastEvent: state.lastEvent ? { id: state.lastEvent.id, type: state.lastEvent.type, timestamp: state.lastEvent.timestamp, price: state.lastEvent.price, player: players.find(p => p.id === state.lastEvent.player?.id) || null, team: teams.find(t => t.id === state.lastEvent.team?.id) || null } : null } });
@@ -541,7 +508,7 @@ app.post('/api/public/tournaments/:id/register', limit, async (req, res) => {
   const mobile = normalizeMobile(player.mobile);
   if (!/^[6-9]\d{9}$/.test(mobile)) return bad(res, 400, "Enter a valid 10-digit Indian mobile number");
   const { soldToTeamId, soldPrice, ...safePlayer } = player;
-  const registered = { ...safePlayer, mobile, basePrice: tournament.defaultBasePrice || 20000, paymentAmount: tournament.registrationFee || 0, id: randomUUID(), tournamentId: req.params.id, approvalStatus: 'PENDING', status: 'AVAILABLE', paymentStatus: 'PENDING', registeredAt: new Date().toISOString() };
+  const registered = { ...safePlayer, mobile, basePrice: tournament.defaultBasePrice || 20000, paymentAmount: tournament.registrationFee || 0, id: randomUUID(), tournamentId: req.params.id, approvalStatus: 'APPROVED', status: 'AVAILABLE', paymentStatus: 'PENDING', registeredAt: new Date().toISOString() };
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -604,7 +571,10 @@ registerPlayerRoutes(app, { pool, limit, bad });
 app.get('/api/health', async (_req, res) => { await pool.query('SELECT 1'); res.json({ ok: true }); });
 app.all('/api/*path', (_req, res) => bad(res, 404, 'Not found'));
 const dist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../dist');
-app.use(express.static(dist));
+// Vite fingerprints assets; reuse them on repeat visits without revalidation.
+// HTML must stay fresh so deployments point to the current asset filenames.
+app.use('/assets', express.static(path.join(dist, 'assets'), { maxAge: '1y', immutable: true }));
+app.use(express.static(dist, { maxAge: 0 }));
 app.use((_req, res) => res.sendFile(path.join(dist, 'index.html')));
 app.use((error, _req, res, _next) => { if (!error.status || error.status >= 500) console.error(error); bad(res, error.status || 500, error.status ? error.message : 'Server error'); });
 

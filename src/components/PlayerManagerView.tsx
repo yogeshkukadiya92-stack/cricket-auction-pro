@@ -47,9 +47,7 @@ interface PlayerManagerViewProps {
   onBulkAddPlayers?: (newPlayers: Player[]) => void;
   onDeletePlayer: (playerId: string) => void;
   onNavigateToFormBuilder?: () => void;
-  onApprovePlayer?: (playerId: string) => void;
   onVerifyPayment?: (playerId: string) => void;
-  onRejectPlayer?: (playerId: string) => void;
 }
 
 export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
@@ -64,14 +62,11 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
   onBulkAddPlayers,
   onDeletePlayer,
   onNavigateToFormBuilder,
-  onApprovePlayer,
   onVerifyPayment,
-  onRejectPlayer,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
-  const [approvalTab, setApprovalTab] = useState<'ALL' | 'APPROVED' | 'PENDING'>('ALL');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedReceiptPlayer, setSelectedReceiptPlayer] = useState<Player | null>(null);
   const [csvMessage, setCsvMessage] = useState<string | null>(null);
@@ -209,15 +204,8 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
     const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === 'ALL' || p.role === roleFilter;
     const matchesStatus = statusFilter === 'ALL' || p.status === statusFilter;
-    const matchesApproval =
-      approvalTab === 'ALL' ||
-      (approvalTab === 'PENDING'
-        ? p.approvalStatus === 'PENDING'
-        : p.approvalStatus !== 'PENDING');
-    return matchesSearch && matchesRole && matchesStatus && matchesApproval;
+    return matchesSearch && matchesRole && matchesStatus;
   });
-
-  const pendingCount = players.filter((p) => p.approvalStatus === 'PENDING').length;
 
   const formatPrice = (val: number) => {
     return formatAuctionPrice(val, currency);
@@ -405,35 +393,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
         </div>
       </div>
 
-      {/* Approval Filter Tabs */}
-      <div className="flex items-center gap-2 border-b border-white/10 pb-2">
-        <button
-          onClick={() => setApprovalTab('ALL')}
-          className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${
-            approvalTab === 'ALL'
-              ? 'bg-white/15 text-white shadow'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          All Registered Players ({players.length})
-        </button>
-
-        <button
-          onClick={() => setApprovalTab('PENDING')}
-          className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${
-            approvalTab === 'PENDING'
-              ? 'bg-amber-500/20 text-gold-400 border border-gold-400/40 font-black shadow'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          <span>Pending Review</span>
-          {pendingCount > 0 && (
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-gold-500 text-black">
-              {pendingCount}
-            </span>
-          )}
-        </button>
-      </div>
+      <p className="text-sm text-emerald-400">All Registered Players ({players.length}) • Automatically approved</p>
 
       {/* Filter and Search Bar */}
       <div className="p-4 rounded-2xl glass-panel border border-white/10 flex flex-wrap items-center justify-between gap-4">
@@ -657,29 +617,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
                 </div>
               )}
 
-              {/* Pending Approval Actions */}
-              {player.approvalStatus === 'PENDING' && (
-                <div className="flex items-center gap-1.5 pt-1">
-                  {onApprovePlayer && (
-                    <button
-                      onClick={() => onApprovePlayer(player.id)}
-                      className="flex-1 py-1.5 px-2 rounded-xl text-[11px] font-bold bg-emerald-500 hover:bg-emerald-400 text-black flex items-center justify-center gap-1 shadow-glow-emerald active:scale-95 transition-all"
-                    >
-                      <UserCheck className="w-3.5 h-3.5" />
-                      Approve Lot
-                    </button>
-                  )}
-                  {onRejectPlayer && (
-                    <button
-                      onClick={() => onRejectPlayer(player.id)}
-                      className="py-1.5 px-2 rounded-xl text-[11px] font-bold bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 flex items-center justify-center gap-1 transition-all"
-                      title="Reject Registration"
-                    >
-                      <UserX className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-              )}
+
             </div>
           </div>
         ))}
@@ -985,35 +923,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
               </button>
 
               {onVerifyPayment && selectedReceiptPlayer.paymentScreenshotUrl && selectedReceiptPlayer.paymentStatus !== 'VERIFIED' && <button type="button" className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold" onClick={() => { onVerifyPayment(selectedReceiptPlayer.id); setSelectedReceiptPlayer(null); }}>Confirm Payment Verified</button>}
-              {selectedReceiptPlayer.approvalStatus === 'PENDING' && (
-                <>
-                  {onRejectPlayer && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onRejectPlayer(selectedReceiptPlayer.id);
-                        setSelectedReceiptPlayer(null);
-                      }}
-                      className="px-4 py-2 rounded-xl text-xs font-bold bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 transition-all cursor-pointer"
-                    >
-                      Reject
-                    </button>
-                  )}
-                  {onApprovePlayer && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onApprovePlayer(selectedReceiptPlayer.id);
-                        setSelectedReceiptPlayer(null);
-                      }}
-                      className="px-5 py-2.5 rounded-xl text-xs font-black bg-emerald-500 hover:bg-emerald-400 text-black shadow-glow-emerald active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <UserCheck className="w-4 h-4" />
-                      Approve & Verify Player Lot
-                    </button>
-                  )}
-                </>
-              )}
+
             </div>
           </div>
         </div>

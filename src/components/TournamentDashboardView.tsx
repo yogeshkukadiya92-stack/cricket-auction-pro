@@ -40,8 +40,6 @@ interface TournamentDashboardViewProps {
   onEditTournament: () => void;
   onSwitchTournament: () => void;
   onCreateNewTournament: () => void;
-  onApprovePlayer?: (id: string) => void;
-  onRejectPlayer?: (id: string) => void;
   onOpenFortuneWheel?: () => void;
   onOpenBulkUploadModal?: () => void;
 }
@@ -55,8 +53,6 @@ export const TournamentDashboardView: React.FC<TournamentDashboardViewProps> = (
   onEditTournament,
   onSwitchTournament,
   onCreateNewTournament,
-  onApprovePlayer,
-  onRejectPlayer,
   onOpenFortuneWheel,
   onOpenBulkUploadModal,
 }) => {
@@ -67,8 +63,7 @@ export const TournamentDashboardView: React.FC<TournamentDashboardViewProps> = (
   const tourneyPlayers = players.filter((p) => !p.tournamentId || p.tournamentId === tournament.id);
 
   const registeredCount = tourneyPlayers.length;
-  const approvedCount = tourneyPlayers.filter((p) => p.approvalStatus === 'APPROVED').length;
-  const pendingCount = tourneyPlayers.filter((p) => p.approvalStatus === 'PENDING' || !p.approvalStatus).length;
+  const approvedCount = tourneyPlayers.length;
   const paidCount = tourneyPlayers.filter(
     (p) => p.paymentStatus === 'VERIFIED'
   ).length;
@@ -242,7 +237,6 @@ export const TournamentDashboardView: React.FC<TournamentDashboardViewProps> = (
 
           <div className="pt-2 border-t border-white/5 flex items-center justify-between text-xs text-slate-400 font-semibold">
             <span>Approved: <strong className="text-emerald-400">{approvedCount}</strong></span>
-            <span>Pending: <strong className="text-amber-400">{pendingCount}</strong></span>
           </div>
 
           <button
@@ -664,20 +658,7 @@ export const TournamentDashboardView: React.FC<TournamentDashboardViewProps> = (
                       </td>
 
                       <td className="p-3.5 text-right">
-                        {player.approvalStatus !== 'APPROVED' && onApprovePlayer && (
-                          <button
-                            onClick={() => onApprovePlayer(player.id)}
-                            className="px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 font-bold text-[11px] transition-all mr-1.5"
-                          >
-                            Approve
-                          </button>
-                        )}
-                        <button
-                          onClick={() => onSelectViewMode('PLAYERS')}
-                          className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[11px] font-bold transition-all"
-                        >
-                          View Details
-                        </button>
+
                       </td>
                     </tr>
                   ))}
