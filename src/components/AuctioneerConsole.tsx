@@ -1,7 +1,7 @@
 import { PlayerAuctionHistory } from './PlayerAuctionHistory';
 import { getBidBudget } from '../../shared/auctionBudget.js';
 import { formatAuctionPrice } from '../utils/currency';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Player, Team, AuctionRules } from '../types';
 import { sounds } from '../soundEffects';
 import { Gavel, Undo2, Ban, ChevronRight, Shuffle, AlertCircle, ArrowUpRight, Sparkles, Zap } from 'lucide-react';
@@ -41,7 +41,8 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
   onLaunchAcceleratedRound,
 }) => {
   const [selectedTeamId, setSelectedTeamId] = useState<string>(allTeams[0]?.id || '');
-  const [customInc, setCustomInc] = useState<number>(10000);
+  const [customInc, setCustomInc] = useState<number>(currentPlayer?.basePrice || rules.bidIncrement || 20000);
+  useEffect(() => { setCustomInc(currentPlayer?.basePrice || rules.bidIncrement || 20000); }, [currentPlayer?.id]);
 
   const selectedTeam = allTeams.find((t) => t.id === selectedTeamId) || allTeams[0];
 
@@ -238,9 +239,12 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
                   value={customInc}
                   onChange={(e) => setCustomInc(Number(e.target.value))}
                   className="bg-obsidian-900 border border-white/10 px-3 py-1.5 rounded-xl text-sm font-bold text-white w-36 focus:border-gold-400 focus:outline-none"
+                  aria-label="Custom bid amount"
+                  min={Math.max(currentPlayer?.basePrice || 0, currentBid + 1)}
                   placeholder="Amount"
                 />
                 <button
+                  disabled={!selectedTeam || !currentPlayer || !Number.isFinite(customInc) || customInc < currentPlayer.basePrice || customInc <= currentBid}
                   onClick={() => handleBidStep(customInc)}
                   className="px-4 py-2 rounded-xl text-xs font-bold bg-gold-500 hover:bg-gold-400 text-black flex items-center gap-1.5 active:scale-95 transition-all shadow-glow-gold"
                 >
@@ -289,7 +293,8 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
 
               {/* UNDO Last Bid */}
               <button
-                onClick={onUndoBid}
+                disabled={currentBid <= 0}
+              onClick={onUndoBid}
                 className="w-full py-2.5 rounded-xl font-bold text-xs bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 flex items-center justify-center gap-2 transition-all active:scale-95"
               >
                 <Undo2 className="w-4 h-4 text-gold-400" />

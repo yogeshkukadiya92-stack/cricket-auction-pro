@@ -58,11 +58,13 @@ const startsInPlayerMode = () => {
 function AppContent() {
   const settling = useRef(false);
   const mutationRevision = useRef(0);
+  const snapshotVersions = useRef<Record<string, { players: string; teams: string }>>({});
   const seenAuctionEvent = useRef('');
   const serverTournaments = useRef('');
   const serverTeams = useRef('');
   const serverPlayers = useRef('');
   const [saveMessage, setSaveMessage] = useState('');
+  const [auctionError, setAuctionError] = useState('');
   const [authChecked, setAuthChecked] = useState(false);
   const [dataReady, setDataReady] = useState(false);
   const [liveReady, setLiveReady] = useState(false);
@@ -508,6 +510,7 @@ function AppContent() {
     if (settling.current || !liveReady) return;
     settling.current = true;
     const id = activeTournamentId;
+    mutationRevision.current++;
     try {
       await dbService.flushSync();
       const response = await fetch(`/api/tournaments/${encodeURIComponent(id)}/auction`, {
@@ -517,8 +520,8 @@ function AppContent() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Auction action failed');
       applyAuctionSnapshot(data, id);
-      setSaveMessage('');
-    } catch (error) { setSaveMessage((error as Error).message); }
+      setAuctionError('');
+    } catch (error) { setAuctionError((error as Error).message); }
     finally { settling.current = false; }
   };
   const handlePlaceBid = (team: Team, amount: number) => { void runAuctionCommand('BID', { teamId: team.id, amount }); };
@@ -537,10 +540,15 @@ function AppContent() {
       refreshing = true;
       try {
         const revision = mutationRevision.current;
-        const response = await fetch(`/api/tournaments/${encodeURIComponent(activeTournamentId)}/snapshot`, { cache: 'no-store' });
+        const versions = snapshotVersions.current[activeTournamentId];
+        const query = new URLSearchParams(versions ? { playersVersion: versions.players, teamsVersion: versions.teams } : {});
+        const response = await fetch(`/api/tournaments/${encodeURIComponent(activeTournamentId)}/snapshot?${query}`, { cache: 'no-store' });
         if (!response.ok) return;
         const data = await response.json();
-        if (!cancelled && revision === mutationRevision.current && !settling.current && !dbService.hasPending()) applyAuctionSnapshot(data, activeTournamentId);
+        if (!cancelled && revision === mutationRevision.current && !settling.current && !dbService.hasPending()) {
+          applyAuctionSnapshot(data, activeTournamentId);
+          if (data.versions) snapshotVersions.current[activeTournamentId] = data.versions;
+        }
       } catch { /* Existing data stays visible until the next successful refresh. */ }
       finally { refreshing = false; }
     };
@@ -850,6 +858,7 @@ function AppContent() {
 
   return (
     <div className={`min-h-screen bg-obsidian-950 text-slate-100 flex flex-col ${viewMode === 'STAGE' ? 'stage-mode' : ''}`}>
+      {auctionError && <div role="alert" className="sticky top-0 z-50 bg-rose-950 px-4 py-2 text-rose-100 text-center">{auctionError}<button onClick={() => setAuctionError('')} className="ml-4 underline">Dismiss</button></div>}
       {saveMessage && <div role="status" className="sticky top-0 z-50 bg-amber-950 px-4 py-2 text-amber-100 text-center">{saveMessage}<button onClick={() => dbService.flushSync().catch(() => {})} className="ml-4 underline">Retry save</button></div>}
       {/* Top Navbar */}
       <Navbar

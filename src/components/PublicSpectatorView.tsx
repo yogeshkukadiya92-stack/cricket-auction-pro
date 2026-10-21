@@ -177,7 +177,7 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
                   Current Highest Bid
                 </span>
                 <div aria-live="polite" aria-atomic="true" className="text-4xl sm:text-5xl font-black text-amber-400 break-words font-mono my-1">
-                  {formatPrice(currentBid || currentPlayer.basePrice)}
+                  {currentBid > 0 ? formatPrice(currentBid) : 'No bids yet'}
                 </div>
                 {leadingTeam ? (
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-white">
@@ -199,7 +199,7 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
         </section>}
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[['Total Registrations', registrations.total], ['Pending Approval', registrations.pending], ['Approved Players', registrations.approved], ['Rejected Registrations', registrations.rejected]].map(([label, count]) => (
+          {[['Total Registrations', registrations.total], ['Approved Players', registrations.approved]].map(([label, count]) => (
             <button key={label} onClick={() => openDetails(String(label))} className="p-4 text-left hover:border-amber-400 focus-visible:outline-amber-400 bg-slate-900/60 border border-slate-800 rounded-2xl">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{label}</span>
               <div className="text-2xl font-black text-white mt-1">{count}</div>
