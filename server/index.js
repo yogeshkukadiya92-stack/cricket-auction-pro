@@ -1,3 +1,4 @@
+import { hasRegisteredMobile, ALREADY_REGISTERED, registerRegistrationIdentityRoutes } from './registrationIdentity.js';
 import { registerPlayerCorrectionRoutes } from './playerCorrectionRoutes.js';
 import { compressRecordImages } from './imageCompression.js';
 import { registerPublicSummaryRoutes } from './publicSummaryRoutes.js';
@@ -438,6 +439,8 @@ registerPublicDirectoryRoutes(app, { pool });
 registerRegistrationRoutes(app, { pool, requireUser, owns });
 
 registerPublicSummaryRoutes(app, { pool });
+registerRegistrationIdentityRoutes(app, { pool, limit });
+
 app.post('/api/public/tournaments/:id/register', limit, async (req, res) => {
   const result = await pool.query('SELECT data FROM tournaments WHERE id=$1', [req.params.id]);
   if (!result.rowCount || result.rows[0].data.registrationOpen === false) return bad(res, 404, 'Registration is closed');
@@ -465,10 +468,9 @@ app.post('/api/public/tournaments/:id/register', limit, async (req, res) => {
     await client.query('BEGIN');
     // Serialize registration checks for this tournament to reject concurrent duplicates.
     await client.query('SELECT id FROM tournaments WHERE id=$1 FOR UPDATE', [req.params.id]);
-    const existing = await client.query("SELECT data->>'mobile' AS mobile FROM players WHERE tournament_id=$1", [req.params.id]);
-    if (existing.rows.some(row => normalizeMobile(row.mobile) === mobile)) {
+    if (await hasRegisteredMobile(client, req.params.id, mobile)) {
       await client.query('ROLLBACK');
-      return bad(res, 409, 'This mobile number is already registered in this tournament. Only one registration per mobile number is allowed.');
+      return res.status(409).json({ success: false, code: 'ALREADY_REGISTERED', error: ALREADY_REGISTERED });
     }
     await client.query('INSERT INTO players(tournament_id,id,data) VALUES($1,$2,$3)', [req.params.id, registered.id, registered]);
     await savePlayerProfile(client, registered);

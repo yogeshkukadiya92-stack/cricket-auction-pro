@@ -1,6 +1,6 @@
 import { normalizeMobile, isUploadedImage } from '../../shared/registrationValidation.js';
 import { getPaymentLinks } from '../../shared/paymentLinks.js';
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Tournament,
   Player,
@@ -76,6 +76,24 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
   const [registeredPlayer, setRegisteredPlayer] = useState<Player | null>(null);
   const [submitError, setSubmitError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [mobileNotice, setMobileNotice] = useState('');
+  const [duplicateMobile, setDuplicateMobile] = useState('');
+  const mobileCheckVersion = useRef(0);
+  const checkMobile = async (value: string) => {
+    const normalized = normalizeMobile(value);
+    if (!/^[6-9]\d{9}$/.test(normalized)) return;
+    const version = ++mobileCheckVersion.current;
+    try {
+      const response = await fetch(`/api/public/tournaments/${encodeURIComponent(tournament.id)}/registration-check`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mobile: normalized }),
+      });
+      const data = await response.json();
+      if (version !== mobileCheckVersion.current || !response.ok) return;
+      setDuplicateMobile(data.registered ? normalized : '');
+      setMobileNotice(data.registered ? data.message : '');
+    } catch { /* Submission always repeats the authoritative duplicate check. */ }
+  };
+
 
   const customFields: CustomFormField[] = tournament.customFields || [];
 
@@ -128,6 +146,8 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
+    if (duplicateMobile === normalizeMobile(mobile)) { setSubmitError(mobileNotice); return; }
     if (!fullName.trim() || !mobile.trim()) {
       alert('Please enter your full name and valid mobile number.');
       return;
@@ -146,7 +166,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
       id: `ply-reg-${Date.now()}`,
       tournamentId: tournament.id,
       name: fullName.trim(),
-      mobile: mobile.trim(),
+      mobile: normalizeMobile(mobile),
       email: email.trim(),
       photoUrl,
       role,
@@ -178,7 +198,9 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
       setRegisteredPlayer(saved);
       setSubmitted(true);
     } catch (error) {
-      setSubmitError((error as Error).message);
+      const message = (error as Error).message;
+      setSubmitError(message);
+      if (/already registered/i.test(message)) { setDuplicateMobile(normalizeMobile(mobile)); setMobileNotice(message); }
     } finally { setSubmitting(false); }
   };
 
@@ -331,9 +353,13 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                       required
                       placeholder="+91 98250 12345"
                       value={mobile}
-                      onChange={(e) => setMobile(e.target.value)}
+                      onChange={(e) => { mobileCheckVersion.current++; setMobile(e.target.value); setMobileNotice(''); setDuplicateMobile(''); setSubmitError(''); }}
+                      onBlur={() => void checkMobile(mobile)}
+                      aria-describedby="registration-mobile-notice"
+                      aria-invalid={!!duplicateMobile}
                       className="w-full bg-obsidian-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white focus:border-gold-400 focus:outline-none font-mono"
                     />
+                    <p id="registration-mobile-notice" role={mobileNotice ? 'alert' : undefined} className={`text-xs mt-2 ${mobileNotice ? 'text-rose-400' : 'text-slate-400'}`}>{mobileNotice || 'One registration per mobile number in this tournament.'}</p>
                   </div>
                 </div>
 
@@ -852,7 +878,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                 {!isUploadedImage(photoUrl) && <p role="status" className="text-xs text-amber-300">Player photo is compulsory. Upload your photo to enable submission.</p>}
                 <button
                   type="submit"
-                  disabled={submitting || !isUploadedImage(photoUrl) || (tournament.paymentMandatory && !paymentScreenshotUrl)}
+                  disabled={submitting || !!duplicateMobile || !isUploadedImage(photoUrl) || (tournament.paymentMandatory && !paymentScreenshotUrl)}
                   className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
                     tournament.paymentMandatory && !paymentScreenshotUrl
                       ? 'bg-white/10 text-slate-500 cursor-not-allowed border border-white/10 opacity-70'
