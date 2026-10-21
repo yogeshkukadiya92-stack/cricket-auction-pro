@@ -1,5 +1,7 @@
+import { lazyWithRecovery as lazy } from './utils/lazyWithRecovery';
+import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { OrganizerMobileNav } from './components/OrganizerMobileNav';
-import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import {
   initialTournament,
   initialRules,
@@ -1188,7 +1190,7 @@ function AppContent() {
 }
 
 export function App() {
-  return <Suspense fallback={<main role="status" className="min-h-screen bg-obsidian-950 text-white grid place-items-center">Loading…</main>}><AppContent /></Suspense>;
+  return <AppErrorBoundary><Suspense fallback={<main role="status" className="min-h-screen bg-obsidian-950 text-white grid place-items-center">Loading…</main>}><AppContent /></Suspense></AppErrorBoundary>;
 }
 
 export default App;

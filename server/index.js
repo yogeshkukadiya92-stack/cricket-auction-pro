@@ -1,3 +1,4 @@
+import { mountStaticFrontend } from './staticFrontend.js';
 import { registerSnapshotRoutes } from './snapshotRoutes.js';
 import { registerAuctionRoutes } from './auctionRoutes.js';
 import { hasRegisteredMobile, ALREADY_REGISTERED, registerRegistrationIdentityRoutes } from './registrationIdentity.js';
@@ -435,11 +436,7 @@ registerPlayerRoutes(app, { pool, limit, bad });
 app.get('/api/health', async (_req, res) => { await pool.query('SELECT 1'); res.json({ ok: true }); });
 app.all('/api/*path', (_req, res) => bad(res, 404, 'Not found'));
 const dist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../dist');
-// Vite fingerprints assets; reuse them on repeat visits without revalidation.
-// HTML must stay fresh so deployments point to the current asset filenames.
-app.use('/assets', express.static(path.join(dist, 'assets'), { maxAge: '1y', immutable: true }));
-app.use(express.static(dist, { maxAge: 0 }));
-app.use((_req, res) => res.sendFile(path.join(dist, 'index.html')));
+mountStaticFrontend(app, dist);
 app.use((error, _req, res, _next) => { if (!error.status || error.status >= 500) console.error(error); bad(res, error.status || 500, error.status ? error.message : 'Server error'); });
 
 await migrate();
