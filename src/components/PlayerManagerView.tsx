@@ -1,3 +1,4 @@
+import { PlayerRecycleBin } from './PlayerRecycleBin';
 import { PlayerAuctionHistory } from './PlayerAuctionHistory';
 import { PlayerCorrections } from './PlayerCorrections';
 import { formatAuctionPrice } from '../utils/currency';
@@ -45,7 +46,7 @@ interface PlayerManagerViewProps {
   players: Player[];
   onAddPlayer: (newPlayer: Player) => void;
   onBulkAddPlayers?: (newPlayers: Player[]) => void;
-  onDeletePlayer: (playerId: string) => void;
+  onDeletePlayer: (playerId: string) => Promise<void>;
   onNavigateToFormBuilder?: () => void;
   onVerifyPayment?: (playerId: string) => void;
 }
@@ -64,6 +65,14 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
   onNavigateToFormBuilder,
   onVerifyPayment,
 }) => {
+  const [deletingPlayer, setDeletingPlayer] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+  const removePlayer = async (id: string) => {
+    setDeletingPlayer(id); setDeleteError('');
+    try { await onDeletePlayer(id); }
+    catch (err) { setDeleteError((err as Error).message); }
+    finally { setDeletingPlayer(''); }
+  };
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -213,6 +222,8 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
 
   return (
     <div className="space-y-6">
+      <PlayerRecycleBin key={tournamentId} tournamentId={tournamentId} playerCount={players.length} onRestore={id => onCorrect('RESTORE', id)} />
+      {deleteError && <p role="alert" className="text-sm text-red-300">{deleteError}</p>}
       <PlayerCorrections tournamentId={tournamentId} players={players} teams={teams} onCorrect={onCorrect} />
       {/* Top Banner and Quick Stats */}
       <div className="p-6 rounded-3xl glass-panel border border-white/10 flex flex-wrap items-center justify-between gap-4">
@@ -577,9 +588,11 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
                   </span>
                 </div>
                 <button
-                  onClick={() => onDeletePlayer(player.id)}
+                  disabled={!!deletingPlayer}
+                  onClick={() => void removePlayer(player.id)}
                   className="p-2 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                  title="Delete Player"
+                  title="Move to Recycle Bin"
+                  aria-label={`Move ${player.name} to Recycle Bin`}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>

@@ -57,6 +57,7 @@ const startsInPlayerMode = () => {
 
 function AppContent() {
   const settling = useRef(false);
+  const mutationRevision = useRef(0);
   const seenAuctionEvent = useRef('');
   const serverTournaments = useRef('');
   const serverTeams = useRef('');
@@ -535,10 +536,11 @@ function AppContent() {
       if (cancelled || refreshing || document.visibilityState === 'hidden' || settling.current || dbService.hasPending()) return;
       refreshing = true;
       try {
+        const revision = mutationRevision.current;
         const response = await fetch(`/api/tournaments/${encodeURIComponent(activeTournamentId)}/snapshot`, { cache: 'no-store' });
         if (!response.ok) return;
         const data = await response.json();
-        if (!cancelled && !settling.current && !dbService.hasPending()) applyAuctionSnapshot(data, activeTournamentId);
+        if (!cancelled && revision === mutationRevision.current && !settling.current && !dbService.hasPending()) applyAuctionSnapshot(data, activeTournamentId);
       } catch { /* Existing data stays visible until the next successful refresh. */ }
       finally { refreshing = false; }
     };
@@ -694,15 +696,26 @@ function AppContent() {
   const handleLaunchAcceleratedRound = (discountPercent: number) => { void runAuctionCommand('ACCELERATE', { discountPercent }); };
 
   const handlePlayerCorrection = async (action: string, playerId: string, teamId?: string, amount?: number) => {
-    await dbService.flushSync();
-    const response = await fetch(`/api/tournaments/${encodeURIComponent(activeTournamentId)}/player-correction`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, playerId, teamId, amount }) });
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error || 'Correction failed');
-    const snapshot = await fetch(`/api/tournaments/${encodeURIComponent(activeTournamentId)}/snapshot`, { cache: 'no-store' });
-    if (!snapshot.ok) throw new Error('Saved, but refresh failed. Reload the page.');
-    applyAuctionSnapshot(await snapshot.json(), activeTournamentId);
+    if (settling.current) throw new Error('Another change is being saved. Please try again.');
+    settling.current = true;
+    mutationRevision.current++;
+    try {
+      await dbService.flushSync();
+      const response = await fetch(`/api/tournaments/${encodeURIComponent(activeTournamentId)}/player-correction`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, playerId, teamId, amount }) });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Correction failed');
+      // Apply the committed mutation directly, without refetching every player photo.
+      setPlayers(prev => {
+        const next = prev.filter(p => !(p.tournamentId === activeTournamentId && p.id === playerId));
+        if (result.player) next.push(result.player);
+        serverPlayers.current = JSON.stringify(next);
+        return next;
+      });
+      applyAuctionSnapshot({ teams: result.teams, liveState: result.liveState }, activeTournamentId);
+      setSaveMessage('');
+    } finally { settling.current = false; }
   };
-  const handleDeletePlayer = (playerId: string) => { void handlePlayerCorrection('DELETE', playerId).catch(error => setSaveMessage(error.message)); };
+  const handleDeletePlayer = (playerId: string) => handlePlayerCorrection('DELETE', playerId);
 
   const handleRegisterPlayer = async (newPlayer: Player): Promise<Player> => {
     if (!publicTournament) throw new Error('Tournament is unavailable');
