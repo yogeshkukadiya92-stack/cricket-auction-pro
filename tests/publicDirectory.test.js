@@ -16,6 +16,7 @@ test('anonymous directory loads metadata separately from photos and keeps photos
       assert.ok(sql.includes("coalesce(data->>'approvalStatus'"), 'Photo reads must enforce approval');
       return { rows: approved && params[1] === 'p1' ? [{ image: photo }] : [] };
     }
+    if (sql.includes('count(*)')) return {rows:[{stats:{total:1,batsmen:1,bowlers:0,allRounders:0,keepers:0,approved:1,pending:0},matched:1}]};
     assert.ok(sql.includes('jsonb_build_object'), 'List queries project metadata rather than full records');
     assert.ok(sql.includes("LIKE 'data:image/%'"), 'Embedded images stay in the database during list reads');
     for (const privateField of ['mobile', 'email', 'paymentScreenshotUrl', 'customData', 'paymentUtr']) {

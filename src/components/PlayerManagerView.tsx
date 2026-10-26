@@ -2,7 +2,7 @@ import { PlayerRecycleBin } from './PlayerRecycleBin';
 import { PlayerAuctionHistory } from './PlayerAuctionHistory';
 import { PlayerCorrections } from './PlayerCorrections';
 import { formatAuctionPrice } from '../utils/currency';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Player, PlayerRole, PlayerCategory } from '../types';
 import {
   downloadSampleCsvTemplate,
@@ -209,12 +209,14 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
     setProfileDetails({});
   };
 
-  const filteredPlayers = players.filter((p) => {
+  const filteredPlayers = useMemo(() => players.filter((p) => {
     const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === 'ALL' || p.role === roleFilter;
     const matchesStatus = statusFilter === 'ALL' || p.status === statusFilter;
     return matchesSearch && matchesRole && matchesStatus;
-  });
+  }), [players, searchTerm, roleFilter, statusFilter]);
+  const [visibleCount, setVisibleCount] = useState(48);
+  useEffect(() => setVisibleCount(48), [searchTerm, roleFilter, statusFilter, tournamentId]);
 
   const formatPrice = (val: number) => {
     return formatAuctionPrice(val, currency);
@@ -453,6 +455,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
       </div>
 
       {/* Players Grid or Empty State */}
+      {filteredPlayers.length > visibleCount && <button onClick={() => setVisibleCount(n => n + 48)} className="px-4 py-2 rounded-xl bg-white/10 text-sm">Show more players ({Math.min(visibleCount, filteredPlayers.length)} of {filteredPlayers.length})</button>}
       {filteredPlayers.length === 0 ? (
         <div className="p-12 lg:p-16 rounded-3xl glass-panel border border-white/10 text-center space-y-4 max-w-xl mx-auto my-6">
           <div className="w-20 h-20 rounded-3xl bg-gold-500/10 border border-gold-400/20 mx-auto flex items-center justify-center text-3xl shadow-glow-gold">
@@ -485,14 +488,14 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {filteredPlayers.map((player) => (
+          {filteredPlayers.slice(0, visibleCount).map((player) => (
           <div
             key={player.id}
             className="rounded-2xl border border-white/10 bg-obsidian-900/80 p-4 flex flex-col justify-between hover:border-gold-400/40 transition-all group"
           >
             <div>
               <div className="relative w-full h-44 rounded-xl overflow-hidden mb-3 bg-obsidian-950">
-                <img
+                <img decoding="async" loading="lazy"
                   src={player.photoUrl || "/player-placeholder.svg"}
                   alt={player.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -546,9 +549,9 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
                 <summary className="cursor-pointer text-amber-300">Full registration details & photos</summary>
                 <div className="space-y-2 mt-3 break-words">
                   {Object.entries(player).filter(([k]) => !['photoUrl', 'paymentScreenshotUrl', 'customData', 'stats'].includes(k)).map(([k, v]) => <p key={k}><span className="text-slate-400">{k}: </span>{String(v ?? '')}</p>)}
-                  {Object.entries(player.customData || {}).map(([k, v]) => <div key={k}><span className="text-slate-400">{customFields.find(f => f.id === k)?.label || k}: </span>{typeof v === 'string' && v.startsWith('data:image/') ? <a href={v} download={`${player.id}_${k}.png`} className="text-amber-300">Download uploaded image</a> : <span>{typeof v === 'object' ? JSON.stringify(v) : String(v ?? '')}</span>}</div>)}
+                  {Object.entries(player.customData || {}).map(([k, v]) => <div key={k}><span className="text-slate-400">{customFields.find(f => f.id === k)?.label || k}: </span>{typeof v === 'string' && (v.startsWith('data:image/') || /^\/api\/tournaments\/.+\/media\/custom\//.test(v)) ? <a href={v} download={`${player.id}_${k}.png`} className="text-amber-300">Download uploaded image</a> : <span>{typeof v === 'object' ? JSON.stringify(v) : String(v ?? '')}</span>}</div>)}
                   {player.photoUrl && <a href={player.photoUrl} download={`${player.id}_player-photo`} className="block text-amber-300">Download player photo</a>}
-                  {player.paymentScreenshotUrl && <a href={player.paymentScreenshotUrl} download={`${player.id}_payment-receipt`} className="block text-amber-300">Download payment screenshot<img src={player.paymentScreenshotUrl} alt="Payment screenshot" loading="lazy" className="mt-2 max-h-64 rounded-lg" /></a>}
+                  {player.paymentScreenshotUrl && <a href={player.paymentScreenshotUrl} download={`${player.id}_payment-receipt`} className="block text-amber-300">Download payment screenshot<img decoding="async" src={player.paymentScreenshotUrl} alt="Payment screenshot" loading="lazy" className="mt-2 max-h-64 rounded-lg" /></a>}
                 </div>
               </details>
               <PlayerAuctionHistory tournamentId={tournamentId} playerId={player.id} />
@@ -714,7 +717,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
               <div>
                 <label className="text-xs font-bold text-slate-300 block mb-1">Player Photo</label>
                 <div className="flex items-center gap-3">
-                  <img
+                  <img decoding="async" loading="lazy"
                     src={photoUrl || "/player-placeholder.svg"}
                     alt="Preview"
                     className="w-14 h-14 rounded-xl object-cover border border-white/10"
@@ -829,7 +832,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
                 </span>
                 {selectedReceiptPlayer.paymentScreenshotUrl ? (
                   <div className="relative group w-full flex flex-col items-center">
-                    <img
+                    <img decoding="async" loading="lazy"
                       src={selectedReceiptPlayer.paymentScreenshotUrl}
                       alt="Payment Screenshot"
                       className="max-h-72 w-full object-contain rounded-xl bg-black/60 border border-white/10 shadow-lg cursor-zoom-in"
@@ -857,7 +860,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
               <div className="flex flex-col justify-between space-y-4">
                 {/* Player Profile Quick Info */}
                 <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center gap-3">
-                  <img
+                  <img decoding="async" loading="lazy"
                     src={selectedReceiptPlayer.photoUrl || "/player-placeholder.svg"}
                     alt={selectedReceiptPlayer.name}
                     className="w-14 h-14 rounded-xl object-cover border border-white/20"

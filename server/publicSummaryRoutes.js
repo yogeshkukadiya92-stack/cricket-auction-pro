@@ -1,3 +1,4 @@
+import { sendConditionalJson } from './conditionalJson.js';
 import { publicProjection, publicImageProjection, publicImageUrl } from './publicDirectoryRoutes.js';
 
 const tournamentFields = ['id','name','season','year','city','ground','status','rules','registrationOpen'];
@@ -24,6 +25,6 @@ app.get('/api/public/tournaments/:id/summary', async (req, res) => {
   const registrationStats = { total: playerRows.rows.length, pending: 0, approved: players.length, rejected: 0 };
   const state = liveRows.rows[0]?.data || {};
   res.set('Cache-Control', 'no-store');
-  res.json({ success: true, tournament, teams, players, registrationPlayers, registrationStats, liveState: { currentPlayerId: state.currentPlayerId || '', currentBid: state.currentBid || 0, leadingTeam: state.leadingTeam ? { id: state.leadingTeam.id } : null, bidsHistory: (state.bidsHistory || []).slice(0, 10).map(b => ({ id: b.id, playerId: b.playerId, teamId: b.teamId, teamName: teams.find(t => t.id === b.teamId)?.name || b.teamName, amount: b.amount, timestamp: b.timestamp })), lastEvent: state.lastEvent ? { id: state.lastEvent.id, type: state.lastEvent.type, timestamp: state.lastEvent.timestamp, price: state.lastEvent.price, player: players.find(p => p.id === state.lastEvent.player?.id) || null, team: teams.find(t => t.id === state.lastEvent.team?.id) || null } : null } });
+  sendConditionalJson(req, res, { success: true, tournament, teams, players, registrationPlayers, registrationStats, liveState: { currentPlayerId: state.currentPlayerId || '', currentBid: state.currentBid || 0, leadingTeam: state.leadingTeam ? { id: state.leadingTeam.id } : null, bidsHistory: (state.bidsHistory || []).slice(0, 10).map(b => ({ id: b.id, playerId: b.playerId, teamId: b.teamId, teamName: teams.find(t => t.id === b.teamId)?.name || b.teamName, amount: b.amount, timestamp: b.timestamp })), lastEvent: state.lastEvent ? { id: state.lastEvent.id, type: state.lastEvent.type, timestamp: state.lastEvent.timestamp, price: state.lastEvent.price, player: players.find(p => p.id === state.lastEvent.player?.id) || null, team: teams.find(t => t.id === state.lastEvent.team?.id) || null } : null } });
 });
 }

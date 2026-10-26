@@ -1,3 +1,4 @@
+import { readExportImage } from '../../shared/exportImage.js';
 import { Player, CustomFormField } from '../types';
 
 function saveBlob(blob: Blob, name: string) {
@@ -7,7 +8,7 @@ function saveBlob(blob: Blob, name: string) {
   setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
 const text = (v: unknown) => v == null ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v);
-const imageData = (v: unknown) => typeof v === 'string' && /^data:image\/(png|jpeg|webp|gif);base64,/.test(v);
+const imageData = (v: unknown) => typeof v === 'string' && (/^data:image\/(png|jpeg|webp|gif);base64,/.test(v) || /^\/api\/tournaments\/.+\/media\/custom\//.test(v));
 
 async function excelImage(data: string): Promise<string> {
   if (!data.startsWith('data:image/webp')) return data;
@@ -37,8 +38,9 @@ export async function exportRegistrationsExcel(players: Player[], fields: Custom
     const row = sheet.addRow(values); row.height = 100;
     for (const [key, source] of [['photo', player.photoUrl], ['receipt', player.paymentScreenshotUrl]]) {
       if (!source) continue;
-      if (!imageData(source)) { row.getCell(key).value = source; continue; }
-      const base64 = await excelImage(source);
+      const image = await readExportImage(source);
+      if (!image) { row.getCell(key).value = source; continue; }
+      const base64 = await excelImage(image);
       const extension = base64.startsWith('data:image/jpeg') ? 'jpeg' : base64.startsWith('data:image/gif') ? 'gif' : 'png';
       const id = workbook.addImage({ base64, extension });
       sheet.addImage(id, { tl: { col: sheet.getColumn(key).number - 1, row: row.number - 1 }, ext: { width: 110, height: 125 } });
@@ -56,8 +58,9 @@ export async function downloadRegistrationImages(players: Player[]) {
   for (const p of players) {
     const folder = zip.folder(`${p.name.replace(/[^\p{L}\p{N} _-]/gu, '').slice(0, 60)}_${p.id}`)!;
     for (const [name, data] of [['player-photo', p.photoUrl], ['payment-receipt', p.paymentScreenshotUrl], ...Object.entries(p.customData || {})]) {
-      if (!imageData(data)) continue;
-      const match = String(data).match(/^data:image\/(\w+);base64,(.+)$/)!;
+      const image = await readExportImage(data);
+      if (!image) continue;
+      const match = image.match(/^data:image\/(\w+);base64,(.+)$/)!;
       folder.file(`${name.replace(/[^a-zA-Z0-9_-]/g, '_')}.${match[1] === 'jpeg' ? 'jpg' : match[1]}`, match[2], { base64: true }); count++;
     }
   }

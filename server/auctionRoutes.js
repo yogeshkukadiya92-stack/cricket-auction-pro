@@ -1,3 +1,5 @@
+import { patchAuctionPlayers, patchAuctionTeams } from './auctionPatches.js';
+import { mediaColumns, projectMedia, compactLiveState } from './recordMedia.js';
 import { randomUUID } from 'node:crypto';
 import { getBidBudget } from '../shared/auctionBudget.js';
 
@@ -11,10 +13,11 @@ app.post('/api/tournaments/:id/auction', requireUser, async (req, res) => {
     if (!await owns(req.params.id, req.user.id, client)) throw Object.assign(new Error('Tournament not found'), { status: 404 });
     await client.query('SELECT id FROM tournaments WHERE id=$1 FOR UPDATE', [req.params.id]);
     const live = await client.query('SELECT data FROM tournament_live_state WHERE tournament_id=$1', [req.params.id]);
-    let state = live.rows[0]?.data || { currentPlayerId: '', currentBid: 0, leadingTeam: null, bidsHistory: [] };
-    const playerRows = await client.query('SELECT data FROM players WHERE tournament_id=$1', [req.params.id]);
-    const teamRows = await client.query('SELECT data FROM teams WHERE tournament_id=$1', [req.params.id]);
-    let players = playerRows.rows.map(x => x.data), teams = teamRows.rows.map(x => x.data);
+    let state = compactLiveState(live.rows[0]?.data, req.params.id);
+    if (!state.currentPlayerId) state = { ...state, currentPlayerId: '', currentBid: 0, leadingTeam: null, bidsHistory: [] };
+    const playerRows = await client.query(`SELECT ${mediaColumns('players')} FROM players WHERE tournament_id=$1`, [req.params.id]);
+    const teamRows = await client.query(`SELECT ${mediaColumns('teams')} FROM teams WHERE tournament_id=$1`, [req.params.id]);
+    let players = playerRows.rows.map(row => projectMedia('players', row)), teams = teamRows.rows.map(row => projectMedia('teams', row));
     const body = req.body || {};
     const fail = message => { throw Object.assign(new Error(message), { status: 409 }); };
     const eligible = p => p && (!p.approvalStatus || p.approvalStatus === 'APPROVED') && ['AVAILABLE','IN_AUCTION'].includes(p.status);
@@ -26,14 +29,15 @@ app.post('/api/tournaments/:id/auction', requireUser, async (req, res) => {
       if (!Number.isFinite(discount) || discount < 0 || discount > 100) throw Object.assign(new Error('Invalid discount'), { status: 400 });
       const recalled = players.filter(p => p.status === 'UNSOLD' && (!p.approvalStatus || p.approvalStatus === 'APPROVED'));
       if (!recalled.length) fail('No unsold players available');
-      players = players.map(p => recalled.some(x => x.id === p.id) ? { ...p, status: 'AVAILABLE', category: 'ACCELERATED', basePrice: Math.max(0, Math.round(p.basePrice * (1 - discount / 100))) } : p);
-      for (const player of players.filter(p => recalled.some(x => x.id === p.id))) await client.query('UPDATE players SET data=$3 WHERE tournament_id=$1 AND id=$2', [req.params.id, player.id, player]);
+      const recalledIds = new Set(recalled.map(p => p.id));
+      players = players.map(p => recalledIds.has(p.id) ? { ...p, status: 'AVAILABLE', category: 'ACCELERATED', basePrice: Math.max(0, Math.round(p.basePrice * (1 - discount / 100))) } : p);
+      await patchAuctionPlayers(client, req.params.id, players.filter(p => recalledIds.has(p.id)));
       state = { currentPlayerId: recalled[0].id, currentBid: 0, leadingTeam: null, bidsHistory: [] };
     } else if (body.action === 'RESET') {
       players = players.map(p => { const { soldPrice, soldToTeamId, ...rest } = p; return { ...rest, status: 'AVAILABLE' }; });
       teams = teams.map(t => ({ ...t, remainingPurse: t.totalPurse }));
-      for (const player of players) await client.query('UPDATE players SET data=$3 WHERE tournament_id=$1 AND id=$2', [req.params.id, player.id, player]);
-      for (const team of teams) await client.query('UPDATE teams SET data=$3 WHERE tournament_id=$1 AND id=$2', [req.params.id, team.id, team]);
+      await patchAuctionPlayers(client, req.params.id, players);
+      await patchAuctionTeams(client, req.params.id, teams);
       state = { currentPlayerId: '', currentBid: 0, leadingTeam: null, bidsHistory: [] };
     } else if (body.action === 'SELECT') {
       const player = players.find(p => p.id === body.playerId);
@@ -67,13 +71,13 @@ app.post('/api/tournaments/:id/auction', requireUser, async (req, res) => {
           if (budget.bought >= (rules.maxPlayersPerTeam || 15)) fail('Squad complete — no further players or bids allowed');
           const sold = { ...player, status: 'SOLD', soldToTeamId: winner.id, soldPrice: state.currentBid };
           const updatedTeam = { ...winner, remainingPurse: winner.remainingPurse - state.currentBid };
-          await client.query('UPDATE players SET data=$3 WHERE tournament_id=$1 AND id=$2', [req.params.id, player.id, sold]);
-          await client.query('UPDATE teams SET data=$3 WHERE tournament_id=$1 AND id=$2', [req.params.id, winner.id, updatedTeam]);
+          await client.query("UPDATE players SET data=(data - 'soldPrice' - 'soldToTeamId') || ($3::jsonb - 'photoUrl' - 'paymentScreenshotUrl' - 'customData') WHERE tournament_id=$1 AND id=$2", [req.params.id, player.id, sold]);
+          await client.query("UPDATE teams SET data=data || ($3::jsonb - 'logo') WHERE tournament_id=$1 AND id=$2", [req.params.id, winner.id, updatedTeam]);
           players = players.map(p => p.id === sold.id ? sold : p);
           teams = teams.map(t => t.id === winner.id ? updatedTeam : t);
         } else {
           const unsold = { ...player, status: 'UNSOLD' };
-          await client.query('UPDATE players SET data=$3 WHERE tournament_id=$1 AND id=$2', [req.params.id, player.id, unsold]);
+          await client.query("UPDATE players SET data=(data - 'soldPrice' - 'soldToTeamId') || ($3::jsonb - 'photoUrl' - 'paymentScreenshotUrl' - 'customData') WHERE tournament_id=$1 AND id=$2", [req.params.id, player.id, unsold]);
           players = players.map(p => p.id === player.id ? unsold : p);
         }
         const lastEvent = { id: randomUUID(), type: body.action, player, team: state.leadingTeam, price: state.currentBid, timestamp: Date.now() };

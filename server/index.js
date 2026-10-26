@@ -1,3 +1,4 @@
+import { mediaColumns, projectMedia, restoreMedia, compactLiveState, registerRecordMedia } from './recordMedia.js';
 import { bootstrapPlayersSql, projectPlayerMedia, restorePlayerMedia, registerBootstrapMedia } from './bootstrapMedia.js';
 import compression from 'compression';
 import { mountStaticFrontend } from './staticFrontend.js';
@@ -22,7 +23,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is required');
-const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 10 });
+const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 10, connectionTimeoutMillis: 5000, statement_timeout: 15000, idleTimeoutMillis: 30000 });
 const app = express();
 app.disable('x-powered-by');
 // Compress large bootstrap responses and static bundles during transfer.
@@ -86,7 +87,7 @@ async function migrate() {
       FROM organizer_settings s WHERE s.organizer_id=t.organizer_id AND s.rules IS NOT NULL AND NOT (t.data ? 'rules');
   `);
   await migrateAutomaticApproval(pool);
-  const existingPlayers = await pool.query("SELECT tournament_id,id,data FROM players WHERE data->>'mobile' IS NOT NULL ORDER BY data->>'registeredAt' NULLS FIRST");
+  const existingPlayers = await pool.query("SELECT p.tournament_id,p.id,p.data FROM players p LEFT JOIN player_profiles pp ON pp.mobile=p.data->>'mobile' WHERE p.data->>'mobile' IS NOT NULL AND (pp.mobile IS NULL OR p.data->>'mobile' !~ '^[6-9][0-9]{9}$') ORDER BY p.data->>'registeredAt' NULLS FIRST");
   for (const {data: player, tournament_id: tournamentId, id: playerId} of existingPlayers.rows) {
     await savePlayerProfile(pool, player);
     const normalized = normalizeMobile(player.mobile);
@@ -100,7 +101,7 @@ async function savePlayerProfile(client, player) {
   const mobile = normalizeMobile(player.mobile);
   if (!/^[6-9]\d{9}$/.test(mobile)) return;
   const data = { name: player.name, photoUrl: player.photoUrl, role: player.role, battingStyle: player.battingStyle, bowlingStyle: player.bowlingStyle, city: player.city, email: player.email, stats: player.stats, registeredAt: player.registeredAt || '1970-01-01T00:00:00.000Z' };
-  await client.query("INSERT INTO player_profiles(mobile,data) VALUES($1,$2) ON CONFLICT(mobile) DO UPDATE SET data=excluded.data,updated_at=now() WHERE excluded.data->>'registeredAt' >= coalesce(player_profiles.data->>'registeredAt','')", [mobile, data]);
+  await client.query("INSERT INTO player_profiles(mobile,data) VALUES($1,$2) ON CONFLICT(mobile) DO UPDATE SET data=excluded.data,updated_at=now() WHERE excluded.data->>'registeredAt' >= coalesce(player_profiles.data->>'registeredAt','') AND player_profiles.data IS DISTINCT FROM excluded.data", [mobile, data]);
 }
 
 function limit(req, res, next) {
@@ -211,16 +212,17 @@ app.post('/api/admin/toggle-user', requireUser, requireAdmin, async (req, res) =
 app.get('/api/ping', (_req, res) => res.json({ ok: true }));
 
 registerBootstrapMedia(app, { pool, requireUser, owns });
+registerRecordMedia(app, { pool, requireUser, owns });
 
 app.get('/api/db/bootstrap', requireUser, async (req, res) => {
   const id = req.user.id;
   const [tournaments, teams, players, settings] = await Promise.all([
-    pool.query('SELECT data FROM tournaments WHERE organizer_id=$1 OR $2 ORDER BY updated_at DESC', [id, req.user.role === 'ADMIN']),
-    pool.query('SELECT tm.data FROM teams tm JOIN tournaments t ON t.id=tm.tournament_id WHERE t.organizer_id=$1 OR $2', [id, req.user.role === 'ADMIN']),
+    pool.query(`SELECT ${mediaColumns('tournaments')} FROM tournaments WHERE organizer_id=$1 OR $2 ORDER BY updated_at DESC`, [id, req.user.role === 'ADMIN']),
+    pool.query(`SELECT ${mediaColumns('teams', 'tm')} FROM teams tm JOIN tournaments t ON t.id=tm.tournament_id WHERE t.organizer_id=$1 OR $2`, [id, req.user.role === 'ADMIN']),
     pool.query(bootstrapPlayersSql, [id, req.user.role === 'ADMIN']),
     pool.query('SELECT rules,live_state FROM organizer_settings WHERE organizer_id=$1', [id]),
   ]);
-  res.json({ success: true, dbType: 'PostgreSQL', tournaments: tournaments.rows.map(x => x.data), teams: teams.rows.map(x => x.data), players: players.rows.map(projectPlayerMedia), rules: settings.rows[0]?.rules || null, liveState: settings.rows[0]?.live_state || null });
+  res.json({ success: true, dbType: 'PostgreSQL', tournaments: tournaments.rows.map(row => projectMedia('tournaments', row)), teams: teams.rows.map(row => projectMedia('teams', row)), players: players.rows.map(projectPlayerMedia), rules: settings.rows[0]?.rules || null, liveState: settings.rows[0]?.live_state || null });
 });
 
 app.post('/api/tournaments/:id/player-profile', requireUser, limit, async (req, res) => {
@@ -247,7 +249,7 @@ registerPlayerCorrectionRoutes(app, { pool, requireUser, owns });
 app.get('/api/tournaments/:id/live', requireUser, async (req, res) => {
   if (!await owns(req.params.id, req.user.id)) return bad(res, 404, 'Tournament not found');
   const result = await pool.query('SELECT data FROM tournament_live_state WHERE tournament_id=$1', [req.params.id]);
-  res.json({ success: true, liveState: result.rows[0]?.data || { currentPlayerId: '', currentBid: 0, leadingTeam: null, bidsHistory: [] } });
+  res.json({ success: true, liveState: compactLiveState(result.rows[0]?.data, req.params.id) });
 });
 
 registerAuctionRoutes(app, { pool, requireUser, owns });
@@ -262,15 +264,19 @@ async function saveTournament(client, tournament, user) {
     const existing = await client.query('SELECT o.id,o.email FROM tournaments t JOIN organizers o ON o.id=t.organizer_id WHERE t.id=$1', [tournament.id]);
     if (existing.rowCount) owner = existing.rows[0];
   }
-  const data = await compressRecordImages({ ...tournament, userId: owner.id, creatorEmail: owner.email }, ['logoUrl', 'gpayQrUrl']);
+  const previous = await client.query('SELECT data FROM tournaments WHERE id=$1', [tournament.id]);
+  const restored = restoreMedia('tournaments', tournament, previous.rows[0]?.data);
+  const data = await compressRecordImages({ ...restored, userId: owner.id, creatorEmail: owner.email }, ['logoUrl', 'gpayQrUrl']);
   const result = await client.query(`INSERT INTO tournaments(id,organizer_id,data) VALUES($1,$2,$3) ON CONFLICT(id) DO UPDATE SET data=CASE WHEN tournaments.data ? 'rules' THEN jsonb_set(excluded.data,'{rules}',tournaments.data->'rules') ELSE excluded.data END,updated_at=now() WHERE tournaments.organizer_id=$2 RETURNING id`, [data.id, owner.id, data]);
   if (!result.rowCount) throw Object.assign(new Error('Tournament belongs to another organizer'), { status: 403 });
 }
 
 async function saveEntries(client, table, entries, userId, importing = false) {
   if (!Array.isArray(entries) || entries.length > 10000) throw Object.assign(new Error('Invalid records'), { status: 400 });
+  const checkedTournaments = new Set();
   for (const item of entries) {
-    if (!object(item) || typeof item.id !== 'string' || !item.id || typeof item.tournamentId !== 'string' || !await owns(item.tournamentId, userId, client)) throw Object.assign(new Error('Record is outside your tournament'), { status: 403 });
+    if (!object(item) || typeof item.id !== 'string' || !item.id || typeof item.tournamentId !== 'string' || (!checkedTournaments.has(item.tournamentId) && !await owns(item.tournamentId, userId, client))) throw Object.assign(new Error('Record is outside your tournament'), { status: 403 });
+    checkedTournaments.add(item.tournamentId);
     if (typeof item.name !== 'string' || !item.name.trim() || item.name.length > 100) throw Object.assign(new Error('Record name is required and must be at most 100 characters'), { status: 400 });
     if (table === 'teams' && (!Number.isFinite(item.totalPurse) || item.totalPurse <= 0 || !Number.isFinite(item.remainingPurse))) throw Object.assign(new Error('Invalid team purse'), { status: 400 });
     if (table === 'players' && (!Number.isFinite(item.basePrice) || item.basePrice < 0 || !['AVAILABLE','IN_AUCTION','SOLD','UNSOLD'].includes(item.status))) throw Object.assign(new Error('Invalid player price or status'), { status: 400 });
@@ -286,11 +292,15 @@ async function saveEntries(client, table, entries, userId, importing = false) {
       if (previous && ['SOLD','UNSOLD'].includes(previous.status)) data = { ...data, status: previous.status, soldPrice: previous.soldPrice, soldToTeamId: previous.soldToTeamId };
       else if (item.status === 'SOLD') throw Object.assign(new Error('Use the auction desk to mark a player sold'), { status: 400 });
     }
+    if (table === 'teams') {
+      const previous = await client.query('SELECT data FROM teams WHERE tournament_id=$1 AND id=$2', [item.tournamentId, item.id]);
+      data = restoreMedia('teams', data, previous.rows[0]?.data);
+    }
     if (table === 'teams' && !importing) {
       const spent = await client.query("SELECT coalesce(sum((data->>'soldPrice')::numeric),0) AS spent FROM players WHERE tournament_id=$1 AND data->>'soldToTeamId'=$2 AND data->>'status'='SOLD'", [item.tournamentId, item.id]);
       const remainingPurse = item.totalPurse - Number(spent.rows[0].spent);
       if (remainingPurse < 0) throw Object.assign(new Error('Team purse cannot be less than its purchases'), { status: 400 });
-      data = { ...item, remainingPurse };
+      data = { ...data, remainingPurse };
     }
     data = await compressRecordImages(data, table === 'players' ? ['photoUrl', 'paymentScreenshotUrl'] : ['logo']);
     await client.query(`INSERT INTO ${table}(tournament_id,id,data) VALUES($1,$2,$3) ON CONFLICT(tournament_id,id) DO UPDATE SET data=excluded.data`, [item.tournamentId, item.id, data]);
@@ -349,9 +359,9 @@ for (const [route, table] of [['teams', 'teams'], ['players', 'players']]) {
 }
 
 app.get('/api/public/tournaments/:id', async (req, res) => {
-  const result = await pool.query('SELECT data FROM tournaments WHERE id=$1', [req.params.id]);
+  const result = await pool.query(`SELECT ${mediaColumns('tournaments')} FROM tournaments WHERE id=$1`, [req.params.id]);
   if (!result.rowCount) return bad(res, 404, 'Tournament not found');
-  const { userId, creatorEmail, ...tournament } = result.rows[0].data;
+  const { userId, creatorEmail, ...tournament } = projectMedia('tournaments', result.rows[0]);
   res.json({ success: true, tournament });
 });
 registerPublicDirectoryRoutes(app, { pool });

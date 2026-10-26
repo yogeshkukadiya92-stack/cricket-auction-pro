@@ -4,12 +4,12 @@ import express from 'express';
 import { registerRegistrationRoutes } from '../server/registrationRoutes.js';
 
 test('form responses require an organizer session and tournament ownership on both URLs', async t => {
-  const player = { id: 'p1', name: 'Ravi', mobile: '9876543210', email: 'ravi@example.com', customData: { f1: false }, stats: { runs: 10 }, paymentUtr: 'UTR123', paymentScreenshotUrl: 'data:image/png;base64,AAAA' };
+  const player = { id: 'p1', tournamentId: 't1', name: 'Ravi', mobile: '9876543210', email: 'ravi@example.com', customData: { f1: false }, stats: { runs: 10 }, paymentUtr: 'UTR123', paymentScreenshotUrl: 'data:image/png;base64,AAAA' };
   const tournament = { name: 'League', season: 'S4', customFields: [{ id: 'f1', label: 'Available?' }] };
   let queries = 0;
   const app = express();
   registerRegistrationRoutes(app, {
-    pool: { query: async sql => { queries++; return sql.includes('FROM tournaments') ? { rowCount: 1, rows: [{ data: tournament }] } : { rows: [{ data: player }] }; } },
+    pool: { query: async sql => { queries++; if(sql.includes('count(*)'))return {rows:[{total:1,matched:1}]}; return sql.includes('FROM tournaments') ? { rowCount: 1, rows: [{ data: tournament }] } : { rows: [{ data: player }] }; } },
     requireUser: (req, res, next) => {
       // Stands in for the production cookie session middleware; player sessions are rejected.
       const id = req.headers['x-test-organizer'];
@@ -33,7 +33,7 @@ test('form responses require an organizer session and tournament ownership on bo
     const response = await fetch(`${base}${prefix}/t1/registrations`, { headers: { 'x-test-organizer': 'owner' } });
     assert.equal(response.status, 200);
     assert.equal(response.headers.get('cache-control'), 'no-store');
-    assert.deepEqual(await response.json(), { tournament, players: [player] });
+    assert.deepEqual(await response.json(), { tournament, players: [{...player,paymentScreenshotUrl:'/api/tournaments/t1/players/p1/media/paymentScreenshotUrl'}],total:1,matched:1,page:0,pageSize:25,hasMore:false });
     const wrongTournament = await fetch(`${base}${prefix}/t2/registrations`, { headers: { 'x-test-organizer': 'owner' } });
     assert.equal(wrongTournament.status, 403);
   }

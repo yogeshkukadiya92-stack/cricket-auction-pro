@@ -1,3 +1,4 @@
+import { createJsonPoller } from '../../../shared/requestJson.js';
 import React, { useEffect, useState } from 'react';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { PublicSpectatorView } from '../PublicSpectatorView';
@@ -26,6 +27,7 @@ export const PlayerLiveAuction: React.FC<PlayerLiveAuctionProps> = ({ tournament
 
   useEffect(() => {
     let cancelled = false;
+    const poll = createJsonPoller();
     let refreshing = false;
     let controller: AbortController | undefined;
     const refresh = async () => {
@@ -35,9 +37,8 @@ export const PlayerLiveAuction: React.FC<PlayerLiveAuctionProps> = ({ tournament
       const requestController = controller;
       const timeout = window.setTimeout(() => requestController.abort(), 15000);
       try {
-        const res = await fetch(`/api/public/tournaments/${encodeURIComponent(tournamentId)}/summary`, { cache: 'no-store', signal: requestController.signal });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Tournament unavailable');
+        const data = await poll(`/api/public/tournaments/${encodeURIComponent(tournamentId)}/summary`, { cache: 'no-store', signal: requestController.signal });
+        if (!data) return;
         if (!cancelled) { setSummary(data); setError(''); }
       } catch (err) {
         if (!cancelled) setError((err as Error).message === 'Failed to fetch' ? 'Reconnecting…' : (err as Error).message);

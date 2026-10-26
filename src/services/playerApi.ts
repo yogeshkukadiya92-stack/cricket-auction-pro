@@ -1,3 +1,4 @@
+import { requestJson } from '../../shared/requestJson.js';
 import { CurrencyType, PlayerRole, PlayerStatus, ApprovalStatus } from '../types';
 
 export interface PlayerStats { matches: number; runs: number; wickets: number; strikeRate: number }
@@ -79,15 +80,12 @@ export class PlayerApiError extends Error {
 }
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
-  let res: Response;
   try {
-    res = await fetch(url, { cache: 'no-store', ...init });
-  } catch {
-    throw new PlayerApiError('No internet connection. Please check your network and try again.', 0);
+    return await requestJson(url, { cache: 'no-store', ...init }) as T;
+  } catch (error) {
+    if (init?.signal?.aborted) throw error;
+    throw new PlayerApiError((error as Error).message || 'Please check your connection and retry.', (error as any).status || 0);
   }
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new PlayerApiError(data.error || 'Something went wrong. Please try again.', res.status);
-  return data as T;
 }
 
 const post = <T>(url: string, body: unknown) =>

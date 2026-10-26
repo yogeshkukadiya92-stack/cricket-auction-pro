@@ -669,7 +669,7 @@ export const UserPortalView: React.FC<UserPortalViewProps> = ({
             {/* Avatar preview */}
             <div className="flex items-center gap-4">
               <div className="w-20 h-20 rounded-2xl overflow-hidden bg-obsidian-950 border border-white/20 shrink-0 shadow-lg">
-                <img src={profilePhoto} alt="Player Profile" className="w-full h-full object-cover" />
+                <img decoding="async" loading="lazy" src={profilePhoto} alt="Player Profile" className="w-full h-full object-cover" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1">

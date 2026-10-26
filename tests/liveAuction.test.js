@@ -18,7 +18,9 @@ test('auction rehearsal: bid, undo, safe selection, sold once, unsold, recall an
       if(sql.startsWith('SELECT')&&sql.includes('FROM teams'))return{rows:teams.map(data=>({data:structuredClone(data)}))};
       if(sql.startsWith('SELECT')&&sql.includes('FROM tournament_live_state'))return{rows:[{data:structuredClone(state)}]};
       if(sql.startsWith('SELECT'))return{rows:[{id:'t1'}]};
-      if(sql.startsWith('UPDATE players'))players=players.map(p=>p.id===values[1]?values[2]:p);
+      if(sql.startsWith('UPDATE players p')) { const patches=JSON.parse(values[1]); players=players.map(p=>{const patch=patches.find(x=>x.id===p.id);if(!patch)return p;const {soldPrice,soldToTeamId,...rest}=p;return {...rest,...patch};}); }
+      else if(sql.startsWith('UPDATE teams t')) { const patches=JSON.parse(values[1]); teams=teams.map(team=>({...team,...patches.find(x=>x.id===team.id)})); }
+      else if(sql.startsWith('UPDATE players'))players=players.map(p=>p.id===values[1]?values[2]:p);
       else if(sql.startsWith('UPDATE teams'))teams=teams.map(team=>team.id===values[1]?values[2]:team);
       else if(sql.startsWith('INSERT INTO tournament_live_state'))state=values[1];
       else throw new Error(sql);

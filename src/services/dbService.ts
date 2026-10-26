@@ -1,3 +1,4 @@
+import { mergePending } from '../../shared/recordChanges.js';
 import { requestJson } from '../../shared/requestJson.js';
 import { Tournament, Team, Player, AuctionRules } from '../types';
 
@@ -22,11 +23,11 @@ class DatabaseService {
   public setScope(userId: string) {
     if (this.scope === userId) return;
     this.clearPending(); this.scope = userId;
-    try { this.pendingPayload = JSON.parse(localStorage.getItem(`cap_pending_${userId}`) || '{}'); } catch { this.pendingPayload = {}; }
+    try { this.pendingPayload = mergePending({}, JSON.parse(localStorage.getItem(`cap_pending_${userId}`) || '{}')); } catch { this.pendingPayload = {}; }
   }
   private persistPending() {
     if (!this.scope) return;
-    try { localStorage.setItem(`cap_pending_${this.scope}`, JSON.stringify({ ...this.activePayload, ...this.pendingPayload })); } catch { this.notify('Changes could not be stored locally. Keep this tab open and retry saving.'); }
+    try { localStorage.setItem(`cap_pending_${this.scope}`, JSON.stringify(mergePending(this.activePayload, this.pendingPayload))); } catch { this.notify('Changes could not be stored locally. Keep this tab open and retry saving.'); }
   }
   private listeners = new Set<(message: string) => void>();
   public subscribe(listener: (message: string) => void) { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; }
@@ -64,7 +65,7 @@ class DatabaseService {
     team?: Team;
     player?: Player;
   }) {
-    this.pendingPayload = { ...this.pendingPayload, ...payload };
+    this.pendingPayload = mergePending(this.pendingPayload, payload);
     this.persistPending();
     this.notify('Saving changes…');
 
@@ -116,7 +117,7 @@ class DatabaseService {
       this.isConnected = false;
       if (generation === this.generation) {
         this.activePayload = {};
-        this.pendingPayload = { ...toSend, ...this.pendingPayload };
+        this.pendingPayload = mergePending(toSend, this.pendingPayload);
         this.persistPending();
         this.notify(`Changes are not saved: ${(err as Error).message}`);
         this.syncTimeout = setTimeout(() => this.flushSync().catch(() => {}), 5000);

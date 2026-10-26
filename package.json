@@ -14,7 +14,9 @@
     "android": "cap sync android && cap open android",
     "ios:run": "cap run ios",
     "android:run": "cap run android",
-    "mobile:assets": "npx -y @capacitor/assets generate --iconBackgroundColor \"#04070D\" --splashBackgroundColor \"#04070D\" --splashBackgroundColorDark \"#04070D\" --ios --android"
+    "mobile:assets": "npx -y @capacitor/assets generate --iconBackgroundColor \"#04070D\" --splashBackgroundColor \"#04070D\" --splashBackgroundColorDark \"#04070D\" --ios --android",
+    "test": "node --test tests/*.test.js",
+    "test:performance": "node --test tests/performanceDatabase.test.js"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",

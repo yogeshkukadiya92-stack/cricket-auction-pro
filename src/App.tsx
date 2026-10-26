@@ -1,8 +1,9 @@
-import { requestJson } from '../shared/requestJson.js';
+import { changedRecords } from '../shared/recordChanges.js';
+import { requestJson, createJsonPoller } from '../shared/requestJson.js';
 import { lazyWithRecovery as lazy } from './utils/lazyWithRecovery';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { OrganizerMobileNav } from './components/OrganizerMobileNav';
-import React, { useState, useEffect, useRef, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import {
   initialTournament,
   initialRules,
@@ -278,12 +279,12 @@ function AppContent() {
     if (viewMode !== 'PUBLIC_REGISTER') return;
     const id = new URLSearchParams(window.location.search).get('tournamentId');
     if (!id) { if (currentUser && tournament.id) setPublicTournament(tournament); else setDataError('Tournament link is missing its ID.'); return; }
-    fetch(`/api/public/tournaments/${encodeURIComponent(id)}`).then(async (res) => {
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Tournament unavailable');
-      setPublicTournament(data.tournament);
-    }).catch((err) => setDataError(err.message));
-  }, [viewMode, currentUser?.id, tournament]);
+    const controller = new AbortController();
+    requestJson(`/api/public/tournaments/${encodeURIComponent(id)}`, { signal: controller.signal }).then((data) => {
+      if (!controller.signal.aborted) { setPublicTournament(data.tournament); setDataError(''); }
+    }).catch((err) => { if (!controller.signal.aborted) setDataError(err.message); });
+    return () => controller.abort();
+  }, [viewMode, currentUser?.id, tournament.id]);
 
   useEffect(() => {
     if (viewMode !== 'PUBLIC_SUMMARY' && viewMode !== 'OBS') return;
@@ -291,6 +292,7 @@ function AppContent() {
     if (!id) return;
     let cancelled = false;
     let refreshing = false;
+    const poll = createJsonPoller();
     let controller: AbortController | undefined;
     const refresh = async () => {
       if (cancelled || refreshing || document.visibilityState === 'hidden') return;
@@ -299,9 +301,8 @@ function AppContent() {
       const requestController = controller;
       const timeout = window.setTimeout(() => requestController.abort(), 15000);
       try {
-        const res = await fetch(`/api/public/tournaments/${encodeURIComponent(id)}/summary`, { cache: 'no-store', signal: requestController.signal });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Tournament unavailable');
+        const data = await poll(`/api/public/tournaments/${encodeURIComponent(id)}/summary`, { cache: 'no-store', signal: requestController.signal });
+        if (!data) return;
         if (!cancelled) { consumeAuctionEvent(data.liveState?.lastEvent); setPublicSummary(data); setDataError(''); }
       } catch (err) { if (!cancelled) setDataError(requestController.signal.aborted ? 'Loading took too long. Please retry.' : (err as Error).message); }
       finally { window.clearTimeout(timeout); refreshing = false; }
@@ -344,7 +345,7 @@ function AppContent() {
   // Persist changes only after the organizer's server data has loaded.
   useEffect(() => {
     const value = JSON.stringify(tournaments);
-    if (dataReady && value !== serverTournaments.current) { serverTournaments.current = value; dbService.queueSync({ tournaments }); }
+    if (dataReady && value !== serverTournaments.current) { const changes = changedRecords(serverTournaments.current, tournaments); serverTournaments.current = value; if (changes.length) dbService.queueSync({ tournaments: changes }); }
   }, [tournaments, dataReady, currentUser?.role]);
 
   useEffect(() => {
@@ -356,10 +357,7 @@ function AppContent() {
     setLiveReady(false);
     setLoadedLiveTournamentId('');
     let cancelled = false;
-    dbService.flushSync().then(() => fetch(`/api/tournaments/${encodeURIComponent(activeTournamentId)}/live`)).then(async res => {
-      if (!res.ok) throw new Error('Could not load live auction');
-      return (await res.json()).liveState;
-    }).then(state => {
+    dbService.flushSync().then(() => requestJson(`/api/tournaments/${encodeURIComponent(activeTournamentId)}/live`)).then(data => data.liveState).then(state => {
       if (cancelled) return;
       setCurrentPlayerId(state.currentPlayerId || '');
       setCurrentBid(state.currentBid || 0);
@@ -375,12 +373,12 @@ function AppContent() {
 
   useEffect(() => {
     const value = JSON.stringify(teams);
-    if (dataReady && value !== serverTeams.current) { serverTeams.current = value; dbService.queueSync({ teams }); }
+    if (dataReady && value !== serverTeams.current) { const changes = changedRecords(serverTeams.current, teams); serverTeams.current = value; if (changes.length) dbService.queueSync({ teams: changes }); }
   }, [teams, dataReady]);
 
   useEffect(() => {
     const value = JSON.stringify(players);
-    if (dataReady && value !== serverPlayers.current) { serverPlayers.current = value; dbService.queueSync({ players }); }
+    if (dataReady && value !== serverPlayers.current) { const changes = changedRecords(serverPlayers.current, players); serverPlayers.current = value; if (changes.length) dbService.queueSync({ players: changes }); }
   }, [players, dataReady]);
 
 
@@ -481,8 +479,8 @@ function AppContent() {
   }, [teams]);
 
   // Scoped Data for the currently active tournament
-  const activeTeams = teams.filter((t) => !t.tournamentId || t.tournamentId === tournament.id);
-  const activePlayers = players.filter((p) => !p.tournamentId || p.tournamentId === tournament.id);
+  const activeTeams = useMemo(() => teams.filter(t => !t.tournamentId || t.tournamentId === tournament.id), [teams, tournament.id]);
+  const activePlayers = useMemo(() => players.filter(p => !p.tournamentId || p.tournamentId === tournament.id), [players, tournament.id]);
 
   const currentPlayer = activePlayers.find((p) => p.id === currentPlayerId) || null;
 
@@ -519,12 +517,10 @@ function AppContent() {
     mutationRevision.current++;
     try {
       await dbService.flushSync();
-      const response = await fetch(`/api/tournaments/${encodeURIComponent(id)}/auction`, {
+      const data = await requestJson(`/api/tournaments/${encodeURIComponent(id)}/auction`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action, playerId: currentPlayerId, ...extra }),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Auction action failed');
       applyAuctionSnapshot(data, id);
       setAuctionError('');
     } catch (error) { setAuctionError((error as Error).message); }
@@ -541,6 +537,8 @@ function AppContent() {
     if (!dataReady || !activeTournamentId || !['STAGE', 'AUCTIONEER', 'PADDLE', 'OBS', 'PUBLIC_SUMMARY', 'PLAYERS', 'TOURNAMENT_OVERVIEW'].includes(viewMode)) return;
     let cancelled = false;
     let refreshing = false;
+    const poll = createJsonPoller();
+    let controller: AbortController | undefined;
     const refresh = async () => {
       if (cancelled || refreshing || document.visibilityState === 'hidden' || settling.current || dbService.hasPending()) return;
       refreshing = true;
@@ -548,9 +546,9 @@ function AppContent() {
         const revision = mutationRevision.current;
         const versions = snapshotVersions.current[activeTournamentId];
         const query = new URLSearchParams(versions ? { playersVersion: versions.players, teamsVersion: versions.teams } : {});
-        const response = await fetch(`/api/tournaments/${encodeURIComponent(activeTournamentId)}/snapshot?${query}`, { cache: 'no-store' });
-        if (!response.ok) return;
-        const data = await response.json();
+        controller = new AbortController();
+        const data = await poll(`/api/tournaments/${encodeURIComponent(activeTournamentId)}/snapshot?${query}`, { cache: 'no-store', signal: controller.signal }, 10000);
+        if (!data) return;
         if (!cancelled && revision === mutationRevision.current && !settling.current && !dbService.hasPending()) {
           applyAuctionSnapshot(data, activeTournamentId);
           if (data.versions) snapshotVersions.current[activeTournamentId] = data.versions;
@@ -559,7 +557,7 @@ function AppContent() {
       finally { refreshing = false; }
     };
     const timer = setInterval(refresh, 2000);
-    return () => { cancelled = true; clearInterval(timer); };
+    return () => { cancelled = true; controller?.abort(); clearInterval(timer); };
   }, [viewMode, dataReady, activeTournamentId]);
 
   // Random Draw

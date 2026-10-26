@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Home, KeyRound, Loader2, LogOut, UserRound, Users, ChevronRight, Briefcase } from 'lucide-react';
 import { MyRegistration, playerApi, PlayerApiError, PlayerMe } from '../../services/playerApi';
 import { PlayerAuthScreen } from './PlayerAuthScreen';
@@ -24,8 +24,12 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({ onExit }) => {
   const [error, setError] = useState('');
   const [tab, setTab] = useState<Tab>('home');
   const [stack, setStack] = useState<Screen[]>([]);
+  const [directoryVisited, setDirectoryVisited] = useState(false);
+  const meInFlight = useRef(false);
 
   const loadMe = useCallback(async (silent = false) => {
+    if (meInFlight.current) return;
+    meInFlight.current = true;
     if (!silent) setStatus(s => (s === 'ready' ? s : 'loading'));
     try {
       setMe(await playerApi.me());
@@ -33,7 +37,7 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({ onExit }) => {
     } catch (err) {
       if (err instanceof PlayerApiError && err.status === 401) { setMe(null); setStatus('signedOut'); return; }
       if (!silent) { setError((err as Error).message); setStatus(s => (s === 'ready' ? s : 'error')); }
-    }
+    } finally { meInFlight.current = false; }
   }, []);
 
   useEffect(() => { void loadMe(); }, [loadMe]);
@@ -119,12 +123,12 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({ onExit }) => {
         <main className="relative max-w-3xl mx-auto px-4 pt-4 pb-32">
           {tab === 'home' && <MyRegistrations me={me} onOpenLive={openLive} onOpenMyProfile={() => me.player.id && push({ name: 'profile', id: me.player.id })} />}
           <div className={tab === 'players' ? '' : 'hidden'}>
-            <PlayerDirectory onOpenProfile={id => push({ name: 'profile', id })} onSessionExpired={sessionExpired} />
+            {directoryVisited && <PlayerDirectory active={tab === 'players' && !top} onOpenProfile={id => push({ name: 'profile', id })} onSessionExpired={sessionExpired} />}
           </div>
           {tab === 'account' && <AccountTab me={me} onOpenMyProfile={() => me.player.id && push({ name: 'profile', id: me.player.id })} onLogout={logout} onExit={onExit} onSessionExpired={sessionExpired} />}
         </main>
 
-        <TabBar tab={tab} onChange={t => { setTab(t); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
+        <TabBar tab={tab} onChange={t => { if (t === 'players') setDirectoryVisited(true); setTab(t); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
       </div>
 
       {top?.name === 'profile' && (

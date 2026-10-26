@@ -1,3 +1,4 @@
+import { createJsonPoller } from '../../shared/requestJson.js';
 import React, { useEffect, useState, useMemo } from 'react';
 import {
   Trophy,
@@ -73,7 +74,12 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(0);
+  const [pageInfo, setPageInfo] = useState<{ hasMore: boolean; matched: number; stats: any } | null>(null);
+  useEffect(() => { const timer = setTimeout(() => { setQuery(search.trim()); setPage(0); }, 250); return () => clearTimeout(timer); }, [search]);
   const [selectedRole, setSelectedRole] = useState<string>('ALL');
+  useEffect(() => setPage(0), [selectedRole]);
   const [selectedPlayer, setSelectedPlayer] = useState<PublicPlayerInfo | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -87,6 +93,7 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
 
   useEffect(() => {
     let isMounted = true;
+    const poll = createJsonPoller();
     let inFlight = false;
     let controller: AbortController | undefined;
     const fetchPublicData = async () => {
@@ -105,16 +112,13 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
       const requestController = controller;
       const timeout = window.setTimeout(() => requestController.abort(), 20000);
       try {
-        const response = await fetch(
-          `/api/public/tournaments/${encodeURIComponent(tournamentId)}/players-directory`,
-          { cache: 'no-store', signal: requestController.signal }
-        );
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Could not load players. Please retry.');
+        const data = await poll(`/api/public/tournaments/${encodeURIComponent(tournamentId)}/players-directory?${new URLSearchParams({ page: String(page), q: query, role: selectedRole === 'ALL' ? '' : selectedRole })}`, { cache: 'no-store', signal: requestController.signal });
+        if (!data) return;
         if (!data.success || !data.tournament || !Array.isArray(data.players)) throw new Error('Invalid directory response. Please retry.');
         if (isMounted) {
           setTournament(data.tournament);
           setPlayers(data.players);
+          setPageInfo({ hasMore: data.hasMore, matched: data.matched, stats: data.stats });
           setError('');
         }
       } catch (err) {
@@ -136,7 +140,7 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
       controller?.abort();
       window.clearInterval(timer);
     };
-  }, [tournamentId, fallbackTournaments, fallbackPlayers, retryKey]);
+  }, [tournamentId, fallbackTournaments, fallbackPlayers, retryKey, query, selectedRole, page]);
 
   // Filtered players
   const filteredPlayers = useMemo(() => {
@@ -157,6 +161,7 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
 
   // Statistics counters
   const statsCounts = useMemo(() => {
+    if (tournamentId && pageInfo?.stats) return pageInfo.stats;
     const total = players.length;
     const batsmen = players.filter((p) => p.role === 'BATSMAN').length;
     const bowlers = players.filter((p) => p.role === 'BOWLER').length;
@@ -165,7 +170,7 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
     const approved = players.filter((p) => p.approvalStatus === 'APPROVED').length;
     const pending = players.filter((p) => p.approvalStatus === 'PENDING').length;
     return { total, batsmen, bowlers, allRounders, keepers, approved, pending };
-  }, [players]);
+  }, [players, pageInfo, tournamentId]);
 
   const copyShareLink = async () => {
     try {
@@ -182,7 +187,7 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
 
   const getWhatsAppShareUrl = () => {
     const title = tournament?.name || 'Cricket Tournament';
-    const count = players.length;
+    const count = statsCounts.total;
     const url = typeof window !== 'undefined' ? window.location.href : '';
     const text = `🏏 *${title} - Registered Players Directory*\n\n🔥 Total Registrations: *${count} Players*\nCheck the complete player list, photos & stats without login here:\n👉 ${url}`;
     return `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
@@ -218,7 +223,7 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-4 sm:gap-6">
               {tournament?.logoUrl ? (
-                <img
+                <img decoding="async" loading="lazy"
                   src={tournament.logoUrl}
                   alt={tournament.name}
                   className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border-2 border-gold-500/40 shadow-glow-gold bg-slate-900 shrink-0"
@@ -438,6 +443,7 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
         )}
 
         {/* Players Grid */}
+        {tournamentId && pageInfo && <nav aria-label="Player directory pages" className="flex justify-center items-center gap-5 my-4 text-sm"><button disabled={page === 0} onClick={() => setPage(p => p - 1)} className="underline disabled:opacity-40">Previous</button><span>Page {page + 1} · {pageInfo.matched} matching players</span><button disabled={!pageInfo.hasMore} onClick={() => setPage(p => p + 1)} className="underline disabled:opacity-40">Next</button></nav>}
         {!loading && !error && filteredPlayers.length === 0 && (
           <div className="p-16 text-center space-y-4 rounded-3xl bg-white/[0.02] border border-white/5">
             <div className="w-16 h-16 rounded-2xl bg-white/5 mx-auto grid place-items-center text-3xl">🏏</div>
@@ -475,7 +481,7 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
                   {/* Player Photo with full visibility framing */}
                   <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden bg-slate-950/80 border border-white/5 mb-3.5">
                     {player.photoUrl ? (
-                      <img
+                      <img decoding="async"
                         src={player.photoUrl}
                         alt={player.name}
                         loading="lazy"
@@ -621,7 +627,7 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
             <div className="flex flex-col sm:flex-row gap-5 items-center">
               <div className="w-36 h-44 rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 shadow-lg shrink-0">
                 {selectedPlayer.photoUrl ? (
-                  <img
+                  <img decoding="async" loading="lazy"
                     src={selectedPlayer.photoUrl}
                     alt={selectedPlayer.name}
                     className="w-full h-full object-cover object-top"

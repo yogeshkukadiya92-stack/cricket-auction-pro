@@ -14,6 +14,10 @@ const PLAYER_COOKIE = '__Host-cap_player';
 const SESSION_DAYS = 30;
 const VALID_MOBILE = /^[6-9]\d{9}$/;
 const PAGE_SIZE = 24;
+const profileMetadata = (alias = '') => {
+  const data = alias ? `${alias}.data` : 'data';
+  return `${data} - 'photoUrl' || jsonb_build_object('photoUrl', CASE WHEN coalesce(${data}->>'photoUrl','')<>'' THEN 'present' ELSE '' END)`;
+};
 const cookieOptions = { httpOnly: true, secure: true, sameSite: 'lax', path: '/' };
 const hashToken = value => createHash('sha256').update(value).digest('hex');
 // Compared against when the account does not exist, so response time doesn't reveal it.
@@ -66,14 +70,20 @@ export function registerPlayerRoutes(app, { pool, limit, bad }) {
 
   // Every registration for a mobile number, joined with tournament, buying team and live lot.
   const registrationsFor = mobile => pool.query(`
-    SELECT p.data AS player, t.data AS tournament, tm.data AS team, ls.data->>'currentPlayerId' AS current_player_id
+    SELECT p.data - 'photoUrl' - 'paymentScreenshotUrl' - 'customData' AS player,
+      t.data - 'logoUrl' - 'gpayQrUrl' AS tournament, tm.data - 'logo' AS team,
+      (t.data->>'logoUrl' LIKE 'data:image/%') AS tournament_logo_embedded,
+      CASE WHEN t.data->>'logoUrl' LIKE 'data:image/%' THEN NULL ELSE t.data->>'logoUrl' END AS tournament_logo,
+      (tm.data->>'logo' LIKE 'data:image/%') AS team_logo_embedded,
+      CASE WHEN tm.data->>'logo' LIKE 'data:image/%' THEN NULL ELSE tm.data->>'logo' END AS team_logo,
+      ls.data->>'currentPlayerId' AS current_player_id
     FROM players p
     JOIN tournaments t ON t.id=p.tournament_id
     LEFT JOIN teams tm ON tm.tournament_id=p.tournament_id AND tm.id=p.data->>'soldToTeamId'
     LEFT JOIN tournament_live_state ls ON ls.tournament_id=p.tournament_id
     WHERE p.data->>'mobile'=$1
     ORDER BY (t.data->>'status'='LIVE') DESC, p.data->>'registeredAt' DESC NULLS LAST`, [mobile]);
-  const toRow = r => ({ player: r.player, tournament: r.tournament, team: r.team, liveState: { currentPlayerId: r.current_player_id || '' } });
+  const toRow = r => ({ player: r.player, tournament: { ...r.tournament, logoUrl: r.tournament_logo_embedded ? `/api/public/tournaments/${encodeURIComponent(r.tournament.id)}/media/logoUrl` : r.tournament_logo || '' }, team: r.team && { ...r.team, logo: r.team_logo_embedded ? `/api/public/tournaments/${encodeURIComponent(r.tournament.id)}/players-directory/teams/${encodeURIComponent(r.team.id)}/logo` : r.team_logo || '' }, liveState: { currentPlayerId: r.current_player_id || '' } });
 
   // ---------- Authentication ----------
   app.post('/api/player/auth/check', limit, async (req, res) => {
@@ -131,7 +141,7 @@ export function registerPlayerRoutes(app, { pool, limit, bad }) {
   // ---------- Signed-in player ----------
   app.get('/api/player/me', requirePlayer, async (req, res) => {
     const [profile, registrations] = await Promise.all([
-      pool.query('SELECT public_id,data FROM player_profiles WHERE mobile=$1', [req.playerMobile]),
+      pool.query(`SELECT public_id,${profileMetadata()} AS data FROM player_profiles WHERE mobile=$1`, [req.playerMobile]),
       registrationsFor(req.playerMobile),
     ]);
     const row = profile.rows[0];
@@ -150,7 +160,7 @@ export function registerPlayerRoutes(app, { pool, limit, bad }) {
     const page = Math.max(0, Math.min(500, Number.parseInt(req.query.page, 10) || 0));
     const pattern = q ? `%${q.replace(/[\\%_]/g, '\\$&')}%` : '';
     const result = await pool.query(`
-      SELECT pp.public_id, pp.data,
+      SELECT pp.public_id, ${profileMetadata('pp')} AS data,
         count(*)::int AS appearances,
         count(*) FILTER (WHERE p.data->>'status'='SOLD')::int AS sold_count,
         bool_or(t.data->>'status'='LIVE') AS in_live,
@@ -176,7 +186,7 @@ export function registerPlayerRoutes(app, { pool, limit, bad }) {
 
   app.get('/api/players/:publicId', requirePlayer, async (req, res) => {
     if (!isUuid(req.params.publicId)) return bad(res, 404, 'Player not found');
-    const profile = await pool.query('SELECT mobile,public_id,data FROM player_profiles WHERE public_id=$1', [req.params.publicId]);
+    const profile = await pool.query(`SELECT mobile,public_id,${profileMetadata()} AS data FROM player_profiles WHERE public_id=$1`, [req.params.publicId]);
     if (!profile.rowCount) return bad(res, 404, 'Player not found');
     const { mobile, public_id: publicId, data } = profile.rows[0];
     const registrations = await registrationsFor(mobile);

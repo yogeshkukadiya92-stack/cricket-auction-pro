@@ -1,3 +1,4 @@
+import { projectMedia, compactLiveState } from './recordMedia.js';
 import { correctPlayer } from '../shared/playerCorrection.js';
 import { normalizeMobile } from '../shared/registrationValidation.js';
 import { approveRegistration } from '../shared/playerApproval.js';
@@ -51,7 +52,7 @@ app.post('/api/tournaments/:id/player-correction', requireUser, async (req, res)
     const live = await client.query('SELECT data FROM tournament_live_state WHERE tournament_id=$1', [req.params.id]);
     await client.query('COMMIT');
     res.set('Cache-Control', 'no-store');
-    res.json({ success: true, player: changedPlayer, removedPlayerId: action === 'DELETE' ? playerId : null, teams: changedTeams, liveState: live.rows[0]?.data || {} });
+    res.json({ success: true, player: changedPlayer && projectMedia('players', {data:changedPlayer}), removedPlayerId: action === 'DELETE' ? playerId : null, teams: changedTeams.map(data => projectMedia('teams', {data})), liveState: compactLiveState(live.rows[0]?.data, req.params.id) });
   } catch (err) { await client.query('ROLLBACK'); res.status(409).json({ error: err.message }); }
   finally { client.release(); }
 });

@@ -13,11 +13,12 @@ const ROLE_FILTERS: Array<{ value: '' | PlayerRole; label: string }> = [
 ];
 
 interface PlayerDirectoryProps {
+  active?: boolean;
   onOpenProfile: (id: string) => void;
   onSessionExpired: () => void;
 }
 
-export const PlayerDirectory: React.FC<PlayerDirectoryProps> = ({ onOpenProfile, onSessionExpired }) => {
+export const PlayerDirectory: React.FC<PlayerDirectoryProps> = ({ onOpenProfile, onSessionExpired, active = true }) => {
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
   const [role, setRole] = useState<'' | PlayerRole>('');
@@ -27,6 +28,8 @@ export const PlayerDirectory: React.FC<PlayerDirectoryProps> = ({ onOpenProfile,
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const loadMoreController = useRef<AbortController | null>(null);
+  const generation = useRef(0);
   const sentinel = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -36,9 +39,13 @@ export const PlayerDirectory: React.FC<PlayerDirectoryProps> = ({ onOpenProfile,
 
   // Reset & load the first page whenever the search changes.
   useEffect(() => {
+    loadMoreController.current?.abort();
+    generation.current++;
+    if (!active) return;
     const controller = new AbortController();
     setLoading(true); setError('');
     playerApi.directory({ q: debounced, role }, controller.signal).then(data => {
+      if (controller.signal.aborted) return;
       setPlayers(data.players); setTotal(data.total); setPage(0); setHasMore(data.hasMore);
     }).catch(err => {
       if (controller.signal.aborted) return;
@@ -46,24 +53,28 @@ export const PlayerDirectory: React.FC<PlayerDirectoryProps> = ({ onOpenProfile,
       else setError((err as Error).message);
     }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
-  }, [debounced, role]);
+  }, [debounced, role, active]);
 
   // Infinite scroll.
   useEffect(() => {
     const node = sentinel.current;
-    if (!node || !hasMore || loading) return;
+    if (!node || !hasMore || loading || !active) return;
     const observer = new IntersectionObserver(entries => {
       if (!entries[0].isIntersecting) return;
       observer.disconnect();
       setLoading(true);
-      playerApi.directory({ q: debounced, role, page: page + 1 }).then(data => {
+      const requestGeneration = generation.current;
+      const controller = new AbortController();
+      loadMoreController.current = controller;
+      playerApi.directory({ q: debounced, role, page: page + 1 }, controller.signal).then(data => {
+        if (controller.signal.aborted || generation.current !== requestGeneration) return;
         setPlayers(prev => [...prev, ...data.players.filter(p => !prev.some(x => x.id === p.id))]);
         setPage(data.page); setHasMore(data.hasMore);
-      }).catch(err => setError((err as Error).message)).finally(() => setLoading(false));
+      }).catch(err => { if (!controller.signal.aborted && generation.current === requestGeneration) setError((err as Error).message); }).finally(() => { if (!controller.signal.aborted && generation.current === requestGeneration) setLoading(false); });
     }, { rootMargin: '400px' });
     observer.observe(node);
     return () => observer.disconnect();
-  }, [hasMore, loading, page, debounced, role]);
+  }, [hasMore, loading, page, debounced, role, active]);
 
   return (
     <div className="space-y-4">
