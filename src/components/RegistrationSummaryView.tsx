@@ -1,3 +1,4 @@
+import { TeamLogo } from './TeamLogo';
 import { createJsonPoller } from '../../shared/requestJson.js';
 import React, { useEffect, useState, useMemo } from 'react';
 import {
@@ -223,10 +224,11 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-4 sm:gap-6">
               {tournament?.logoUrl ? (
-                <img decoding="async" loading="lazy"
-                  src={tournament.logoUrl}
-                  alt={tournament.name}
-                  className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border-2 border-gold-500/40 shadow-glow-gold bg-slate-900 shrink-0"
+                <TeamLogo
+                  logo={tournament.logoUrl}
+                  name={tournament.name}
+                  className="w-20 h-20 sm:w-24 sm:h-24 text-4xl rounded-2xl border-2 border-gold-500/40 shadow-glow-gold bg-slate-900 shrink-0"
+                  imgClassName="w-full h-full object-cover"
                 />
               ) : (
                 <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-gold-400 to-amber-600 flex items-center justify-center text-3xl sm:text-4xl shadow-glow-gold shrink-0 text-slate-950 font-black">
