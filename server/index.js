@@ -1,3 +1,4 @@
+import { bootstrapPlayersSql, projectPlayerMedia, restorePlayerMedia, registerBootstrapMedia } from './bootstrapMedia.js';
 import compression from 'compression';
 import { mountStaticFrontend } from './staticFrontend.js';
 import { registerSnapshotRoutes } from './snapshotRoutes.js';
@@ -209,15 +210,17 @@ app.post('/api/admin/toggle-user', requireUser, requireAdmin, async (req, res) =
 
 app.get('/api/ping', (_req, res) => res.json({ ok: true }));
 
+registerBootstrapMedia(app, { pool, requireUser, owns });
+
 app.get('/api/db/bootstrap', requireUser, async (req, res) => {
   const id = req.user.id;
   const [tournaments, teams, players, settings] = await Promise.all([
     pool.query('SELECT data FROM tournaments WHERE organizer_id=$1 OR $2 ORDER BY updated_at DESC', [id, req.user.role === 'ADMIN']),
     pool.query('SELECT tm.data FROM teams tm JOIN tournaments t ON t.id=tm.tournament_id WHERE t.organizer_id=$1 OR $2', [id, req.user.role === 'ADMIN']),
-    pool.query('SELECT p.data FROM players p JOIN tournaments t ON t.id=p.tournament_id WHERE t.organizer_id=$1 OR $2', [id, req.user.role === 'ADMIN']),
+    pool.query(bootstrapPlayersSql, [id, req.user.role === 'ADMIN']),
     pool.query('SELECT rules,live_state FROM organizer_settings WHERE organizer_id=$1', [id]),
   ]);
-  res.json({ success: true, dbType: 'PostgreSQL', tournaments: tournaments.rows.map(x => x.data), teams: teams.rows.map(x => x.data), players: players.rows.map(x => x.data), rules: settings.rows[0]?.rules || null, liveState: settings.rows[0]?.live_state || null });
+  res.json({ success: true, dbType: 'PostgreSQL', tournaments: tournaments.rows.map(x => x.data), teams: teams.rows.map(x => x.data), players: players.rows.map(projectPlayerMedia), rules: settings.rows[0]?.rules || null, liveState: settings.rows[0]?.live_state || null });
 });
 
 app.post('/api/tournaments/:id/player-profile', requireUser, limit, async (req, res) => {
@@ -279,6 +282,7 @@ async function saveEntries(client, table, entries, userId, importing = false) {
       if (archived.rowCount) continue;
       const existing = await client.query('SELECT data FROM players WHERE tournament_id=$1 AND id=$2', [item.tournamentId, item.id]);
       const previous = existing.rows[0]?.data;
+      data = restorePlayerMedia(data, previous);
       if (previous && ['SOLD','UNSOLD'].includes(previous.status)) data = { ...data, status: previous.status, soldPrice: previous.soldPrice, soldToTeamId: previous.soldToTeamId };
       else if (item.status === 'SOLD') throw Object.assign(new Error('Use the auction desk to mark a player sold'), { status: 400 });
     }
