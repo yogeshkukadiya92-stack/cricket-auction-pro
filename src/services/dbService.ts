@@ -1,3 +1,4 @@
+import { requestJson } from '../../shared/requestJson.js';
 import { Tournament, Team, Player, AuctionRules } from '../types';
 
 export interface BootstrapResponse {
@@ -38,16 +39,14 @@ class DatabaseService {
    */
   public async fetchBootstrapData(): Promise<BootstrapResponse | null> {
     try {
-      const res = await fetch('/api/db/bootstrap');
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-      const data: BootstrapResponse = await res.json();
+      const data: BootstrapResponse = await requestJson('/api/db/bootstrap');
       this.isConnected = true;
       if (data.dbType) this.dbType = data.dbType;
       return data;
     } catch (err) {
       console.error('Database API unavailable:', err);
       this.isConnected = false;
-      return null;
+      throw err;
     }
   }
 
@@ -105,12 +104,11 @@ class DatabaseService {
     this.activePayload = toSend;
 
     try {
-      const res = await fetch('/api/db/sync', {
+      await requestJson('/api/db/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(toSend),
       });
-      if (!res.ok) { const result = await res.json().catch(() => ({})); throw new Error(result.error || `Save failed: ${res.status}`); }
       this.isConnected = true;
       if (generation === this.generation) { this.activePayload = {}; this.persistPending(); this.notify(Object.keys(this.pendingPayload).length ? 'Saving changes…' : ''); }
     } catch (err) {

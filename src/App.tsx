@@ -1,3 +1,4 @@
+import { requestJson } from '../shared/requestJson.js';
 import { lazyWithRecovery as lazy } from './utils/lazyWithRecovery';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { OrganizerMobileNav } from './components/OrganizerMobileNav';
@@ -270,10 +271,7 @@ function AppContent() {
     if (params.has('tournamentId') && ['obs', 'register', 'form', 'summary', 'live', 'spectator', 'registrations'].includes(params.get('mode') || '')) { setAuthChecked(true); return; }
     if (params.has('tournamentId') && params.get('mode') === 'players' && !document.cookie.includes('__Host-cap_session')) { setAuthChecked(true); return; }
     if (startsInPlayerMode()) { setAuthChecked(true); return; }
-    fetch('/api/auth/me').then(async (res) => {
-      if (!res.ok) return null;
-      return (await res.json()).user as User;
-    }).then(setCurrentUser).catch(() => setCurrentUser(null)).finally(() => setAuthChecked(true));
+    requestJson('/api/auth/me').then((data) => data.user as User).then(setCurrentUser).catch(() => setCurrentUser(null)).finally(() => setAuthChecked(true));
   }, []);
 
   useEffect(() => {
@@ -316,9 +314,12 @@ function AppContent() {
   // Load only the signed-in organizer's records from the server.
   useEffect(() => {
     if (!currentUser || ['PUBLIC_REGISTER', 'PUBLIC_SUMMARY', 'PUBLIC_REGISTRATIONS', 'OBS'].includes(viewMode) && new URLSearchParams(window.location.search).has('tournamentId')) return;
+    let cancelled = false;
     setDataReady(false);
+    setDataError('');
     dbService.setScope(currentUser.id);
     dbService.flushSync().then(() => dbService.fetchBootstrapData()).then((data) => {
+      if (cancelled) return;
       if (!data?.success) throw new Error('Could not load your tournaments');
       serverTournaments.current = JSON.stringify(data.tournaments || []);
       setTournaments(data.tournaments || []);
@@ -336,7 +337,8 @@ function AppContent() {
         else setViewMode(currentUser.role === 'ADMIN' ? 'ADMIN_PANEL' : 'TOURNAMENTS');
       }
       setDataReady(true);
-    }).catch((err) => setDataError(err.message));
+    }).catch((err) => { if (!cancelled) setDataError(err.message); });
+    return () => { cancelled = true; };
   }, [currentUser?.id]);
 
   // Persist changes only after the organizer's server data has loaded.

@@ -1,3 +1,4 @@
+import compression from 'compression';
 import { mountStaticFrontend } from './staticFrontend.js';
 import { registerSnapshotRoutes } from './snapshotRoutes.js';
 import { registerAuctionRoutes } from './auctionRoutes.js';
@@ -23,6 +24,8 @@ if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is required');
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 10 });
 const app = express();
 app.disable('x-powered-by');
+// Compress large bootstrap responses and static bundles during transfer.
+app.use(compression({ threshold: 1024 }));
 app.set('trust proxy', 1);
 app.use(express.json({ limit: '6mb' }));
 app.use(cookieParser());
