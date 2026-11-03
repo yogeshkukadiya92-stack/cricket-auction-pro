@@ -1,3 +1,4 @@
+import { registrationPayment } from '../../shared/registrationPayment.js';
 import React, { useState, useEffect } from 'react';
 import { initialRules } from '../mockData';
 import { Tournament } from '../types';
@@ -62,6 +63,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
 
   // Registration & UPI
   const [registrationOpen, setRegistrationOpen] = useState(true);
+  const [paymentEnabled, setPaymentEnabled] = useState(false);
   const [paymentMandatory, setPaymentMandatory] = useState(true);
   const [registrationFee, setRegistrationFee] = useState(0);
   const [registrationDeadline, setRegistrationDeadline] = useState('');
@@ -94,6 +96,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
       setBallType(initialData.ballType || 'Heavy Tennis Ball');
       setRegistrationOpen(initialData.registrationOpen ?? true);
       setRegistrationFee(initialData.registrationFee ?? 0);
+      setPaymentEnabled(registrationPayment(initialData).enabled);
       setPaymentMandatory(initialData.paymentMandatory ?? false);
       setRegistrationDeadline(initialData.registrationDeadline || '');
       setUpiId(initialData.upiId || '');
@@ -178,6 +181,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
       ballType,
       registrationOpen,
       registrationFee: Number(registrationFee) || 0,
+      paymentEnabled,
       paymentMandatory,
       registrationDeadline,
       upiId: upiId.trim(),
@@ -584,9 +588,15 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
               </label>
             </div>
 
-            {registrationOpen && (
+            <label className="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer">
+              <input type="checkbox" checked={paymentEnabled} onChange={(e) => setPaymentEnabled(e.target.checked)} className="rounded border-white/20 text-gold-500 focus:ring-0 w-4 h-4" />
+              <span>Enable Registration Payment</span>
+            </label>
+            <p className="text-[11px] text-slate-400">When off, payment details, entry fee, QR code and receipt upload are hidden from the public form. Public registration stays independent.</p>
+
+            {(
               <>
-              <div>
+              <div hidden={!paymentEnabled}>
               <p className="text-[11px] text-slate-400 mb-2">To enable direct Google Pay, enter the receiver's valid UPI ID below. The registration fee will be prefilled; a mobile number alone cannot create the payment link.</p>
               <label htmlFor="payment-requirement" className="text-xs font-bold text-slate-300 block mb-1">Payment requirement</label>
               <select id="payment-requirement" value={paymentMandatory ? 'required' : 'optional'} onChange={(e) => setPaymentMandatory(e.target.value === 'required')} className="w-full bg-obsidian-950 border border-white/10 text-white text-sm px-4 py-2.5 rounded-xl">
@@ -597,7 +607,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                <div>
+                <div hidden={!paymentEnabled}>
                   <label className="text-xs font-bold text-slate-300 block mb-1">
                     Registration Fee (₹)
                   </label>
@@ -622,7 +632,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
                   />
                 </div>
 
-                <div>
+                <div hidden={!paymentEnabled}>
                   <label className="text-xs font-bold text-slate-300 block mb-1">UPI ID</label>
                   <input
                     type="text"
@@ -633,7 +643,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
                   />
                 </div>
 
-                <div>
+                <div hidden={!paymentEnabled}>
                   <label className="text-xs font-bold text-slate-300 block mb-1">
                     Google Pay Number & Name
                   </label>

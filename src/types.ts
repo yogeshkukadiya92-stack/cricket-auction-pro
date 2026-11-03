@@ -130,6 +130,7 @@ export interface Tournament {
   gpayNumber?: string;
   gpayName?: string;
   gpayQrUrl?: string;
+  paymentEnabled?: boolean;
   paymentMandatory?: boolean;
   customFields?: CustomFormField[];
   sportType?: 'CRICKET' | 'FOOTBALL' | 'KABADDI' | 'VOLLEYBALL' | 'OTHER';

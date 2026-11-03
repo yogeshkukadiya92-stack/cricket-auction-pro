@@ -1,3 +1,4 @@
+import { registrationPayment } from '../shared/registrationPayment.js';
 import { mediaColumns, projectMedia, restoreMedia, compactLiveState, registerRecordMedia } from './recordMedia.js';
 import { bootstrapPlayersSql, projectPlayerMedia, restorePlayerMedia, registerBootstrapMedia } from './bootstrapMedia.js';
 import compression from 'compression';
@@ -382,7 +383,7 @@ app.post('/api/public/tournaments/:id/register', limit, async (req, res) => {
   if (!object(player.stats) || ['matches','runs','wickets','strikeRate'].some(key => !Number.isFinite(player.stats[key]) || player.stats[key] < 0)) return bad(res, 400, 'Enter valid non-negative player statistics');
   if (!safeImage(player.photoUrl) || !safeImage(player.paymentScreenshotUrl)) return bad(res, 400, 'Invalid photo or payment receipt');
   if (!isUploadedImage(player.photoUrl)) return bad(res, 400, 'Player photo upload is required');
-  if (tournament.paymentMandatory && !isUploadedImage(player.paymentScreenshotUrl)) return bad(res, 400, 'Payment receipt is required');
+  if (registrationPayment(tournament).required && !isUploadedImage(player.paymentScreenshotUrl)) return bad(res, 400, 'Payment receipt is required');
   for (const field of tournament.customFields || []) {
     const value = player.customData?.[field.id];
     if (field.enabled && field.required && (value === undefined || value === null || value === false || String(value).trim() === '')) return bad(res, 400, `${field.label} is required`);
@@ -390,8 +391,10 @@ app.post('/api/public/tournaments/:id/register', limit, async (req, res) => {
   const mobile = normalizeMobile(player.mobile);
   if (!/^[6-9]\d{9}$/.test(mobile)) return bad(res, 400, "Enter a valid 10-digit Indian mobile number");
   const { soldToTeamId, soldPrice, ...safePlayer } = player;
+  const payment = registrationPayment(tournament);
+  if (!payment.enabled) { safePlayer.paymentScreenshotUrl = ''; safePlayer.paymentUtr = ''; }
   const compressedPlayer = await compressRecordImages(safePlayer, ['photoUrl', 'paymentScreenshotUrl']);
-  const registered = { ...compressedPlayer, mobile, basePrice: tournament.defaultBasePrice || 20000, paymentAmount: tournament.registrationFee || 0, id: randomUUID(), tournamentId: req.params.id, approvalStatus: 'APPROVED', status: 'AVAILABLE', paymentStatus: 'PENDING', registeredAt: new Date().toISOString() };
+  const registered = { ...compressedPlayer, mobile, basePrice: tournament.defaultBasePrice || 20000, paymentAmount: payment.amount, id: randomUUID(), tournamentId: req.params.id, approvalStatus: 'APPROVED', status: 'AVAILABLE', paymentStatus: payment.enabled ? 'PENDING' : 'EXEMPT', registeredAt: new Date().toISOString() };
   const client = await pool.connect();
   try {
     await client.query('BEGIN');

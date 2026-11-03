@@ -1,3 +1,4 @@
+import { registrationPayment } from '../../shared/registrationPayment.js';
 import { normalizeMobile, isUploadedImage } from '../../shared/registrationValidation.js';
 import { getPaymentLinks } from '../../shared/paymentLinks.js';
 import React, { useState, useRef } from 'react';
@@ -123,8 +124,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
   const gpayNumber = tournament.gpayNumber || '';
   const upiId = tournament.upiId || '';
   const gpayName = tournament.gpayName || tournament.name || 'Tournament Organizer';
-  const regFee = tournament.registrationFee ?? 0;
-  const isPaymentRequired = regFee > 0 || !!tournament.paymentMandatory;
+  const { enabled: isPaymentRequired, required: paymentRequired, amount: regFee } = registrationPayment(tournament);
 
   const paymentLinks = getPaymentLinks({ upiId, name: gpayName, amount: regFee, note: `${tournament.name} Player Entry Fee` }, navigator.userAgent);
   const upiDeepLink = paymentLinks?.upi || '';
@@ -155,7 +155,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
 
     if (!isUploadedImage(photoUrl)) { alert("Player photo upload is compulsory. Please upload your photo."); return; }
     if (!/^[6-9]\d{9}$/.test(normalizeMobile(mobile))) { alert("Enter a valid 10-digit Indian mobile number."); return; }
-    if (tournament.paymentMandatory && !paymentScreenshotUrl) {
+    if (paymentRequired && !paymentScreenshotUrl) {
       alert(
         '⚠️ Payment screenshot is mandatory. Please complete payment via a UPI app and upload the screenshot to proceed.'
       );
@@ -185,10 +185,10 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
       registeredAt: new Date().toISOString(),
       lotOrder: Math.floor(Math.random() * 900) + 100,
       customData: customValues,
-      paymentScreenshotUrl,
-      paymentUtr: paymentUtr.trim(),
-      paymentStatus: paymentScreenshotUrl ? 'PAID' : 'PENDING',
-      paymentAmount: tournament.registrationFee ?? 0,
+      paymentScreenshotUrl: isPaymentRequired ? paymentScreenshotUrl : '',
+      paymentUtr: isPaymentRequired ? paymentUtr.trim() : '',
+      paymentStatus: !isPaymentRequired ? 'EXEMPT' : paymentScreenshotUrl ? 'PAID' : 'PENDING',
+      paymentAmount: regFee,
     };
 
     setSubmitting(true);
@@ -289,9 +289,9 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
             </span>
 
             <div className="flex items-center gap-3">
-              {tournament.registrationFee ? (
+              {regFee > 0 ? (
                 <span className="px-3 py-1 rounded-full font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                  Entry Fee: ₹{tournament.registrationFee}
+                  Entry Fee: ₹{regFee}
                 </span>
               ) : null}
 
@@ -629,7 +629,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                           <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-gold-500/20 text-gold-300 border border-gold-400/30">
                             STEP 5 • OFFICIAL PAYMENT
                           </span>
-                          {tournament.paymentMandatory && (
+                          {paymentRequired && (
                             <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">
                               Mandatory
                             </span>
@@ -785,7 +785,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                             Upload Payment Screenshot
                           </span>
                           <span className="text-[10px] font-extrabold text-amber-400">
-                            * {tournament.paymentMandatory ? 'Mandatory' : 'Optional'}
+                            * {paymentRequired ? 'Mandatory' : 'Optional'}
                           </span>
                         </label>
 
@@ -829,12 +829,12 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                               Google Pay Payment Success screen (JPG, PNG)
                             </span>
                             <span className="text-[10px] text-amber-400/90 font-semibold mt-2 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20">
-                              {tournament.paymentMandatory ? '⚠️ Screenshot required to complete registration' : 'Payment screenshot is optional'}
+                              {paymentRequired ? '⚠️ Screenshot required to complete registration' : 'Payment screenshot is optional'}
                             </span>
                             <input
                               type="file"
                               accept="image/*"
-                              required={tournament.paymentMandatory}
+                              required={paymentRequired}
                               onChange={handlePaymentScreenshotUpload}
                               className="hidden"
                             />
@@ -866,7 +866,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
               {/* Submit Button */}
               <div className="pt-4 border-t border-white/10 space-y-3">
                 {submitError && <p role="alert" className="text-sm text-rose-400">{submitError}</p>}
-                {tournament.paymentMandatory && !paymentScreenshotUrl && (
+                {paymentRequired && !paymentScreenshotUrl && (
                   <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-2.5 text-xs text-amber-300">
                     <AlertCircle className="w-5 h-5 text-amber-400 shrink-0" />
                     <span>
@@ -878,14 +878,14 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                 {!isUploadedImage(photoUrl) && <p role="status" className="text-xs text-amber-300">Player photo is compulsory. Upload your photo to enable submission.</p>}
                 <button
                   type="submit"
-                  disabled={submitting || !!duplicateMobile || !isUploadedImage(photoUrl) || (tournament.paymentMandatory && !paymentScreenshotUrl)}
+                  disabled={submitting || !!duplicateMobile || !isUploadedImage(photoUrl) || (paymentRequired && !paymentScreenshotUrl)}
                   className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
-                    tournament.paymentMandatory && !paymentScreenshotUrl
+                    paymentRequired && !paymentScreenshotUrl
                       ? 'bg-white/10 text-slate-500 cursor-not-allowed border border-white/10 opacity-70'
                       : 'bg-gradient-to-r from-gold-500 via-amber-400 to-yellow-500 hover:from-gold-400 hover:to-amber-300 text-black shadow-glow-gold active:scale-95 cursor-pointer'
                   }`}
                 >
-                  {tournament.paymentMandatory && !paymentScreenshotUrl ? (
+                  {paymentRequired && !paymentScreenshotUrl ? (
                     <>
                       <Lock className="w-4 h-4 text-amber-400" />
                       <span>Upload Screenshot to Submit</span>
