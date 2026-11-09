@@ -45,7 +45,7 @@ export const NetworkStatusBadge: React.FC = () => {
       {/* Top Navbar Compact Badge */}
       <button
         onClick={() => setIsOpen(true)}
-        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all border shadow-sm backdrop-blur-md ${
+        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full caption text-[11px] font-semibold transition-all border shadow-sm backdrop-blur-md ${
           health.tier === 'FAST'
             ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
             : health.tier === 'LOW_BANDWIDTH'
@@ -73,7 +73,7 @@ export const NetworkStatusBadge: React.FC = () => {
         </span>
 
         {health.pendingSyncCount > 0 && (
-          <span className="px-1.5 py-0.2 bg-amber-400 text-slate-950 font-black text-[10px] rounded-full shadow">
+          <span className="px-1.5 py-0.2 bg-amber-400 text-slate-950 font-black caption text-[11px] rounded-full shadow">
             {health.pendingSyncCount}
           </span>
         )}
@@ -100,7 +100,7 @@ export const NetworkStatusBadge: React.FC = () => {
                 <div>
                   <h3 className="text-base font-bold text-white flex items-center gap-2">
                     Resilient Local-First Database
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                    <span className="caption text-[11px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
                       IndexedDB + SQLite
                     </span>
                   </h3>
@@ -121,7 +121,7 @@ export const NetworkStatusBadge: React.FC = () => {
             <div className="grid grid-cols-2 gap-3">
               {/* Network Tier */}
               <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10">
-                <span className="text-[11px] text-slate-400 font-medium">Connection Tier</span>
+                <span className="caption text-[11px] text-slate-400 font-medium">Connection Tier</span>
                 <div className="flex items-center gap-2 mt-1">
                   <div
                     className={`w-2.5 h-2.5 rounded-full ${
@@ -140,14 +140,14 @@ export const NetworkStatusBadge: React.FC = () => {
                       : 'Offline (No Net)'}
                   </span>
                 </div>
-                <div className="text-[11px] text-slate-500 mt-1">
+                <div className="caption text-[11px] text-slate-500 mt-1">
                   Latency: {health.rttMs > 0 && health.rttMs < 9000 ? `${health.rttMs} ms` : 'N/A'}
                 </div>
               </div>
 
               {/* Outbox Pending Changes */}
               <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10">
-                <span className="text-[11px] text-slate-400 font-medium">Device Outbox Queue</span>
+                <span className="caption text-[11px] text-slate-400 font-medium">Device Outbox Queue</span>
                 <div className="flex items-center gap-2 mt-1">
                   <span
                     className={`text-base font-extrabold ${
@@ -157,7 +157,7 @@ export const NetworkStatusBadge: React.FC = () => {
                     {health.pendingSyncCount === 0 ? 'All Synced ✓' : `${health.pendingSyncCount} Pending`}
                   </span>
                 </div>
-                <div className="text-[11px] text-slate-500 mt-1">
+                <div className="caption text-[11px] text-slate-500 mt-1">
                   {health.lastSyncedAt
                     ? `Last sync: ${health.lastSyncedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
                     : 'Syncing automatically'}
@@ -171,7 +171,7 @@ export const NetworkStatusBadge: React.FC = () => {
                 <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
                 Zero-Loss Offline-First Guarantee
               </div>
-              <p className="text-slate-300 leading-relaxed text-[11px]">
+              <p className="text-slate-300 leading-relaxed caption text-[11px]">
                 ઇન્ટરનેટ એકદમ ધીમું (2G) હોય કે તૂટક-તૂટક આવે તો પણ તમારી એપ <strong className="text-white">૧૦૦% ઝડપથી</strong> કામ કરશે. તમામ બોલી (Bids), પ્લેયર્સ અને ટૂર્નામેન્ટ તમારા ડિવાઇસના <strong className="text-emerald-300">IndexedDB</strong> માં તરત જ સેવ થઈ જાય છે અને નેટવર્ક મળતાં જ બેકગ્રાઉન્ડમાં સિંક થાય છે.
               </p>
             </div>

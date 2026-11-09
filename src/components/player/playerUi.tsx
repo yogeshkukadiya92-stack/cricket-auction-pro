@@ -54,7 +54,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({ id, name, role, hasP
 };
 
 export const LiveDot: React.FC<{ label?: string }> = ({ label = 'LIVE' }) => (
-  <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500/15 border border-red-500/40 px-2.5 py-1 text-[10px] font-black tracking-widest text-red-300">
+  <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500/15 border border-red-500/40 px-2.5 py-1 caption text-[11px] font-black tracking-widest text-red-300">
     <span className="relative flex h-2 w-2">
       <span className="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 animate-ping" />
       <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
@@ -66,7 +66,7 @@ export const LiveDot: React.FC<{ label?: string }> = ({ label = 'LIVE' }) => (
 export const StatPill: React.FC<{ label: string; value: React.ReactNode; accent?: string }> = ({ label, value, accent = 'text-white' }) => (
   <div className="rounded-2xl bg-white/[0.04] border border-white/[0.06] px-3 py-2.5 text-center">
     <div className={`font-display text-lg font-black leading-tight ${accent}`}>{value}</div>
-    <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mt-0.5">{label}</div>
+    <div className="caption text-[11px] text-slate-400 font-semibold mt-0.5">{label}</div>
   </div>
 );
 

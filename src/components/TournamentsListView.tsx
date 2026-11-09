@@ -35,8 +35,8 @@ export const TournamentsListView: React.FC<TournamentsListViewProps> = ({
               <div className="flex items-start gap-3.5">
                 <span className="w-14 h-14 shrink-0 rounded-xl border border-white/10 bg-obsidian-950 p-1.5 grid place-items-center overflow-hidden"><TeamLogo logo={item.logoUrl || '🏆'} name={item.name} className="w-full h-full text-3xl" /></span>
                 <div className="min-w-0 flex-1">
-                  <span className={`text-[11px] font-extrabold uppercase tracking-wider ${item.status === 'LIVE' ? 'text-red-400' : 'text-slate-400'}`}>{item.status === 'LIVE' ? '● Live' : item.status === 'UPCOMING' ? 'Upcoming' : 'Finished'}</span>
-                  <h2 className="font-display text-3xl font-extrabold uppercase leading-none text-white break-words">{item.name}</h2>
+                  <span className={`caption text-[11px] font-extrabold ${item.status === 'LIVE' ? 'text-red-400' : 'text-slate-400'}`}>{item.status === 'LIVE' ? '● Live' : item.status === 'UPCOMING' ? 'Upcoming' : 'Finished'}</span>
+                  <h2 className="font-display text-3xl font-extrabold leading-tight text-white break-words">{item.name}</h2>
                   <p className="mt-1 text-sm text-slate-400">{item.season} · {item.year}</p>
                 </div>
               </div>
@@ -68,5 +68,5 @@ export const TournamentsListView: React.FC<TournamentsListViewProps> = ({
 };
 
 function Count({ label, value }: { label: string; value: number }) {
-  return <div className="tile py-2"><dd className="score text-3xl leading-none text-white">{value}</dd><dt className="mt-0.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">{label}</dt></div>;
+  return <div className="tile py-2"><dd className="score text-3xl leading-tight text-white">{value}</dd><dt className="mt-0.5 caption text-[11px] font-bold text-slate-400">{label}</dt></div>;
 }

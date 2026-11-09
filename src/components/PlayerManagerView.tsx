@@ -252,11 +252,11 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
             return <article key={player.id} className="tile flex flex-col">
               <div className="relative aspect-[4/3] overflow-hidden bg-obsidian-950">
                 <img decoding="async" loading="lazy" src={player.photoUrl || '/player-placeholder.svg'} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                <span className="absolute top-1.5 left-1.5 rounded-md bg-obsidian-950/85 px-1.5 py-0.5 text-[11px] font-extrabold text-white">{player.category === 'MARQUEE' ? '★ ' : ''}#{player.lotOrder}</span>
-                {player.status !== 'AVAILABLE' && <span className={`absolute top-1.5 right-1.5 rounded-md px-1.5 py-0.5 text-[11px] font-extrabold uppercase ${player.status === 'SOLD' ? 'bg-emerald-500 text-black' : player.status === 'UNSOLD' ? 'bg-red-500 text-white' : 'bg-gold-500 text-black'}`}>{player.status === 'SOLD' ? 'Sold' : player.status === 'UNSOLD' ? 'Unsold' : 'On block'}</span>}
+                <span className="absolute top-1.5 left-1.5 rounded-md bg-obsidian-950/85 px-1.5 py-0.5 caption text-[11px] font-extrabold text-white">{player.category === 'MARQUEE' ? '★ ' : ''}#{player.lotOrder}</span>
+                {player.status !== 'AVAILABLE' && <span className={`absolute top-1.5 right-1.5 rounded-md px-1.5 py-0.5 caption text-[11px] font-extrabold ${player.status === 'SOLD' ? 'bg-emerald-500 text-black' : player.status === 'UNSOLD' ? 'bg-red-500 text-white' : 'bg-gold-500 text-black'}`}>{player.status === 'SOLD' ? 'Sold' : player.status === 'UNSOLD' ? 'Unsold' : 'On block'}</span>}
               </div>
               <div className="p-3 flex-1 flex flex-col">
-                <h2 className="font-display text-2xl font-extrabold uppercase leading-none text-white truncate">{player.name}</h2>
+                <h2 className="font-display text-2xl font-extrabold leading-tight text-white truncate">{player.name}</h2>
                 <p className="mt-1 text-xs font-semibold text-slate-400 truncate">{roleNames[player.role] || player.role}{player.status === 'SOLD' && soldTeam ? ` · ${soldTeam.shortCode || soldTeam.name}` : ''}</p>
                 <div className="mt-2 flex items-center justify-between gap-1">
                   <span className="score text-xl text-white truncate">{formatPrice(player.status === 'SOLD' ? player.soldPrice || 0 : player.basePrice)}</span>
@@ -266,7 +266,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
                     <button disabled={!!deletingPlayer} onClick={() => void removePlayer(player.id)} aria-label={`Move ${player.name} to recycle bin`} title="Move to recycle bin" className="btn-icon w-8 h-8 hover:text-red-300"><Trash2 className="w-4 h-4" /></button>
                   </span>
                 </div>
-                {player.paymentStatus && player.paymentStatus !== 'EXEMPT' && player.paymentStatus !== 'VERIFIED' && !player.paymentScreenshotUrl && <p className="mt-1 text-[11px] font-bold text-amber-300">Fee pending</p>}
+                {player.paymentStatus && player.paymentStatus !== 'EXEMPT' && player.paymentStatus !== 'VERIFIED' && !player.paymentScreenshotUrl && <p className="mt-1 caption text-[11px] font-bold text-amber-300">Fee pending</p>}
                 {detailPlayerId === player.id && <div className="cap-rise mt-2 pt-2 border-t border-white/10 space-y-1 text-xs break-words">
                   {[['Mobile', player.mobile], ['Email', player.email], ['City', player.city], ['Batting', player.battingStyle], ['Bowling', player.bowlingStyle], ['Matches', player.stats.matches], ['Runs', player.stats.runs], ['Wickets', player.stats.wickets], ['Strike rate', player.stats.strikeRate], ['Base price', formatPrice(player.basePrice)], ['UTR', player.paymentUtr]].filter(([, value]) => value !== undefined && value !== '').map(([label, value]) => <p key={String(label)} className="flex justify-between gap-2"><span className="text-slate-400">{label}</span><span className="font-semibold text-white text-right">{String(value)}</span></p>)}
                   {Object.entries(player.customData || {}).map(([key, value]) => <p key={key} className="flex justify-between gap-2"><span className="text-slate-400">{customFields.find(f => f.id === key)?.label || key}</span>{typeof value === 'string' && (value.startsWith('data:image/') || /^\/api\/tournaments\/.+\/media\/custom\//.test(value)) ? <a href={value} download={`${player.id}_${key}.png`} className="font-bold text-gold-400">Download</a> : <span className="font-semibold text-white text-right">{typeof value === 'object' ? JSON.stringify(value) : String(value ?? '')}</span>}</p>)}
@@ -289,7 +289,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-obsidian-950/85 backdrop-blur-md p-4 overflow-y-auto">
           <div className="relative max-w-xl w-full rounded-3xl p-6 bg-obsidian-900 border border-white/10 shadow-2xl my-8">
-            <h3 className="font-display text-4xl font-extrabold uppercase text-white mb-4">Add player</h3>
+            <h3 className="font-display text-4xl font-extrabold text-white mb-4">Add player</h3>
 
             <form onSubmit={handleCreatePlayer} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -380,7 +380,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
               {/* Stats Inputs */}
               <div className="grid grid-cols-4 gap-2 pt-2 border-t border-white/10">
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 block mb-1">Matches</label>
+                  <label className="caption text-[11px] font-bold text-slate-400 block mb-1">Matches</label>
                   <input
                     type="number"
                     value={matches}
@@ -389,7 +389,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 block mb-1">Runs</label>
+                  <label className="caption text-[11px] font-bold text-slate-400 block mb-1">Runs</label>
                   <input
                     type="number"
                     value={runs}
@@ -398,7 +398,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 block mb-1">Wickets</label>
+                  <label className="caption text-[11px] font-bold text-slate-400 block mb-1">Wickets</label>
                   <input
                     type="number"
                     value={wickets}
@@ -407,7 +407,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 block mb-1">Strike Rate</label>
+                  <label className="caption text-[11px] font-bold text-slate-400 block mb-1">Strike Rate</label>
                   <input
                     type="number"
                     step="0.1"
@@ -471,7 +471,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-stretch">
               {/* Left: Uploaded Screenshot View */}
               <div className="p-3 rounded-2xl bg-obsidian-950 border border-white/10 flex flex-col items-center justify-center text-center">
-                <span className="text-[10px] uppercase font-bold text-slate-400 mb-2 block">
+                <span className="caption text-[11px] font-bold text-slate-400 mb-2 block">
                   Uploaded Payment Screenshot
                 </span>
                 {selectedReceiptPlayer.paymentScreenshotUrl ? (
@@ -516,7 +516,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
                     <span className="text-xs text-gold-400 font-bold block">
                       {selectedReceiptPlayer.role}
                     </span>
-                    <span className="text-[11px] text-slate-400 font-mono">
+                    <span className="caption text-[11px] text-slate-400 font-mono">
                       Mobile: {selectedReceiptPlayer.mobile || 'N/A'}
                     </span>
                   </div>
@@ -532,7 +532,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
                   </div>
 
                   <div className="space-y-1">
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                    <span className="caption text-[11px] font-bold text-slate-400 block">
                       Google Pay UPI Ref / UTR No:
                     </span>
                     <div className="p-2 rounded-xl bg-white/5 border border-white/10 font-mono text-xs text-white font-bold flex items-center justify-between select-all">
@@ -544,7 +544,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
                             navigator.clipboard.writeText(selectedReceiptPlayer.paymentUtr || '');
                             notify('UTR copied', 'ok');
                           }}
-                          className="text-[10px] text-gold-400 hover:underline cursor-pointer"
+                          className="caption text-[11px] text-gold-400 hover:underline cursor-pointer"
                         >
                           Copy
                         </button>
@@ -552,7 +552,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex justify-between text-[11px] text-slate-400 pt-1">
+                  <div className="flex justify-between caption text-[11px] text-slate-400 pt-1">
                     <span>Registration Date:</span>
                     <span className="font-mono text-slate-200">
                       {selectedReceiptPlayer.registeredAt
@@ -563,7 +563,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
                 </div>
 
                 {/* Verification Guidance */}
-                <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-300 flex items-center gap-2">
+                <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 caption text-[11px] text-emerald-300 flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
                   <span>
                     Verify ₹{selectedReceiptPlayer.paymentAmount ?? 0} and UTR in your Google Pay statement before approving.

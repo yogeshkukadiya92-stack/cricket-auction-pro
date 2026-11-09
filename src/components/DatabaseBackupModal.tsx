@@ -90,7 +90,7 @@ export const DatabaseBackupModal: React.FC<DatabaseBackupModalProps> = ({
               </div>
             </div>
             <div>
-              <h3 className="text-4xl font-extrabold uppercase leading-none text-white font-display">
+              <h3 className="text-4xl font-extrabold leading-tight text-white font-display">
                 Backup
               </h3>
             </div>
@@ -110,7 +110,7 @@ export const DatabaseBackupModal: React.FC<DatabaseBackupModalProps> = ({
               <Server className="w-4 h-4 text-emerald-400" />
               Engine Status:
             </span>
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center gap-1">
+            <span className="px-2.5 py-0.5 rounded-full caption text-[11px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               {dbService.isConnected ? 'CONNECTED' : 'CONNECTION UNAVAILABLE'}
             </span>

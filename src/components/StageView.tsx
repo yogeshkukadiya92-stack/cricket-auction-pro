@@ -95,8 +95,8 @@ export const StageView: React.FC<StageViewProps> = ({
       {toolbar}
       <div className="panel pitch-stripes min-h-[52vh] grid place-items-center p-8 text-center">
         <div>
-          <p className="text-sm font-extrabold uppercase tracking-[0.2em] text-gold-400">{tournamentName}</p>
-          <h1 className="mt-2 font-display text-[clamp(3.5rem,9vw,8rem)] font-black uppercase leading-[0.9] text-white">Next lot<br />coming up</h1>
+          <p className="text-sm font-extrabold text-gold-400">{tournamentName}</p>
+          <h1 className="mt-2 font-display text-[clamp(2rem,4vw,3.5rem)] font-black leading-tight text-white">Next lot<br />coming up</h1>
         </div>
       </div>
       {controls}
@@ -113,22 +113,22 @@ export const StageView: React.FC<StageViewProps> = ({
         </div>
         <div className="flex flex-col min-w-0">
           <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-white/10">
-            <span className="inline-flex items-center gap-2 text-sm font-extrabold uppercase tracking-wider text-red-400"><span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />Live<span className="hidden sm:inline text-slate-400 normal-case font-semibold tracking-normal truncate">· {tournamentName}</span></span>
-            <span role="timer" aria-label="Time left" className={`inline-flex items-center gap-2 score text-4xl leading-none ${urgent ? 'text-red-400' : 'text-white'}`}><Timer className="w-6 h-6" />{clock(timeLeft)}</span>
+            <span className="inline-flex items-center gap-2 text-sm font-extrabold text-red-400"><span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />Live<span className="hidden sm:inline text-slate-400 normal-case font-semibold tracking-normal truncate">· {tournamentName}</span></span>
+            <span role="timer" aria-label="Time left" className={`inline-flex items-center gap-2 score text-4xl leading-tight ${urgent ? 'text-red-400' : 'text-white'}`}><Timer className="w-6 h-6" />{clock(timeLeft)}</span>
           </div>
 
           <div className="relative flex-1 p-5 sm:p-8 flex flex-col justify-center min-h-64 transition-colors duration-300" style={leadingTeam ? { backgroundColor: `${leadingTeam.colorHex}26` } : undefined}>
-            <p className="text-sm font-extrabold uppercase tracking-[0.2em] text-slate-300">{currentBid > 0 ? 'Highest bid' : 'Base price'}</p>
-            <p key={currentBid} className="cap-bid score leading-[0.9] text-white text-[clamp(4rem,9vw,9.5rem)] truncate">{price(currentBid > 0 ? currentBid : displayPlayer.basePrice)}</p>
+            <p className="text-sm font-extrabold text-slate-300">{currentBid > 0 ? 'Highest bid' : 'Base price'}</p>
+            <p key={currentBid} className="cap-bid score leading-tight text-white text-[clamp(2.75rem,5.5vw,5.5rem)] truncate">{price(currentBid > 0 ? currentBid : displayPlayer.basePrice)}</p>
             {leadingTeam
               ? <div className="mt-4 flex items-center gap-4 min-w-0">
                 <span className="w-16 h-16 shrink-0 rounded-xl bg-obsidian-950/70 p-1.5 grid place-items-center overflow-hidden"><TeamLogo logo={leadingTeam.logo} name={leadingTeam.name} className="w-full h-full text-4xl" /></span>
                 <div className="min-w-0">
-                  <p className="font-display text-4xl sm:text-5xl font-extrabold uppercase leading-none text-white truncate">{leadingTeam.name}</p>
+                  <p className="font-display text-4xl sm:text-5xl font-extrabold leading-tight text-white truncate">{leadingTeam.name}</p>
                   <p className="mt-1 text-sm font-semibold text-slate-300">Purse left {price(leadingTeam.remainingPurse)}</p>
                 </div>
               </div>
-              : <p className="mt-4 font-display text-3xl font-extrabold uppercase text-slate-400">Waiting for first bid</p>}
+              : <p className="mt-4 font-display text-3xl font-extrabold text-slate-400">Waiting for first bid</p>}
             <div className="mt-3"><PlayerAuctionHistory tournamentId={tournamentId} playerId={displayPlayer.id} /></div>
           </div>
 
@@ -141,20 +141,20 @@ export const StageView: React.FC<StageViewProps> = ({
 
       {isSold && lastSoldInfo && <div className="fixed inset-0 z-50 grid place-items-center p-6 text-center backdrop-blur-sm" style={{ backgroundColor: `${lastSoldInfo.team.colorHex}E6` }}>
         <div>
-          <p className="cap-stamp inline-block rounded-2xl border-[6px] border-white px-8 py-2 font-display text-[clamp(5rem,16vw,14rem)] font-black uppercase leading-none text-white">Sold</p>
-          <h2 className="mt-6 font-display text-[clamp(2.5rem,6vw,5.5rem)] font-extrabold uppercase leading-none text-white">{lastSoldInfo.player.name}</h2>
+          <p className="cap-stamp inline-block rounded-2xl border-[6px] border-white px-8 py-2 font-display text-[clamp(2.75rem,7vw,6.5rem)] font-black uppercase leading-tight text-white">Sold</p>
+          <h2 className="mt-6 font-display text-[clamp(1.75rem,3.5vw,3.5rem)] font-extrabold leading-tight text-white">{lastSoldInfo.player.name}</h2>
           <div className="mt-4 flex items-center justify-center gap-3">
             <TeamLogo logo={lastSoldInfo.team.logo} name={lastSoldInfo.team.name} className="w-14 h-14 text-4xl" />
-            <span className="font-display text-4xl font-extrabold uppercase text-white">{lastSoldInfo.team.name}</span>
+            <span className="font-display text-4xl font-extrabold text-white">{lastSoldInfo.team.name}</span>
           </div>
-          <p className="score mt-3 text-[clamp(3.5rem,8vw,7.5rem)] leading-none text-white">{price(lastSoldInfo.price)}</p>
+          <p className="score mt-3 text-[clamp(2.25rem,4.5vw,4.5rem)] leading-tight text-white">{price(lastSoldInfo.price)}</p>
         </div>
       </div>}
 
       {isUnsold && <div className="fixed inset-0 z-50 grid place-items-center p-6 text-center bg-obsidian-950/90 backdrop-blur-sm">
         <div>
-          <p className="cap-stamp inline-block rounded-2xl border-[6px] border-red-500 px-8 py-2 font-display text-[clamp(4rem,13vw,11rem)] font-black uppercase leading-none text-red-400">Unsold</p>
-          <h2 className="mt-6 font-display text-5xl font-extrabold uppercase text-white">{displayPlayer.name}</h2>
+          <p className="cap-stamp inline-block rounded-2xl border-[6px] border-red-500 px-8 py-2 font-display text-[clamp(2.5rem,6vw,5.5rem)] font-black uppercase leading-tight text-red-400">Unsold</p>
+          <h2 className="mt-6 font-display text-5xl font-extrabold text-white">{displayPlayer.name}</h2>
         </div>
       </div>}
     </div>

@@ -150,7 +150,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-lg font-bold text-white">Admin</h1>
-                <span className="px-2 py-0.5 text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-md">
+                <span className="px-2 py-0.5 caption text-[11px] font-black bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-md">
                   Root Admin
                 </span>
               </div>
@@ -242,7 +242,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
                   </div>
                 </div>
                 <div className="text-3xl font-black text-white">{stats?.usersCount ?? usersList.length}</div>
-                <p className="text-[11px] text-slate-500 mt-1">Registered league hosts</p>
+                <p className="caption text-[11px] text-slate-500 mt-1">Registered league hosts</p>
               </div>
 
               <div className="p-5 bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 rounded-2xl relative overflow-hidden">
@@ -253,7 +253,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
                   </div>
                 </div>
                 <div className="text-3xl font-black text-white">{stats?.tournamentsCount ?? tournaments.length}</div>
-                <p className="text-[11px] text-amber-400/80 mt-1">
+                <p className="caption text-[11px] text-amber-400/80 mt-1">
                   {stats?.liveTournamentsCount ?? 0} currently Live
                 </p>
               </div>
@@ -266,7 +266,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
                   </div>
                 </div>
                 <div className="text-3xl font-black text-white">{stats?.teamsCount ?? 0}</div>
-                <p className="text-[11px] text-slate-500 mt-1">Franchises created</p>
+                <p className="caption text-[11px] text-slate-500 mt-1">Franchises created</p>
               </div>
 
               <div className="p-5 bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 rounded-2xl relative overflow-hidden">
@@ -277,7 +277,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
                   </div>
                 </div>
                 <div className="text-3xl font-black text-white">{stats?.playersCount ?? 0}</div>
-                <p className="text-[11px] text-emerald-400/80 mt-1">
+                <p className="caption text-[11px] text-emerald-400/80 mt-1">
                   {stats?.soldPlayersCount ?? 0} successfully sold
                 </p>
               </div>
@@ -311,12 +311,12 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
                         </div>
                         <div>
                           <p className="text-xs font-bold text-white">{user.name}</p>
-                          <p className="text-[11px] text-slate-400 break-all">{user.email}</p>
+                          <p className="caption text-[11px] text-slate-400 break-all">{user.email}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          className={`px-2 py-0.5 rounded caption text-[11px] font-bold ${
                             user.role === 'ADMIN'
                               ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
                               : 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
@@ -325,7 +325,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
                           {user.role}
                         </span>
                         <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          className={`px-2 py-0.5 rounded caption text-[11px] font-bold ${
                             user.status === 'ACTIVE'
                               ? 'bg-emerald-500/20 text-emerald-400'
                               : 'bg-rose-500/20 text-rose-400'
@@ -352,7 +352,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-slate-400">Storage:</span>
-                    <span className="font-mono text-slate-300 text-[11px]">Coolify managed database</span>
+                    <span className="font-mono text-slate-300 caption text-[11px]">Coolify managed database</span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-slate-400">Backup method:</span>
@@ -397,7 +397,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
             <div className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-950/80 text-slate-400 border-b border-slate-800 font-bold uppercase tracking-wider">
+                  <thead className="bg-slate-950/80 text-slate-400 border-b border-slate-800 font-bold">
                     <tr>
                       <th className="py-3 px-4">User</th>
                       <th className="py-3 px-4">Email</th>
@@ -428,7 +428,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
                           <td className="py-3 px-4 font-mono text-slate-400">{user.email}</td>
                           <td className="py-3 px-4">
                             <span
-                              className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                              className={`px-2 py-0.5 rounded caption text-[11px] font-bold ${
                                 user.role === 'ADMIN'
                                   ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
                                   : 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
@@ -442,7 +442,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
                           </td>
                           <td className="py-3 px-4">
                             <span
-                              className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                              className={`px-2 py-0.5 rounded caption text-[11px] font-bold ${
                                 user.status === 'ACTIVE'
                                   ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                                   : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
@@ -455,7 +455,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
                             {user.role !== 'ADMIN' ? (
                               <button
                                 onClick={() => handleToggleUser(user.id, user.role)}
-                                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition ${
+                                className={`px-2.5 py-1 rounded-lg caption text-[11px] font-bold transition ${
                                   user.status === 'ACTIVE'
                                     ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30'
                                     : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
@@ -464,7 +464,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
                                 {user.status === 'ACTIVE' ? 'Block Access' : 'Activate'}
                               </button>
                             ) : (
-                              <span className="text-[11px] text-slate-500 italic">Protected</span>
+                              <span className="caption text-[11px] text-slate-500 italic">Protected</span>
                             )}
                           </td>
                         </tr>
@@ -506,7 +506,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
                         )}
                       </div>
                       <span
-                        className={`px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider rounded-md border ${
+                        className={`px-2.5 py-0.5 caption text-[11px] font-black rounded-md border ${
                           tourney.status === 'LIVE'
                             ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 animate-pulse'
                             : tourney.status === 'COMPLETED'
@@ -528,7 +528,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
                     <div className="mt-4 pt-3 border-t border-slate-800/80 space-y-1.5 text-xs text-slate-400">
                       <div className="flex justify-between">
                         <span>Organizer:</span>
-                        <span className="text-slate-200 font-mono text-[11px]">
+                        <span className="text-slate-200 font-mono caption text-[11px]">
                           {tourney.creatorEmail || 'Platform Admin'}
                         </span>
                       </div>

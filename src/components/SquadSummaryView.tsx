@@ -54,7 +54,7 @@ export const SquadSummaryView: React.FC<SquadSummaryViewProps> = ({
       {/* Top 4 Most Expensive Buys Ribbon */}
       {topBuys.length > 0 && (
         <div className="panel pitch-stripes p-5">
-          <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-gold-400 mb-4">
+          <div className="flex items-center gap-2 text-xs font-black text-gold-400 mb-4">
             <Trophy className="w-4 h-4" />
             Top buys
           </div>
@@ -72,7 +72,7 @@ export const SquadSummaryView: React.FC<SquadSummaryViewProps> = ({
                   <img decoding="async" loading="lazy" src={p.photoUrl || "/player-placeholder.svg"} alt={p.name} className="w-12 h-12 rounded-xl object-cover" />
                   <div>
                     <h4 className="text-sm font-bold text-white truncate">{p.name}</h4>
-                    <p className="text-[11px] text-slate-400">{boughtTeam?.name || 'Unknown'}</p>
+                    <p className="caption text-[11px] text-slate-400">{boughtTeam?.name || 'Unknown'}</p>
                     <span className="text-xs font-black text-gold-400 font-mono">
                       {formatPrice(p.soldPrice || 0)}
                     </span>
@@ -104,7 +104,7 @@ export const SquadSummaryView: React.FC<SquadSummaryViewProps> = ({
                     </div>
                     <div>
                       <h3 className="text-lg font-black text-white font-display">{team.name}</h3>
-                      <p className="text-[11px] text-slate-400">{team.ownerName}</p>
+                      <p className="caption text-[11px] text-slate-400">{team.ownerName}</p>
                     </div>
                   </div>
                   <span className="text-xs font-mono font-bold px-2 py-1 rounded bg-white/5 text-slate-300">
@@ -115,11 +115,11 @@ export const SquadSummaryView: React.FC<SquadSummaryViewProps> = ({
                 {/* Team Purse Stats */}
                 <div className="grid grid-cols-2 gap-2 my-4 text-center">
                   <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5">
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Spent</span>
+                    <span className="caption text-[11px] font-bold text-slate-400 block">Spent</span>
                     <span className="text-sm font-black text-gold-400 font-mono">{formatPrice(totalSpent)}</span>
                   </div>
                   <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5">
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Remaining</span>
+                    <span className="caption text-[11px] font-bold text-slate-400 block">Remaining</span>
                     <span className="text-sm font-black text-emerald-400 font-mono">
                       {formatPrice(team.remainingPurse)}
                     </span>
@@ -128,7 +128,7 @@ export const SquadSummaryView: React.FC<SquadSummaryViewProps> = ({
 
                 {/* Squad List */}
                 <div className="space-y-2 mt-4">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
+                  <span className="text-xs font-bold text-slate-400 block">
                     Squad ({squad.length} / {rules.maxPlayersPerTeam})
                   </span>
 
@@ -145,7 +145,7 @@ export const SquadSummaryView: React.FC<SquadSummaryViewProps> = ({
                             <img decoding="async" loading="lazy" src={p.photoUrl || "/player-placeholder.svg"} alt={p.name} className="w-7 h-7 rounded-lg object-cover" />
                             <div>
                               <span className="font-bold text-white block truncate max-w-[130px]">{p.name}</span>
-                              <span className="text-[9px] text-slate-400">{p.role}</span>
+                              <span className="caption text-[11px] text-slate-400">{p.role}</span>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
@@ -171,7 +171,7 @@ export const SquadSummaryView: React.FC<SquadSummaryViewProps> = ({
               </div>
 
               {/* Composition Pills Footer */}
-              <div className="mt-5 pt-4 border-t border-white/10 flex items-center justify-between text-[11px] text-slate-400 font-semibold">
+              <div className="mt-5 pt-4 border-t border-white/10 flex items-center justify-between caption text-[11px] text-slate-400 font-semibold">
                 <span>BAT {squad.filter((p) => p.role === 'BATSMAN').length}</span>
                 <span>BOWL {squad.filter((p) => p.role === 'BOWLER').length}</span>
                 <span>AR {squad.filter((p) => p.role === 'ALL_ROUNDER').length}</span>

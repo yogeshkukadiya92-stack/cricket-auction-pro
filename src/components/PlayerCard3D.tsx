@@ -90,13 +90,13 @@ export const PlayerCard3D: React.FC<PlayerCard3DProps> = ({ player, isBigStage =
         <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span
-              className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider text-white shadow-lg flex items-center gap-1.5 ${roleInfo.color}`}
+              className={`px-3 py-1 rounded-full text-xs font-bold text-white shadow-lg flex items-center gap-1.5 ${roleInfo.color}`}
             >
               <RoleIcon className="w-3.5 h-3.5" />
               {roleInfo.label}
             </span>
             {isMarquee && (
-              <span className="px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-gold-500/20 text-gold-400 border border-gold-400/40 flex items-center gap-1 animate-pulse">
+              <span className="px-2.5 py-1 rounded-full caption text-[11px] font-extrabold bg-gold-500/20 text-gold-400 border border-gold-400/40 flex items-center gap-1 animate-pulse">
                 ★ Marquee
               </span>
             )}
@@ -122,10 +122,10 @@ export const PlayerCard3D: React.FC<PlayerCard3DProps> = ({ player, isBigStage =
         <div className="absolute bottom-0 inset-x-0 p-3 sm:p-4 z-20 flex flex-col justify-end">
           <div className="p-3.5 rounded-2xl bg-obsidian-950/85  border border-white/10 shadow-2xl space-y-2">
             <div className="space-y-0.5">
-              <h3 className="text-3xl sm:text-4xl font-extrabold uppercase leading-none text-white font-display truncate">
+              <h3 className="text-3xl sm:text-4xl font-extrabold leading-tight text-white font-display truncate">
                 {player.name}
               </h3>
-              <p className="text-[11px] sm:text-xs text-slate-300 font-medium flex items-center gap-1.5 truncate">
+              <p className="caption text-[11px] sm:text-xs text-slate-300 font-medium flex items-center gap-1.5 truncate">
                 <span className="text-gold-400 font-bold">{player.battingStyle}</span>
                 {player.bowlingStyle && player.bowlingStyle !== 'N/A' && (
                   <>
@@ -139,19 +139,19 @@ export const PlayerCard3D: React.FC<PlayerCard3DProps> = ({ player, isBigStage =
             {/* Quick Stats Pill Grid */}
             <div className="grid grid-cols-4 gap-1.5 pt-2 border-t border-white/10">
               <div className="text-center p-1 rounded-xl bg-white/[0.04] border border-white/5">
-                <span className="block text-[9px] uppercase font-bold text-slate-400">Matches</span>
+                <span className="block caption text-[11px] font-bold text-slate-400">Matches</span>
                 <span className="text-xs sm:text-sm font-black text-white">{player.stats.matches}</span>
               </div>
               <div className="text-center p-1 rounded-xl bg-white/[0.04] border border-white/5">
-                <span className="block text-[9px] uppercase font-bold text-slate-400">Runs</span>
+                <span className="block caption text-[11px] font-bold text-slate-400">Runs</span>
                 <span className="text-xs sm:text-sm font-black text-white">{player.stats.runs}</span>
               </div>
               <div className="text-center p-1 rounded-xl bg-white/[0.04] border border-white/5">
-                <span className="block text-[9px] uppercase font-bold text-slate-400">Wickets</span>
+                <span className="block caption text-[11px] font-bold text-slate-400">Wickets</span>
                 <span className="text-xs sm:text-sm font-black text-white">{player.stats.wickets}</span>
               </div>
               <div className="text-center p-1 rounded-xl bg-white/[0.04] border border-white/5">
-                <span className="block text-[9px] uppercase font-bold text-slate-400">
+                <span className="block caption text-[11px] font-bold text-slate-400">
                   {player.stats.strikeRate ? 'S.R.' : 'Econ'}
                 </span>
                 <span className="text-xs sm:text-sm font-black text-white">

@@ -42,7 +42,7 @@ export const OfflineAlertBanner: React.FC = () => {
           <WifiOff className="w-4 h-4 shrink-0" />
           <span>Offline Mode: Working 100% from Local IndexedDB. Changes saved on this device.</span>
           {health.pendingSyncCount > 0 && (
-            <span className="px-2 py-0.5 rounded-full bg-black/40 text-[11px]">
+            <span className="px-2 py-0.5 rounded-full bg-black/40 caption text-[11px]">
               {health.pendingSyncCount} pending
             </span>
           )}
@@ -60,7 +60,7 @@ export const OfflineAlertBanner: React.FC = () => {
           <span>Low Internet (2G/Slow): Local-First Mode active. Zero delay on bids & updates.</span>
           <button
             onClick={() => setDismissLowNet(true)}
-            className="ml-2 px-1.5 py-0.5 rounded bg-black/20 hover:bg-black/30 text-[10px] text-slate-900 transition-colors"
+            className="ml-2 px-1.5 py-0.5 rounded bg-black/20 hover:bg-black/30 caption text-[11px] text-slate-900 transition-colors"
           >
             Dismiss
           </button>

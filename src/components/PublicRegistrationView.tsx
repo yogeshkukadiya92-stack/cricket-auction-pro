@@ -238,7 +238,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
           </div>
 
           <div>
-            <span className="px-4 py-1.5 rounded-full text-xs font-black tracking-widest uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-400/40">
+            <span className="px-4 py-1.5 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-400 border border-emerald-400/40">
               REGISTRATION CONFIRMED
             </span>
             <h2 className="text-3xl font-black text-white font-display mt-3">
@@ -268,7 +268,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
               <h1 className="text-base font-black text-white font-display">
                 {tournament.name}
               </h1>
-              <p className="text-[11px] text-gold-400 font-semibold">
+              <p className="caption text-[11px] text-gold-400 font-semibold">
                 {tournament.season}
               </p>
             </div>
@@ -284,7 +284,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
         {/* Rules & Fee Banner */}
         <div className="p-5 rounded-3xl bg-gradient-to-r from-obsidian-850 via-obsidian-900 to-obsidian-850 border border-gold-400/40 shadow-glow-gold mb-8 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
-            <span className="flex items-center gap-1.5 font-black text-gold-400 uppercase tracking-wider">
+            <span className="flex items-center gap-1.5 font-black text-gold-400">
               <Trophy className="w-4 h-4" />
               Player sign-up
             </span>
@@ -326,7 +326,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
 
               {/* Step 1: Basic Identity */}
               <div className="space-y-4">
-                <span className="text-xs font-bold uppercase tracking-wider text-gold-400 block">
+                <span className="text-xs font-bold text-gold-400 block">
                   1. About you
                 </span>
 
@@ -380,7 +380,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
 
               {/* Step 2: Cricket Credentials */}
               <div className="space-y-4 pt-4 border-t border-white/10">
-                <span className="text-xs font-bold uppercase tracking-wider text-gold-400 block">
+                <span className="text-xs font-bold text-gold-400 block">
                   2. Your game
                 </span>
 
@@ -457,7 +457,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                 {/* Stats */}
                 <div className="grid grid-cols-4 gap-2 pt-2">
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 block mb-1">Matches</label>
+                    <label className="caption text-[11px] font-bold text-slate-400 block mb-1">Matches</label>
                     <input
                       type="number"
                       value={matches}
@@ -466,7 +466,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 block mb-1">Total Runs</label>
+                    <label className="caption text-[11px] font-bold text-slate-400 block mb-1">Total Runs</label>
                     <input
                       type="number"
                       value={runs}
@@ -475,7 +475,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 block mb-1">Wickets</label>
+                    <label className="caption text-[11px] font-bold text-slate-400 block mb-1">Wickets</label>
                     <input
                       type="number"
                       value={wickets}
@@ -484,7 +484,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 block mb-1">Strike Rate (SR)</label>
+                    <label className="caption text-[11px] font-bold text-slate-400 block mb-1">Strike Rate (SR)</label>
                     <input
                       type="number"
                       step="0.1"
@@ -498,7 +498,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
 
               {/* Step 3: Photo Upload */}
               <div className="space-y-3 pt-4 border-t border-white/10">
-                <span className="text-xs font-bold uppercase tracking-wider text-gold-400 block">
+                <span className="text-xs font-bold text-gold-400 block">
                   3. Your photo *
                 </span>
                 <div className="p-4 rounded-2xl bg-white/[0.02] border border-dashed border-white/20 flex flex-col sm:flex-row items-center gap-4">
@@ -509,7 +509,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                   />
                   <div className="flex-1 space-y-1 text-center sm:text-left">
                     <p className="text-xs font-bold text-white">Upload a clear, front-facing photo</p>
-                    <p className="text-[11px] text-slate-400">Passport-style, shown on the big screen.</p>
+                    <p className="caption text-[11px] text-slate-400">Passport-style, shown on the big screen.</p>
                     <input
                       type="file"
                       accept="image/*"
@@ -523,7 +523,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
               {/* Step 4: Dynamically Generated Custom Questions! */}
               {customFields.length > 0 && (
                 <div className="space-y-4 pt-4 border-t border-white/10">
-                  <span className="text-xs font-bold uppercase tracking-wider text-gold-400 block">
+                  <span className="text-xs font-bold text-gold-400 block">
                     4. Additional Tournament Details
                   </span>
 
@@ -539,7 +539,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                           </label>
 
                           {field.helpText && (
-                            <span className="text-[11px] text-slate-400 block mb-1">
+                            <span className="caption text-[11px] text-slate-400 block mb-1">
                               {field.helpText}
                             </span>
                           )}
@@ -625,11 +625,11 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-gold-500/20 text-gold-300 border border-gold-400/30">
+                          <span className="caption text-[11px] font-black px-2 py-0.5 rounded-full bg-gold-500/20 text-gold-300 border border-gold-400/30">
                             STEP 5 • OFFICIAL PAYMENT
                           </span>
                           {paymentRequired && (
-                            <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">
+                            <span className="caption text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">
                               Mandatory
                             </span>
                           )}
@@ -641,7 +641,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                     </div>
 
                     <div className="text-right">
-                      <span className="text-[10px] text-slate-400 uppercase font-bold block">
+                      <span className="caption text-[11px] text-slate-400 font-bold block">
                         Registration Fee
                       </span>
                       <span className="text-2xl font-black text-gold-400 font-mono">
@@ -658,7 +658,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-stretch">
                     {/* Left: Google Pay QR Scanner Card (md:col-span-5) */}
                     <div className="md:col-span-5 p-4 rounded-2xl bg-obsidian-950 border border-white/10 flex flex-col items-center justify-between text-center relative group">
-                      <div className="w-full flex items-center justify-between text-[11px] font-bold text-slate-400 mb-2">
+                      <div className="w-full flex items-center justify-between caption text-[11px] font-bold text-slate-400 mb-2">
                         <span className="flex items-center gap-1 text-gold-400">
                           <QrCode className="w-3.5 h-3.5" /> Scan & Pay with Any UPI App
                         </span>
@@ -680,7 +680,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
 
                       {/* Payee Info */}
                       <div className="w-full mt-3 pt-2 border-t border-white/10">
-                        <span className="text-[10px] text-slate-400 block uppercase">
+                        <span className="caption text-[11px] text-slate-400 block">
                           Payee Name
                         </span>
                         <span className="text-xs font-black text-white truncate block">
@@ -720,7 +720,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                         {/* GPay Mobile Number */}
                         <div className="p-3 rounded-2xl bg-obsidian-950 border border-white/10 flex items-center justify-between">
                           <div>
-                            <span className="text-[10px] text-slate-400 uppercase font-bold block">
+                            <span className="caption text-[11px] text-slate-400 font-bold block">
                               Google Pay Number (Mobile)
                             </span>
                             <span className="text-sm font-black text-gold-400 font-mono tracking-wider">
@@ -749,7 +749,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                         {/* UPI ID */}
                         <div className="p-3 rounded-2xl bg-obsidian-950 border border-white/10 flex items-center justify-between">
                           <div>
-                            <span className="text-[10px] text-slate-400 uppercase font-bold block">
+                            <span className="caption text-[11px] text-slate-400 font-bold block">
                               Google Pay UPI ID (VPA)
                             </span>
                             <span className="text-xs font-bold text-white font-mono truncate max-w-[200px] block">
@@ -783,7 +783,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                             <ImageIcon className="w-4 h-4 text-emerald-400" />
                             Upload Payment Screenshot
                           </span>
-                          <span className="text-[10px] font-extrabold text-amber-400">
+                          <span className="caption text-[11px] font-extrabold text-amber-400">
                             * {paymentRequired ? 'Mandatory' : 'Optional'}
                           </span>
                         </label>
@@ -801,7 +801,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                                 <CheckCircle2 className="w-4 h-4" />
                                 Screenshot uploaded successfully!
                               </span>
-                              <p className="text-[11px] text-slate-300">
+                              <p className="caption text-[11px] text-slate-300">
                                 The tournament committee can verify your payment screenshot and UTR. Player registration is approved automatically.
                               </p>
                               <label className="inline-block text-xs font-bold text-gold-400 hover:text-gold-300 underline cursor-pointer mt-1">
@@ -824,10 +824,10 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                             <span className="text-xs font-black text-white group-hover:text-gold-300 transition-colors">
                               Upload payment screenshot
                             </span>
-                            <span className="text-[11px] text-slate-400 mt-0.5">
+                            <span className="caption text-[11px] text-slate-400 mt-0.5">
                               Google Pay Payment Success screen (JPG, PNG)
                             </span>
-                            <span className="text-[10px] text-amber-400/90 font-semibold mt-2 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20">
+                            <span className="caption text-[11px] text-amber-400/90 font-semibold mt-2 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20">
                               {paymentRequired ? '⚠️ Screenshot required to complete registration' : 'Payment screenshot is optional'}
                             </span>
                             <input
@@ -853,7 +853,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                           placeholder="12-digit UPI reference"
                           className="w-full bg-obsidian-950 border border-white/10 rounded-xl px-3.5 py-2 text-xs font-mono text-white focus:border-gold-400 focus:outline-none"
                         />
-                        <span className="text-[10px] text-slate-500 mt-1 block"></span>
+                        <span className="caption text-[11px] text-slate-500 mt-1 block"></span>
                       </div>
                     </div>
                   </div>
@@ -876,7 +876,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                 <button
                   type="submit"
                   disabled={submitting || !!duplicateMobile || !isUploadedImage(photoUrl) || (paymentRequired && !paymentScreenshotUrl)}
-                  className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
+                  className={`w-full py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all ${
                     paymentRequired && !paymentScreenshotUrl
                       ? 'bg-white/10 text-slate-500 cursor-not-allowed border border-white/10 opacity-70'
                       : 'bg-gold-500 hover:bg-gold-400 text-black shadow-glow-gold active:scale-95 cursor-pointer'
@@ -894,7 +894,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                     </>
                   )}
                 </button>
-                <p className="text-[11px] text-slate-500 text-center"></p>
+                <p className="caption text-[11px] text-slate-500 text-center"></p>
               </div>
             </form>
           </div>
@@ -902,11 +902,11 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
           {/* Right Live 3D Auction Card Preview (5 Columns) */}
           <div className="lg:col-span-5 sticky top-6 space-y-4">
             <div className="p-4 rounded-2xl glass-panel border border-white/10 text-center">
-              <span className="text-xs font-black uppercase tracking-wider text-gold-400 flex items-center justify-center gap-1.5 mb-1">
+              <span className="text-xs font-black text-gold-400 flex items-center justify-center gap-1.5 mb-1">
                 <Sparkles className="w-4 h-4 text-gold-400" />
                 LIVE 3D AUCTION CARD PREVIEW
               </span>
-              <p className="text-[11px] text-slate-400">
+              <p className="caption text-[11px] text-slate-400">
                 Your auction card
               </p>
             </div>

@@ -209,7 +209,7 @@ export const DeviceSimulatorView: React.FC<DeviceSimulatorViewProps> = ({
           <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
             <div className="flex items-center gap-2 mr-3 px-3 py-1.5 rounded-xl bg-gradient-to-r from-gold-500/20 to-amber-500/20 border border-gold-500/40">
               <Smartphone className="w-4 h-4 text-gold-400" />
-              <span className="font-display text-xs font-black tracking-wide text-gold-300 uppercase">
+              <span className="font-display text-xs font-black text-gold-300">
                 Device Simulator
               </span>
             </div>
@@ -361,7 +361,7 @@ export const DeviceSimulatorView: React.FC<DeviceSimulatorViewProps> = ({
                     <span className="w-2.5 h-2.5 rounded-full bg-slate-900 border border-slate-700/60 ring-1 ring-blue-500/20" />
                     <span className="flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-                      <span className="text-[9px] font-black text-rose-400">AUCTION</span>
+                      <span className="caption text-[11px] font-black text-rose-400">AUCTION</span>
                     </span>
                   </div>
 
@@ -438,7 +438,7 @@ export const DeviceSimulatorView: React.FC<DeviceSimulatorViewProps> = ({
               </button>
             </div>
 
-            <p className="text-[11px] text-slate-500">
+            <p className="caption text-[11px] text-slate-500">
               Make sure your mobile phone is on the same local network (Wi-Fi).
             </p>
           </div>

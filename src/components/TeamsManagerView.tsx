@@ -185,14 +185,14 @@ export const TeamsManagerView: React.FC<TeamsManagerViewProps> = ({
             <div className="flex items-center gap-3">
               <span className="w-14 h-14 shrink-0 rounded-xl bg-obsidian-950 border border-white/10 p-1.5 grid place-items-center overflow-hidden"><TeamLogo logo={team.logo} name={team.name} className="w-full h-full text-3xl" /></span>
               <div className="min-w-0 flex-1">
-                <h2 className="font-display text-3xl font-extrabold uppercase leading-[0.95] text-white line-clamp-2 break-words">{team.name}</h2>
+                <h2 className="font-display text-3xl font-extrabold leading-tight text-white line-clamp-2 break-words">{team.name}</h2>
                 <p className="mt-1 text-xs text-slate-400 truncate">{team.shortCode}{team.ownerName ? ` · ${team.ownerName}` : ''}</p>
               </div>
               <button onClick={() => openEditModal(team)} aria-label={`Edit ${team.name}`} title="Edit" className="btn-icon"><Edit3 className="w-5 h-5" /></button>
               <button onClick={async () => { if (await ask({ title: `Delete ${team.name}?`, confirmLabel: 'Delete', danger: true })) onDeleteTeam(team.id); }} aria-label={`Delete ${team.name}`} title="Delete" className="btn-icon hover:text-red-300"><Trash2 className="w-5 h-5" /></button>
             </div>
             <div className="mt-3 flex items-baseline justify-between gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Purse left</span>
+              <span className="text-xs font-bold text-slate-400">Purse left</span>
               <span className="score text-2xl text-white">{formatPrice(team.remainingPurse)} <span className="text-slate-500 text-lg">/ {formatPrice(team.totalPurse)}</span></span>
             </div>
             <span className="mt-1.5 block h-1.5 rounded-full bg-white/10 overflow-hidden"><span className="block h-full rounded-full" style={{ width: `${left * 100}%`, backgroundColor: team.colorHex }} /></span>
@@ -204,7 +204,7 @@ export const TeamsManagerView: React.FC<TeamsManagerViewProps> = ({
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-obsidian-950/85 backdrop-blur-md p-4 overflow-y-auto">
           <div className="relative max-w-lg w-full max-h-[90dvh] overflow-y-auto rounded-3xl p-6 bg-obsidian-900 border border-white/10 shadow-2xl">
-            <h3 className="font-display text-4xl font-extrabold uppercase text-white mb-4">Add team</h3>
+            <h3 className="font-display text-4xl font-extrabold text-white mb-4">Add team</h3>
 
             <form onSubmit={handleCreateTeam} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -228,7 +228,7 @@ export const TeamsManagerView: React.FC<TeamsManagerViewProps> = ({
                     placeholder="e.g. STR"
                     value={shortCode}
                     onChange={(e) => setShortCode(e.target.value)}
-                    className="w-full bg-obsidian-950 border border-white/10 rounded-xl px-3.5 py-2 text-sm text-white uppercase focus:border-gold-400 focus:outline-none font-mono"
+                    className="w-full bg-obsidian-950 border border-white/10 rounded-xl px-3.5 py-2 text-sm text-white focus:border-gold-400 focus:outline-none font-mono"
                   />
                 </div>
               </div>
@@ -244,7 +244,7 @@ export const TeamsManagerView: React.FC<TeamsManagerViewProps> = ({
                     <button
                       type="button"
                       onClick={() => setLogo('🦁')}
-                      className="text-[10px] text-red-400 hover:text-red-300 flex items-center gap-1 cursor-pointer font-bold"
+                      className="caption text-[11px] text-red-400 hover:text-red-300 flex items-center gap-1 cursor-pointer font-bold"
                     >
                       <X className="w-3 h-3" />
                       Remove PNG
@@ -276,12 +276,12 @@ export const TeamsManagerView: React.FC<TeamsManagerViewProps> = ({
                         className="hidden"
                       />
                     </label>
-                    <p className="text-[11px] text-slate-400">Transparent PNG looks best.
+                    <p className="caption text-[11px] text-slate-400">Transparent PNG looks best.
                     </p>
 
                     {/* Quick Emoji Presets */}
                     <div className="flex items-center gap-1.5 flex-wrap pt-0.5 justify-center sm:justify-start">
-                      <span className="text-[10px] text-slate-500 font-bold mr-1">Presets:</span>
+                      <span className="caption text-[11px] text-slate-500 font-bold mr-1">Presets:</span>
                       {['🦁', '👑', '⚔️', '⚡', '🌪️', '🦅', '🐯', '🦈', '🚀', '🏏'].map((em) => (
                         <button
                           key={em}
@@ -383,7 +383,7 @@ export const TeamsManagerView: React.FC<TeamsManagerViewProps> = ({
       {editingTeam && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-obsidian-950/85 backdrop-blur-md p-4 overflow-y-auto">
           <div className="relative max-w-lg w-full rounded-3xl p-6 bg-obsidian-900 border border-white/10 shadow-2xl">
-            <h3 className="font-display text-4xl font-extrabold uppercase text-white mb-4">Edit team</h3>
+            <h3 className="font-display text-4xl font-extrabold text-white mb-4">Edit team</h3>
 
             <form onSubmit={handleUpdateTeamSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -405,7 +405,7 @@ export const TeamsManagerView: React.FC<TeamsManagerViewProps> = ({
                     maxLength={4}
                     value={editShortCode}
                     onChange={(e) => setEditShortCode(e.target.value)}
-                    className="w-full bg-obsidian-950 border border-white/10 rounded-xl px-3.5 py-2 text-sm text-white uppercase focus:border-gold-400 focus:outline-none font-mono"
+                    className="w-full bg-obsidian-950 border border-white/10 rounded-xl px-3.5 py-2 text-sm text-white focus:border-gold-400 focus:outline-none font-mono"
                   />
                 </div>
               </div>
@@ -421,7 +421,7 @@ export const TeamsManagerView: React.FC<TeamsManagerViewProps> = ({
                     <button
                       type="button"
                       onClick={() => setEditLogo('🦁')}
-                      className="text-[10px] text-red-400 hover:text-red-300 flex items-center gap-1 cursor-pointer font-bold"
+                      className="caption text-[11px] text-red-400 hover:text-red-300 flex items-center gap-1 cursor-pointer font-bold"
                     >
                       <X className="w-3 h-3" />
                       Remove PNG
@@ -453,12 +453,12 @@ export const TeamsManagerView: React.FC<TeamsManagerViewProps> = ({
                         className="hidden"
                       />
                     </label>
-                    <p className="text-[11px] text-slate-400">Transparent PNG looks best.
+                    <p className="caption text-[11px] text-slate-400">Transparent PNG looks best.
                     </p>
 
                     {/* Quick Emoji Presets */}
                     <div className="flex items-center gap-1.5 flex-wrap pt-0.5 justify-center sm:justify-start">
-                      <span className="text-[10px] text-slate-500 font-bold mr-1">Presets:</span>
+                      <span className="caption text-[11px] text-slate-500 font-bold mr-1">Presets:</span>
                       {['🦁', '👑', '⚔️', '⚡', '🌪️', '🦅', '🐯', '🦈', '🚀', '🏏'].map((em) => (
                         <button
                           key={em}

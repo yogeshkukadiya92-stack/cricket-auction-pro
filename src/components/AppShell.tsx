@@ -89,11 +89,11 @@ export function AppShell({ mode, onSelect, tournament, tournaments, user, onSele
     <aside className={`app-rail hidden md:flex fixed inset-y-0 left-0 z-40 flex-col border-r border-white/10 bg-obsidian-900 ${compactRail ? 'w-16' : 'w-16 xl:w-56'}`}>
       <button onClick={() => go(hasTournament ? 'TOURNAMENT_OVERVIEW' : 'TOURNAMENTS')} className="h-16 shrink-0 flex items-center gap-2.5 px-4 border-b border-white/10 text-left" aria-label="Go to home">
         <span className="w-8 h-8 shrink-0 rounded-lg bg-gold-500 text-black grid place-items-center"><Gavel className="w-5 h-5" /></span>
-        <span className={`font-display text-xl font-extrabold uppercase leading-none text-white ${compactRail ? 'hidden' : 'hidden xl:block'}`}>Auction Pro</span>
+        <span className={`font-display text-xl font-extrabold leading-tight text-white ${compactRail ? 'hidden' : 'hidden xl:block'}`}>Auction Pro</span>
       </button>
       <nav aria-label="Main" className="flex-1 overflow-y-auto cap-scroll-hide py-3 px-2 space-y-4">
         {visibleGroups.map((group, index) => <div key={index}>
-          {group.label && <p className={`px-2.5 mb-1 text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500 ${compactRail ? 'hidden' : 'hidden xl:block'}`}>{group.label}</p>}
+          {group.label && <p className={`px-2.5 mb-1 caption text-[11px] font-extrabold text-slate-500 ${compactRail ? 'hidden' : 'hidden xl:block'}`}>{group.label}</p>}
           <div className="space-y-0.5">{group.items.map((item) => <RailLink key={item.mode} item={item} active={mode === item.mode} compact={compactRail} onClick={() => go(item.mode)} />)}</div>
         </div>)}
         {!hasTournament && <RailLink item={{ mode: 'TOURNAMENTS', label: 'Tournaments', icon: Trophy }} active={mode === 'TOURNAMENTS'} compact={compactRail} onClick={() => go('TOURNAMENTS')} />}
@@ -108,7 +108,7 @@ export function AppShell({ mode, onSelect, tournament, tournaments, user, onSele
             <span className="w-9 h-9 shrink-0 rounded-lg bg-obsidian-800 border border-white/10 grid place-items-center overflow-hidden"><TeamLogo logo={tournament.logoUrl || '🏆'} name={tournament.name} className="w-full h-full text-lg" /></span>
             <span className="min-w-0 text-left">
               <span className="block text-sm font-extrabold text-white truncate max-w-[42vw] sm:max-w-xs">{hasTournament ? tournament.name : 'No tournament yet'}</span>
-              {hasTournament && <span className="block text-[11px] text-slate-400 truncate">{tournament.season} · {tournament.year}</span>}
+              {hasTournament && <span className="block caption text-[11px] text-slate-400 truncate">{tournament.season} · {tournament.year}</span>}
             </span>
             <ChevronsUpDown className="w-4 h-4 shrink-0 text-slate-400" />
           </button>
@@ -116,7 +116,7 @@ export function AppShell({ mode, onSelect, tournament, tournaments, user, onSele
             <div className="max-h-64 overflow-y-auto">
               {tournaments.map((item) => <button key={item.id} onClick={() => { switcher.setOpen(false); onSelectTournament(item.id); }} className={`w-full flex items-center gap-2.5 rounded-lg p-2 text-left ${item.id === tournament.id ? 'bg-white/5' : 'hover:bg-white/5'}`}>
                 <TeamLogo logo={item.logoUrl || '🏆'} name={item.name} className="w-7 h-7 text-base" />
-                <span className="min-w-0 flex-1"><span className="block text-sm font-bold text-white truncate">{item.name}</span><span className="block text-[11px] text-slate-400 truncate">{item.season}</span></span>
+                <span className="min-w-0 flex-1"><span className="block text-sm font-bold text-white truncate">{item.name}</span><span className="block caption text-[11px] text-slate-400 truncate">{item.season}</span></span>
                 {item.id === tournament.id && <Check className="w-4 h-4 text-gold-400 shrink-0" />}
               </button>)}
             </div>
@@ -146,7 +146,7 @@ export function AppShell({ mode, onSelect, tournament, tournaments, user, onSele
       <div className="flex items-end">
         <TabLink icon={Home} label="Home" active={mode === 'TOURNAMENT_OVERVIEW'} onClick={() => go('TOURNAMENT_OVERVIEW')} />
         <TabLink icon={Users} label="Players" active={mode === 'PLAYERS'} onClick={() => go('PLAYERS')} />
-        <button onClick={() => go('AUCTIONEER')} aria-current={mode === 'AUCTIONEER' ? 'page' : undefined} className="flex-1 -mt-5 flex flex-col items-center gap-0.5 text-[11px] font-bold text-gold-400">
+        <button onClick={() => go('AUCTIONEER')} aria-current={mode === 'AUCTIONEER' ? 'page' : undefined} className="flex-1 -mt-5 flex flex-col items-center gap-0.5 caption text-[11px] font-bold text-gold-400">
           <span className="w-14 h-14 rounded-full bg-gold-500 text-black grid place-items-center border-4 border-obsidian-900"><Gavel className="w-6 h-6" /></span>
           Auction
         </button>
@@ -158,11 +158,11 @@ export function AppShell({ mode, onSelect, tournament, tournaments, user, onSele
     {sheet && <div className="md:hidden fixed inset-0 z-50 bg-obsidian-950/80 backdrop-blur-sm" onClick={() => setSheet(false)}>
       <div role="dialog" aria-modal="true" aria-label="More" onClick={(event) => event.stopPropagation()} className="cap-rise absolute bottom-0 inset-x-0 max-h-[85dvh] overflow-y-auto rounded-t-3xl border-t border-white/15 bg-obsidian-850 p-4 pb-[max(env(safe-area-inset-bottom),1rem)]">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-display text-2xl font-extrabold uppercase text-white">More</h2>
+          <h2 className="font-display text-2xl font-extrabold text-white">More</h2>
           <button onClick={() => setSheet(false)} aria-label="Close" className="btn-icon"><X className="w-5 h-5" /></button>
         </div>
         {groups.slice(1).map((group) => <div key={group.label} className="mb-4">
-          <p className="mb-1.5 text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500">{group.label}</p>
+          <p className="mb-1.5 caption text-[11px] font-extrabold text-slate-500">{group.label}</p>
           <div className="grid grid-cols-3 gap-2">{group.items.map((item) => <button key={item.mode} onClick={() => go(item.mode)} className={`tile p-3 min-h-20 flex flex-col items-center justify-center gap-1.5 text-center text-xs font-bold ${mode === item.mode ? 'text-gold-400' : 'text-slate-200'}`}><item.icon className="w-5 h-5" />{item.label}</button>)}</div>
         </div>)}
         <div className="grid grid-cols-3 gap-2">
@@ -184,7 +184,7 @@ function RailLink({ item, active, compact, onClick }: { item: NavItem; active: b
 }
 
 function TabLink({ icon: Icon, label, active, onClick }: { icon: React.ElementType; label: string; active: boolean; onClick: () => void }) {
-  return <button onClick={onClick} aria-current={active ? 'page' : undefined} className={`flex-1 min-h-14 flex flex-col items-center justify-center gap-1 rounded-lg text-[11px] font-bold ${active ? 'text-gold-400' : 'text-slate-400'}`}><Icon className="w-5 h-5" />{label}</button>;
+  return <button onClick={onClick} aria-current={active ? 'page' : undefined} className={`flex-1 min-h-14 flex flex-col items-center justify-center gap-1 rounded-lg caption text-[11px] font-bold ${active ? 'text-gold-400' : 'text-slate-400'}`}><Icon className="w-5 h-5" />{label}</button>;
 }
 
 function MenuRow({ icon: Icon, label, onClick, danger }: { icon: React.ElementType; label: string; onClick: () => void; danger?: boolean }) {

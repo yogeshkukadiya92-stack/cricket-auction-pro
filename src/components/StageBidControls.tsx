@@ -27,8 +27,8 @@ export function StageBidControls({ teams, players, rules, currentPlayer, current
         const disabled = busy || !currentPlayer || nextBid <= 0 || budget.squadComplete || !!overBudget || leading;
         return <button key={team.id} type="button" disabled={disabled} aria-label={`Bid ${price(nextBid)} for ${team.name}`} onClick={() => onBid(team, nextBid)} className={`tile p-2 text-center transition-colors enabled:hover:bg-obsidian-800 ${leading ? '!border-gold-400' : 'disabled:opacity-40'}`}>
           <TeamLogo logo={team.logo} name={team.name} className="w-7 h-7 mx-auto text-xl" />
-          <span className="block font-display text-lg font-extrabold uppercase leading-tight text-white truncate">{team.shortCode || team.name}</span>
-          <span className="block text-[10px] text-slate-400 truncate">{budget.squadComplete ? 'Squad full' : overBudget ? 'Over limit' : price(team.remainingPurse)}</span>
+          <span className="block font-display text-lg font-extrabold leading-tight text-white truncate">{team.shortCode || team.name}</span>
+          <span className="block caption text-[11px] text-slate-400 truncate">{budget.squadComplete ? 'Squad full' : overBudget ? 'Over limit' : price(team.remainingPurse)}</span>
         </button>;
       })}</div>
       <div className="grid grid-cols-4 gap-1.5">

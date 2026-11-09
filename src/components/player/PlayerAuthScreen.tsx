@@ -101,7 +101,7 @@ export const PlayerAuthScreen: React.FC<PlayerAuthScreenProps> = ({ onSignedIn, 
           <div className="glass-panel rounded-[2rem] p-6 shadow-glass">
             {step === 'MOBILE' && (
               <form onSubmit={submitMobile} className="space-y-5" noValidate>
-                <label htmlFor="player-mobile" className="block text-xs font-bold uppercase tracking-widest text-slate-400">Registered mobile number</label>
+                <label htmlFor="player-mobile" className="block text-xs font-bold text-slate-400">Registered mobile number</label>
                 <div className="relative">
                   <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gold-400" />
                   <span className="absolute left-11 top-1/2 -translate-y-1/2 text-slate-400 font-semibold">+91</span>
@@ -120,7 +120,7 @@ export const PlayerAuthScreen: React.FC<PlayerAuthScreenProps> = ({ onSignedIn, 
               <form onSubmit={submitPassword} className="space-y-4" noValidate>
                 <div className="flex items-center justify-between rounded-2xl bg-white/[0.04] border border-white/[0.06] px-4 py-3">
                   <div>
-                    <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Mobile</div>
+                    <div className="caption text-[11px] text-slate-400 font-bold">Mobile</div>
                     <div className="font-semibold tracking-wider">+91 {digits.slice(0, 5)} {digits.slice(5)}</div>
                   </div>
                   <button type="button" onClick={goBack} className="text-xs font-bold text-gold-400">Change</button>
@@ -187,7 +187,7 @@ interface PasswordFieldProps {
 
 const PasswordField: React.FC<PasswordFieldProps> = ({ id, label, value, onChange, show, onToggle, autoComplete, className }) => (
   <div>
-    <label htmlFor={id} className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">{label}</label>
+    <label htmlFor={id} className="block text-xs font-bold text-slate-400 mb-2">{label}</label>
     <div className="relative">
       <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gold-400" />
       <input id={id} type={show ? 'text' : 'password'} value={value} onChange={e => onChange(e.target.value)} autoComplete={autoComplete} maxLength={128} className={className} />

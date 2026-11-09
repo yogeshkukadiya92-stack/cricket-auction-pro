@@ -207,7 +207,7 @@ export const BulkPlayerUploadModal: React.FC<BulkPlayerUploadModalProps> = ({
         <div className="px-6 py-4 bg-slate-950/60 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h4 className="text-xs font-bold text-slate-200">Need the correct column format?</h4>
-            <p className="text-[11px] text-slate-400"></p>
+            <p className="caption text-[11px] text-slate-400"></p>
           </div>
           <button
             onClick={handleDownloadTemplate}

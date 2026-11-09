@@ -111,12 +111,12 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
                 <h1 className="text-sm sm:text-base font-extrabold text-white truncate max-w-[200px] sm:max-w-none">
                   {tournament.name}
                 </h1>
-                <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-full flex items-center gap-1">
+                <span className="px-2 py-0.5 caption text-[11px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-full flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   LIVE SPECTATOR
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400">
+              <p className="caption text-[11px] text-slate-400">
                 {tournament.season} • {tournament.city || 'Mega Auction'}
               </p>
             </div>
@@ -158,11 +158,11 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
                   />
                 </div>
                 <div>
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-gold-500 text-slate-950 mb-1.5">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full caption text-[11px] font-black bg-gold-500 text-slate-950 mb-1.5">
                     <Flame className="w-3 h-3" />
                     On the block
                   </div>
-                  <h2 className="font-display text-4xl font-extrabold uppercase leading-none text-white break-words">{currentPlayer.name}</h2>
+                  <h2 className="font-display text-4xl font-extrabold leading-tight text-white break-words">{currentPlayer.name}</h2>
                   <p className="text-xs text-slate-300 mt-0.5 capitalize">
                     {currentPlayer.role.replace(/_/g, ' ').toLowerCase()}{currentPlayer.city ? ` · ${currentPlayer.city}` : ''}
                   </p>
@@ -174,7 +174,7 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
 
               {/* Current Bid Display */}
               <div className="w-full md:w-auto text-center md:text-right bg-slate-950/80 p-4 sm:p-5 rounded-2xl border border-slate-800 shrink-0 min-w-[200px]">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                <span className="caption text-[11px] font-bold text-slate-400 block">
                   Highest bid
                 </span>
                 <div aria-live="polite" aria-atomic="true" className="score text-6xl text-gold-400 break-words my-1">
@@ -195,7 +195,7 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
 
         {!currentPlayer && <div className="p-6 rounded-2xl border border-slate-800 bg-slate-900 text-center"><h2 className="text-xl font-bold">Waiting for the next player</h2><p className="text-sm text-slate-400 mt-2">This page updates automatically as the auction progresses.</p></div>}
         {currentPlayer && bidsHistory.length > 0 && <section className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
-          <h3 className="text-xs font-bold uppercase text-slate-400 mb-3">Recent live bids</h3>
+          <h3 className="text-xs font-bold text-slate-400 mb-3">Recent live bids</h3>
           <div className="space-y-2">{bidsHistory.filter(b => b.playerId === currentPlayer.id).slice(0, 5).map((bid, index) => <div key={bid.id} className={`flex items-center justify-between gap-3 p-3 rounded-xl ${index === 0 ? 'bg-amber-500/10 text-gold-300' : 'bg-slate-950 text-slate-300'}`}><span className="text-sm font-bold min-w-0 break-words">{bid.teamName}</span><span className="text-sm font-black shrink-0">{formatPrice(bid.amount)}</span></div>)}</div>
         </section>}
 
@@ -242,7 +242,7 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
                 <Shield className="w-4 h-4 text-gold-400" />
                 Franchise Purse Leaderboard
               </h3>
-              <span className="text-[11px] text-slate-400">{teams.length} Teams</span>
+              <span className="caption text-[11px] text-slate-400">{teams.length} Teams</span>
             </div>
 
             <div className="space-y-2">
@@ -290,11 +290,11 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
                       />
                     </div>
 
-                    <div className="flex justify-between items-center text-[10px] text-slate-400 mt-1.5">
+                    <div className="flex justify-between items-center caption text-[11px] text-slate-400 mt-1.5">
                       <span>{teamSold.length} / {maxPlayers} Players Bought</span>
                       <span>{Math.round(pct)}% Purse Left</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-300 mt-3 border-t border-slate-700 pt-3">
+                    <div className="grid grid-cols-2 gap-2 caption text-[11px] text-slate-300 mt-3 border-t border-slate-700 pt-3">
                       <span>Slots left: <strong>{Math.max(0, maxPlayers - teamSold.length)}</strong></span>
                       <span>Minimum needed: <strong>{Math.max(0, minPlayers - teamSold.length)}</strong></span>
                       <span>Spent: <strong>{formatPrice(spent)}</strong></span>
@@ -317,7 +317,7 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
                     <Trophy className="w-4 h-4 text-gold-400" />
                     Top Buys Leaderboard
                   </h3>
-                  <span className="text-[10px] text-gold-400 font-bold uppercase">Highest Bids</span>
+                  <span className="caption text-[11px] text-gold-400 font-bold">Highest Bids</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
@@ -334,10 +334,10 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
                         <div className="truncate flex-1">
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-bold text-white truncate">{p.name}</span>
-                            <span className="text-[10px] font-black text-gold-400 font-mono">#{idx + 1}</span>
+                            <span className="caption text-[11px] font-black text-gold-400 font-mono">#{idx + 1}</span>
                           </div>
-                          <p className="text-[11px] font-mono text-emerald-400 font-bold">{formatPrice(p.soldPrice)}</p>
-                          <p className="text-[10px] text-slate-400 truncate">{buyerTeam?.name || 'Franchise'}</p>
+                          <p className="caption text-[11px] font-mono text-emerald-400 font-bold">{formatPrice(p.soldPrice)}</p>
+                          <p className="caption text-[11px] text-slate-400 truncate">{buyerTeam?.name || 'Franchise'}</p>
                         </div>
                       </div>
                     );
@@ -357,7 +357,7 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
                     <h3 className="font-bold text-white text-sm">
                       {activeTeam?.name || 'Selected Team'} Squad
                     </h3>
-                    <p className="text-[10px] text-slate-400">
+                    <p className="caption text-[11px] text-slate-400">
                       Owner: {activeTeam?.ownerName || 'Franchise Owner'}
                     </p>
                   </div>
@@ -385,7 +385,7 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
                         </div>
                         <div className="truncate">
                           <h4 className="text-xs font-bold text-white truncate">{player.name}</h4>
-                          <span className="text-[10px] text-slate-400 font-semibold">{player.role}</span>
+                          <span className="caption text-[11px] text-slate-400 font-semibold">{player.role}</span>
                         </div>
                       </div>
 

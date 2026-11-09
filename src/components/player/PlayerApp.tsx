@@ -158,7 +158,7 @@ const TabBar: React.FC<{ tab: Tab; onChange: (tab: Tab) => void }> = ({ tab, onC
         />
         {TABS.map(({ id, label, icon: Icon }) => (
           <button key={id} id={`player-tab-${id}`} type="button" onClick={() => onChange(id)} aria-current={tab === id ? 'page' : undefined}
-            className={`relative z-10 flex flex-col items-center gap-1 py-2.5 text-[11px] font-bold transition active:scale-95 ${tab === id ? 'text-gold-400' : 'text-slate-400'}`}>
+            className={`relative z-10 flex flex-col items-center gap-1 py-2.5 caption text-[11px] font-bold transition active:scale-95 ${tab === id ? 'text-gold-400' : 'text-slate-400'}`}>
             <Icon className={`w-5 h-5 transition-transform ${tab === id ? 'scale-110' : ''}`} />
             {label}
           </button>

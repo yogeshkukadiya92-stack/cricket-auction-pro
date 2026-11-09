@@ -55,12 +55,12 @@ export const SoldPosterModal: React.FC<SoldPosterModalProps> = ({
 
       // 3. Header Tournament Ribbon
       ctx.fillStyle = '#F59E0B';
-      ctx.font = 'bold 32px sans-serif';
+      ctx.font = 'bold 32px "Anek Gujarati", sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText(`${tournament.name.toUpperCase()} • ${tournament.season.toUpperCase()}`, 540, 110);
 
       ctx.fillStyle = '#94A3B8';
-      ctx.font = 'bold 22px sans-serif';
+      ctx.font = 'bold 22px "Anek Gujarati", sans-serif';
       ctx.fillText('OFFICIAL MEGA AUCTION 2026', 540, 150);
 
       // 4. Draw Player Photo (with circle clip)
@@ -93,13 +93,13 @@ export const SoldPosterModal: React.FC<SoldPosterModalProps> = ({
 
       // 5. Player Name
       ctx.fillStyle = '#FFFFFF';
-      ctx.font = '900 58px sans-serif';
+      ctx.font = 'bold 58px "Anek Gujarati", sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText(player.name.toUpperCase(), 540, 645);
 
       // Player Role Badge
       ctx.fillStyle = '#F59E0B';
-      ctx.font = 'bold 28px sans-serif';
+      ctx.font = 'bold 28px "Anek Gujarati", sans-serif';
       ctx.fillText(`${player.role} • ${player.battingStyle}`, 540, 695);
 
       // 6. SOLD Ribbon Box
@@ -109,17 +109,17 @@ export const SoldPosterModal: React.FC<SoldPosterModalProps> = ({
       ctx.fill();
 
       ctx.fillStyle = '#000000';
-      ctx.font = '900 36px sans-serif';
+      ctx.font = 'bold 36px "Anek Gujarati", sans-serif';
       ctx.fillText('⚡ OFFICIALLY SOLD ⚡', 540, 780);
 
       // 7. Huge Sold Price
       ctx.fillStyle = '#FBBF24';
-      ctx.font = '900 80px sans-serif';
+      ctx.font = 'bold 80px "Anek Gujarati", sans-serif';
       ctx.fillText(formatPrice(price), 540, 885);
 
       // 8. Winning Team Details
       ctx.fillStyle = '#FFFFFF';
-      ctx.font = 'bold 36px sans-serif';
+      ctx.font = 'bold 36px "Anek Gujarati", sans-serif';
 
       if (teamLogoImg) {
         const teamLabel = `BOUGHT BY: ${team.name.toUpperCase()}`;
@@ -144,7 +144,7 @@ export const SoldPosterModal: React.FC<SoldPosterModalProps> = ({
       }
 
       ctx.fillStyle = '#94A3B8';
-      ctx.font = '22px sans-serif';
+      ctx.font = '22px "Anek Gujarati", sans-serif';
       ctx.fillText(`Franchise Owner: ${team.ownerName}`, 540, 995);
     };
 

@@ -64,11 +64,11 @@ export const TournamentDashboardView: React.FC<TournamentDashboardViewProps> = (
         <div className="min-w-0 flex-1 basis-64">
           <div className="flex items-center gap-2">
             {tournament.status === 'LIVE'
-              ? <span className="inline-flex items-center gap-1.5 rounded-md bg-red-500 px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-wider text-white"><span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />Live</span>
-              : <span className="rounded-md bg-white/10 px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-wider text-slate-200">{tournament.status === 'UPCOMING' ? 'Upcoming' : 'Finished'}</span>}
+              ? <span className="inline-flex items-center gap-1.5 rounded-md bg-red-500 px-2 py-0.5 caption text-[11px] font-extrabold text-white"><span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />Live</span>
+              : <span className="rounded-md bg-white/10 px-2 py-0.5 caption text-[11px] font-extrabold text-slate-200">{tournament.status === 'UPCOMING' ? 'Upcoming' : 'Finished'}</span>}
             <span className="text-sm font-semibold text-slate-300 truncate">{tournament.season} · {tournament.year}</span>
           </div>
-          <h1 className="mt-1 font-display text-4xl sm:text-5xl font-extrabold uppercase leading-none text-white break-words">{tournament.name}</h1>
+          <h1 className="mt-1 font-display text-4xl sm:text-5xl font-extrabold leading-tight text-white break-words">{tournament.name}</h1>
           {(tournament.ground || tournament.startDate) && <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-400">
             {tournament.ground && <span className="inline-flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" />{tournament.ground}{tournament.city ? `, ${tournament.city}` : ''}</span>}
             {tournament.startDate && <span className="inline-flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" />{tournament.startDate}{tournament.endDate ? ` – ${tournament.endDate}` : ''}</span>}
@@ -87,7 +87,7 @@ export const TournamentDashboardView: React.FC<TournamentDashboardViewProps> = (
           <span className="mt-2 flex items-center gap-1 text-xs sm:text-sm font-bold text-slate-200 group-hover:text-white truncate">
             {step.done ? <Check className="w-3.5 h-3.5 shrink-0 text-gold-400" /> : <span className="hidden sm:inline text-slate-500">{index + 1}</span>}{step.label}
           </span>
-          <span className="block text-[11px] sm:text-xs text-slate-400 truncate">{step.detail}</span>
+          <span className="block caption text-[11px] sm:text-xs text-slate-400 truncate">{step.detail}</span>
         </button>)}
       </nav>
 
@@ -103,7 +103,7 @@ export const TournamentDashboardView: React.FC<TournamentDashboardViewProps> = (
         {/* Teams */}
         <section className="lg:col-span-3 space-y-3" aria-labelledby="hub-teams">
           <div className="flex items-center justify-between">
-            <h2 id="hub-teams" className="font-display text-2xl font-extrabold uppercase text-white">Team purses</h2>
+            <h2 id="hub-teams" className="font-display text-2xl font-extrabold text-white">Team purses</h2>
             <button onClick={() => onSelectViewMode('TEAMS')} className="inline-flex items-center gap-1 min-h-10 text-sm font-bold text-gold-400 hover:text-gold-300">Manage<ArrowRight className="w-4 h-4" /></button>
           </div>
           {teams.length === 0
@@ -132,7 +132,7 @@ export const TournamentDashboardView: React.FC<TournamentDashboardViewProps> = (
         <div className="lg:col-span-2 space-y-6">
           {/* Share links */}
           <section className="space-y-3" aria-labelledby="hub-share">
-            <h2 id="hub-share" className="font-display text-2xl font-extrabold uppercase text-white">Share</h2>
+            <h2 id="hub-share" className="font-display text-2xl font-extrabold text-white">Share</h2>
             <div className="panel divide-y divide-white/5 overflow-hidden">
               {shares.map((share) => <div key={share.label} className="flex items-center gap-2 pl-4 pr-2 py-2">
                 <share.icon className="w-4 h-4 shrink-0 text-slate-400" />
@@ -146,7 +146,7 @@ export const TournamentDashboardView: React.FC<TournamentDashboardViewProps> = (
 
           {/* Tools */}
           <section className="space-y-3" aria-labelledby="hub-tools">
-            <h2 id="hub-tools" className="font-display text-2xl font-extrabold uppercase text-white">Tools</h2>
+            <h2 id="hub-tools" className="font-display text-2xl font-extrabold text-white">Tools</h2>
             <div className="grid grid-cols-3 gap-2">
               <ToolButton icon={Tv} label="Big screen" onClick={() => onSelectViewMode('STAGE')} />
               <ToolButton icon={FileUp} label="Import Excel" onClick={() => onOpenBulkUploadModal?.()} />

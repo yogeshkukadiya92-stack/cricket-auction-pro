@@ -50,7 +50,7 @@ export const TeamPaddleView: React.FC<TeamPaddleViewProps> = ({ allTeams, curren
         <section className="panel p-4 flex items-center gap-4" aria-label="Current lot">
           <img src={currentPlayer.photoUrl || '/player-placeholder.svg'} alt="" className="w-20 h-24 rounded-xl object-cover bg-obsidian-950" />
           <div className="min-w-0 flex-1">
-            <h1 className="font-display text-4xl font-extrabold uppercase leading-none text-white break-words">{currentPlayer.name}</h1>
+            <h1 className="font-display text-4xl font-extrabold leading-tight text-white break-words">{currentPlayer.name}</h1>
             <p className="mt-1.5 text-sm text-slate-300">{currentBid > 0 ? <>Highest <strong className="text-white">{price(currentBid)}</strong>{leadingTeam ? ` · ${leadingTeam.shortCode || leadingTeam.name}` : ''}</> : <>Base <strong className="text-white">{price(currentPlayer.basePrice)}</strong></>}</p>
             <PlayerAuctionHistory tournamentId={currentPlayer.tournamentId} playerId={currentPlayer.id} />
           </div>
@@ -59,17 +59,17 @@ export const TeamPaddleView: React.FC<TeamPaddleViewProps> = ({ allTeams, curren
         {leading
           ? <div role="status" className="rounded-3xl border-2 border-gold-400 bg-gold-500/10 py-10 text-center">
             <CheckCircle2 className="w-10 h-10 mx-auto text-gold-400" />
-            <p className="mt-2 font-display text-4xl font-extrabold uppercase text-gold-400">You're leading</p>
+            <p className="mt-2 font-display text-4xl font-extrabold text-gold-400">You're leading</p>
           </div>
           : <button disabled={!biddable} onClick={() => { sounds.playBidSound(); onPlaceBid(team, nextBid); }} className="w-full rounded-3xl bg-gold-500 enabled:hover:bg-gold-400 enabled:active:translate-y-px text-black py-10 flex flex-col items-center gap-1 disabled:bg-white/5 disabled:text-slate-500 transition-colors">
             <Hand className="w-9 h-9" />
-            <span className="score text-6xl leading-none">{budget.squadComplete ? 'Squad full' : price(nextBid)}</span>
-            <span className="text-sm font-extrabold uppercase tracking-wider">{budget.squadComplete ? '' : biddable ? 'Tap to bid' : 'Over your limit'}</span>
+            <span className="score text-6xl leading-tight">{budget.squadComplete ? 'Squad full' : price(nextBid)}</span>
+            <span className="text-sm font-extrabold">{budget.squadComplete ? '' : biddable ? 'Tap to bid' : 'Over your limit'}</span>
           </button>}
-      </> : <div className="panel p-10 text-center font-display text-3xl font-extrabold uppercase text-slate-400">Waiting for next player</div>}
+      </> : <div className="panel p-10 text-center font-display text-3xl font-extrabold text-slate-400">Waiting for next player</div>}
 
       {squad.length > 0 && <section aria-labelledby="paddle-squad">
-        <h2 id="paddle-squad" className="mb-2 font-display text-2xl font-extrabold uppercase text-white">Squad <span className="text-slate-500">{squad.length}</span></h2>
+        <h2 id="paddle-squad" className="mb-2 font-display text-2xl font-extrabold text-white">Squad <span className="text-slate-500">{squad.length}</span></h2>
         <div className="panel divide-y divide-white/5 overflow-hidden">
           {squad.map((player) => <div key={player.id} className="flex items-center gap-3 px-3 py-2">
             <img loading="lazy" src={player.photoUrl || '/player-placeholder.svg'} alt="" className="w-8 h-8 rounded-lg object-cover" />

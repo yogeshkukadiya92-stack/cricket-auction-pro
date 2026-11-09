@@ -7,11 +7,12 @@
     --team-color-glow: rgba(200, 243, 29, 0.35);
     color-scheme: dark;
   }
-  body { font-feature-settings: "tnum" 1; }
+  body { font-feature-settings: "tnum" 1; font-stretch: 100%; }
   /* A clearly visible keyboard focus on every control. */
   :focus-visible { outline: 2px solid #D9FF4F; outline-offset: 2px; }
   button:disabled { cursor: not-allowed; }
-  .font-display { letter-spacing: 0.005em; }
+  /* Headings open up in width instead of growing in size or weight. */
+  .font-display { font-stretch: 110%; letter-spacing: -0.005em; }
   input[type="number"]::-webkit-inner-spin-button { opacity: 0.4; }
   select, input, textarea { font-size: max(16px, 1em); }
   @media (min-width: 768px) { select, input, textarea { font-size: inherit; } }
@@ -30,7 +31,10 @@
   .field-label { @apply block mb-1.5 text-xs font-bold text-slate-300; }
   /* Scoreboard tile: a flat board with a fine seam, like a stadium flip panel. */
   .tile { @apply relative rounded-2xl border border-white/10 bg-obsidian-850 overflow-hidden; }
-  .score { font-family: 'Big Shoulders Display', Impact, sans-serif; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
+  /* Money and counts: even digits, medium weight, slightly wide like a ledger. */
+  .score { font-weight: 550; font-stretch: 105%; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  /* Small labels narrow a touch, so they read as captions beside the numbers. */
+  .caption { font-stretch: 88%; letter-spacing: 0.01em; }
 }
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }

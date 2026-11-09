@@ -105,8 +105,8 @@ function useOutside(ref: React.RefObject<HTMLElement>, onOutside: () => void, ac
 export function PageHead({ title, count, hint, actions, eyebrow }: { title: string; count?: React.ReactNode; hint?: React.ReactNode; actions?: React.ReactNode; eyebrow?: string }) {
   return <header className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
     <div className="min-w-0">
-      {eyebrow && <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-gold-400 mb-0.5">{eyebrow}</p>}
-      <h1 className="font-display text-4xl sm:text-5xl font-extrabold uppercase leading-none text-white flex items-center gap-2 flex-wrap">
+      {eyebrow && <p className="caption text-[11px] font-extrabold text-gold-400 mb-0.5">{eyebrow}</p>}
+      <h1 className="font-display text-4xl sm:text-5xl font-extrabold leading-tight text-white flex items-center gap-2 flex-wrap">
         {title}
         {count !== undefined && <span className="text-slate-500">{count}</span>}
         {hint && <Hint text={hint} />}
@@ -121,8 +121,8 @@ export function PageHead({ title, count, hint, actions, eyebrow }: { title: stri
 export function Tile({ label, value, sub, tone = 'default', onClick, active, small }: { label: string; value: React.ReactNode; sub?: React.ReactNode; tone?: 'default' | 'lime' | 'green' | 'red'; onClick?: () => void; active?: boolean; small?: boolean }) {
   const color = tone === 'lime' ? 'text-gold-400' : tone === 'green' ? 'text-emerald-400' : tone === 'red' ? 'text-red-400' : 'text-white';
   const body = <>
-    <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">{label}</span>
-    <span className={`score block mt-1 leading-none truncate ${small ? 'text-2xl sm:text-3xl' : 'text-4xl sm:text-5xl'} ${color}`}>{value}</span>
+    <span className="block caption text-[11px] font-bold text-slate-400">{label}</span>
+    <span className={`score block mt-1 leading-tight truncate ${small ? 'text-2xl sm:text-3xl' : 'text-4xl sm:text-5xl'} ${color}`}>{value}</span>
     {sub && <span className="block mt-1.5 text-xs text-slate-400 truncate">{sub}</span>}
   </>;
   const className = `tile block w-full min-w-0 text-left ${small ? 'p-3' : 'p-4'} ${active ? 'ring-1 ring-gold-400' : ''}`;
@@ -166,7 +166,7 @@ export function CopyButton({ text, label = 'Copy link', done = 'Link copied', cl
 export function Empty({ icon: Icon, title, actions }: { icon: React.ElementType; title: string; actions?: React.ReactNode }) {
   return <div className="panel p-10 text-center">
     <Icon className="w-10 h-10 mx-auto text-slate-500" />
-    <h2 className="mt-3 font-display text-3xl font-extrabold uppercase text-white">{title}</h2>
+    <h2 className="mt-3 font-display text-3xl font-extrabold text-white">{title}</h2>
     {actions && <div className="mt-5 flex flex-wrap justify-center gap-2">{actions}</div>}
   </div>;
 }

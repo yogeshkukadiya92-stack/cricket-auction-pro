@@ -54,9 +54,29 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Manrope', 'Noto Sans Gujarati', 'system-ui', '-apple-system', 'sans-serif'],
-        display: ['Big Shoulders Display', 'Noto Sans Gujarati', 'Impact', 'sans-serif'],
-        mono: ['Manrope', 'Noto Sans Gujarati', 'system-ui', 'sans-serif'],
+        sans: ['Anek Gujarati', 'system-ui', '-apple-system', 'sans-serif'],
+        display: ['Anek Gujarati', 'system-ui', '-apple-system', 'sans-serif'],
+        mono: ['Anek Gujarati', 'system-ui', '-apple-system', 'sans-serif'],
+      },
+      // A deliberately tight scale: size stays calm, width and colour carry hierarchy.
+      fontSize: {
+        xs: ['0.75rem', '1.05rem'],
+        sm: ['0.875rem', '1.3rem'],
+        base: ['0.9375rem', '1.45rem'],
+        lg: ['1rem', '1.5rem'],
+        xl: ['1.0625rem', '1.5rem'],
+        '2xl': ['1.1875rem', '1.6rem'],
+        '3xl': ['1.3125rem', '1.75rem'],
+        '4xl': ['1.5rem', '1.95rem'],
+        '5xl': ['1.6875rem', '2.15rem'],
+        '6xl': ['2rem', '2.45rem'],
+        '7xl': ['2.375rem', '2.85rem'],
+        '8xl': ['2.75rem', '3.25rem'],
+      },
+      fontWeight: {
+        bold: '600',
+        extrabold: '600',
+        black: '650',
       },
       borderRadius: {
         lg: '6px',

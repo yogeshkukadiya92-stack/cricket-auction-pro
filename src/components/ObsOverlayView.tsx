@@ -67,7 +67,7 @@ export const ObsOverlayView: React.FC<ObsOverlayViewProps> = ({
   return (
     <div className="fixed inset-0 pointer-events-none flex flex-col justify-end p-6 select-none bg-transparent">
       {/* OBS Instructions Banner (hidden during clean stream or click to dismiss) */}
-      <div className="absolute top-4 left-4 bg-black/80 text-white text-[11px] p-2 rounded-lg border border-white/10 pointer-events-auto max-w-sm">
+      <div className="absolute top-4 left-4 bg-black/80 text-white caption text-[11px] p-2 rounded-lg border border-white/10 pointer-events-auto max-w-sm">
         <span className="font-bold text-gold-400">OBS BROWSER SOURCE MODE:</span> Background is 100% transparent. Add this URL in OBS Studio as a Browser Source (1920x1080) for lower-third TV broadcast overlay.
       </div>
 
@@ -77,7 +77,7 @@ export const ObsOverlayView: React.FC<ObsOverlayViewProps> = ({
           {/* Top Mini Bar */}
           <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/10 text-xs font-bold">
             <div className="flex items-center gap-3">
-              <span className="px-2.5 py-0.5 rounded-full bg-red-600 text-white uppercase text-[10px] font-black tracking-wider animate-pulse">
+              <span className="px-2.5 py-0.5 rounded-full bg-red-600 text-white caption text-[11px] font-black animate-pulse">
                 ● LIVE AUCTION
               </span>
               <span className="text-slate-300">
@@ -118,7 +118,7 @@ export const ObsOverlayView: React.FC<ObsOverlayViewProps> = ({
 
             {/* Center: Live Bidding Amount with Pulse */}
             <div className="text-center px-6 py-2 rounded-2xl bg-white/[0.04] border border-white/10">
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center justify-center gap-1">
+              <span className="caption text-[11px] font-black text-slate-400 flex items-center justify-center gap-1">
                 <Flame className="w-3 h-3 text-gold-400" />
                 HIGHEST BID
               </span>
@@ -129,7 +129,7 @@ export const ObsOverlayView: React.FC<ObsOverlayViewProps> = ({
 
             {/* Right: Leading Franchise */}
             <div className="text-right min-w-[200px]">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+              <span className="caption text-[11px] font-bold text-slate-400 block mb-1">
                 HELD BY
               </span>
               {leadingTeam ? (
@@ -154,7 +154,7 @@ export const ObsOverlayView: React.FC<ObsOverlayViewProps> = ({
       {isSold && lastSoldInfo && (
         <div className="fixed inset-x-0 bottom-24 flex justify-center z-50 animate-in slide-in-from-bottom duration-300">
           <div className="rounded-3xl p-6 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 border-4 border-white shadow-2xl text-center text-white max-w-xl w-full">
-            <span className="text-xs uppercase font-black tracking-widest bg-black/40 px-4 py-1 rounded-full">
+            <span className="text-xs font-black bg-black/40 px-4 py-1 rounded-full">
               OFFICIALLY SOLD!
             </span>
             <h2 className="text-3xl font-black font-display mt-2">{lastSoldInfo.player.name}</h2>

@@ -68,7 +68,7 @@ export const PlayerProfileView: React.FC<PlayerProfileViewProps> = ({ profileId,
                     {data.isMe && <span className="rounded-full bg-gold-500 text-obsidian-950 px-3 py-1.5 text-xs font-black">YOU</span>}
                   </div>
                   <div className="absolute bottom-0 inset-x-0 p-5" style={{ transform: 'translateZ(60px)' }}>
-                    <h2 className="font-display text-3xl font-black leading-none drop-shadow-lg">{data.player.name}</h2>
+                    <h2 className="font-display text-3xl font-black leading-tight drop-shadow-lg">{data.player.name}</h2>
                     {data.player.city && <p className="text-sm text-slate-300 mt-1.5">📍 {data.player.city}</p>}
                   </div>
                 </div>
@@ -117,7 +117,7 @@ export const PlayerProfileView: React.FC<PlayerProfileViewProps> = ({ profileId,
 
 const StyleCell: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div className="bg-obsidian-900 px-4 py-3">
-    <div className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">{label}</div>
+    <div className="caption text-[11px] text-slate-500 font-bold">{label}</div>
     <div className="text-sm font-semibold text-white truncate">{value}</div>
   </div>
 );

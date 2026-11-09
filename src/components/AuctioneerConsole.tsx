@@ -128,19 +128,19 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
           <div className="flex gap-4 p-4 sm:p-5 min-w-0">
             <img src={currentPlayer.photoUrl || '/player-placeholder.svg'} alt="" className="w-24 h-28 sm:w-32 sm:h-40 shrink-0 rounded-xl object-cover bg-obsidian-950" />
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-extrabold uppercase tracking-wider text-gold-400">Lot {currentPlayer.lotOrder || '–'}{currentPlayer.category === 'MARQUEE' ? ' · Marquee' : currentPlayer.category === 'ACCELERATED' ? ' · Unsold round' : ''}</p>
-              <h1 className="font-display text-4xl sm:text-5xl font-extrabold uppercase leading-[0.95] text-white break-words">{currentPlayer.name}</h1>
+              <p className="text-xs font-extrabold text-gold-400">Lot {currentPlayer.lotOrder || '–'}{currentPlayer.category === 'MARQUEE' ? ' · Marquee' : currentPlayer.category === 'ACCELERATED' ? ' · Unsold round' : ''}</p>
+              <h1 className="font-display text-4xl sm:text-5xl font-extrabold leading-tight text-white break-words">{currentPlayer.name}</h1>
               <p className="mt-1 text-sm font-semibold text-slate-300">{roleName[currentPlayer.role] || currentPlayer.role}{currentPlayer.city ? ` · ${currentPlayer.city}` : ''}</p>
               <dl className="mt-2 flex gap-4 text-sm">
-                <div><dt className="text-[11px] text-slate-400">Runs</dt><dd className="font-bold text-white">{currentPlayer.stats?.runs ?? 0}</dd></div>
-                <div><dt className="text-[11px] text-slate-400">Wkts</dt><dd className="font-bold text-white">{currentPlayer.stats?.wickets ?? 0}</dd></div>
-                <div><dt className="text-[11px] text-slate-400">Base</dt><dd className="font-bold text-white">{price(currentPlayer.basePrice)}</dd></div>
+                <div><dt className="caption text-[11px] text-slate-400">Runs</dt><dd className="font-bold text-white">{currentPlayer.stats?.runs ?? 0}</dd></div>
+                <div><dt className="caption text-[11px] text-slate-400">Wkts</dt><dd className="font-bold text-white">{currentPlayer.stats?.wickets ?? 0}</dd></div>
+                <div><dt className="caption text-[11px] text-slate-400">Base</dt><dd className="font-bold text-white">{price(currentPlayer.basePrice)}</dd></div>
               </dl>
             </div>
           </div>
           <div className="relative border-t md:border-t-0 md:border-l border-white/10 p-4 sm:p-5 flex flex-col justify-center min-w-0" style={leadingTeam ? { backgroundColor: `${leadingTeam.colorHex}22` } : undefined}>
-            <p className="text-xs font-extrabold uppercase tracking-wider text-slate-300">{hasBid ? 'Highest bid' : 'Opening bid'}</p>
-            <p key={currentBid} className="cap-bid score text-6xl sm:text-7xl xl:text-8xl leading-none text-white truncate">{price(hasBid ? currentBid : currentPlayer.basePrice)}</p>
+            <p className="text-xs font-extrabold text-slate-300">{hasBid ? 'Highest bid' : 'Opening bid'}</p>
+            <p key={currentBid} className="cap-bid score text-6xl sm:text-7xl xl:text-8xl leading-tight text-white truncate">{price(hasBid ? currentBid : currentPlayer.basePrice)}</p>
             <div className="mt-2 flex items-center gap-2 min-h-8">
               {leadingTeam ? <><TeamLogo logo={leadingTeam.logo} name={leadingTeam.name} className="w-7 h-7 text-xl" /><span className="font-extrabold text-white truncate">{leadingTeam.name}</span></> : <span className="text-sm font-semibold text-slate-400">No bids yet</span>}
             </div>
@@ -168,8 +168,8 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
               <span aria-hidden className="absolute inset-y-0 left-0 w-1.5" style={{ backgroundColor: team.colorHex }} />
               <span className="flex items-center gap-2 pl-1.5">
                 <TeamLogo logo={team.logo} name={team.name} className="w-8 h-8 text-2xl" />
-                <span className="font-display text-2xl font-extrabold uppercase leading-none text-white truncate">{team.shortCode || team.name}</span>
-                {index < 9 && <kbd className="hidden lg:block ml-auto text-[10px] font-bold text-slate-500">{index + 1}</kbd>}
+                <span className="font-display text-2xl font-extrabold leading-tight text-white truncate">{team.shortCode || team.name}</span>
+                {index < 9 && <kbd className="hidden lg:block ml-auto caption text-[11px] font-bold text-slate-500">{index + 1}</kbd>}
               </span>
               <span className="mt-2 block pl-1.5 text-xs text-slate-400">Left <strong className="font-bold text-slate-100">{price(team.remainingPurse)}</strong></span>
               <span className="block pl-1.5 text-xs text-slate-400">{reason && !leading ? <strong className="font-bold text-amber-300">{reason}</strong> : leading ? <strong className="font-bold text-gold-400">Leading</strong> : <>Max {price(budget.maxBid)}</>} · {budget.bought}/{rules.maxPlayersPerTeam}</span>
@@ -177,7 +177,7 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
           })}
         </section>
       </> : <div className="panel pitch-stripes p-10 text-center">
-        <h1 className="font-display text-5xl font-extrabold uppercase text-white">{available.length ? 'Ready for the next lot' : unsoldCount ? 'Main round finished' : 'Auction finished'}</h1>
+        <h1 className="font-display text-5xl font-extrabold text-white">{available.length ? 'Ready for the next lot' : unsoldCount ? 'Main round finished' : 'Auction finished'}</h1>
         <div className="mt-5 flex flex-wrap justify-center gap-2">
           {available.length > 0 && <>
             <button onClick={() => onSelectPlayer(available[0])} disabled={busy} className="btn btn-primary min-h-12 text-base"><Gavel className="w-5 h-5" />Call lot {available[0].lotOrder || 1}</button>
@@ -199,7 +199,7 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
       {queueOpen && <PlayerQueue players={available} current={currentPlayer} price={price} onClose={() => setQueueOpen(false)} onPick={(player) => { setQueueOpen(false); onSelectPlayer(player); }} onRandom={() => { setQueueOpen(false); onRandomDraw(); }} />}
       {roundOpen && <div className="fixed inset-0 z-50 grid place-items-center bg-obsidian-950/85 backdrop-blur-sm p-4" onClick={() => setRoundOpen(false)}>
         <div role="dialog" aria-modal="true" aria-labelledby="round-title" onClick={(e) => e.stopPropagation()} className="cap-rise w-full max-w-sm panel bg-obsidian-850 p-5">
-          <h2 id="round-title" className="font-display text-3xl font-extrabold uppercase text-white">Unsold round</h2>
+          <h2 id="round-title" className="font-display text-3xl font-extrabold text-white">Unsold round</h2>
           <p className="mt-1 text-sm text-slate-300">{unsoldCount} {unsoldCount === 1 ? 'player returns' : 'players return'}. Choose a base price cut.</p>
           <div className="mt-4 grid grid-cols-4 gap-2">
             {[0, 10, 25, 50].map((percent) => <button key={percent} onClick={() => { setRoundOpen(false); onLaunchAcceleratedRound?.(percent); }} className="btn btn-ghost min-h-14 text-base">{percent === 0 ? 'None' : `−${percent}%`}</button>)}
@@ -222,7 +222,7 @@ function PlayerQueue({ players, current, price, onClose, onPick, onRandom }: { p
     <aside role="dialog" aria-modal="true" aria-label="Pick player" onClick={(e) => e.stopPropagation()} className="cap-rise w-full max-w-md h-full flex flex-col border-l border-white/10 bg-obsidian-900">
       <div className="p-4 border-b border-white/10 space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-3xl font-extrabold uppercase text-white">Pick player <span className="text-slate-500">{players.length}</span></h2>
+          <h2 className="font-display text-3xl font-extrabold text-white">Pick player <span className="text-slate-500">{players.length}</span></h2>
           <button onClick={onClose} aria-label="Close" className="btn-icon"><X className="w-5 h-5" /></button>
         </div>
         <div className="flex gap-2">

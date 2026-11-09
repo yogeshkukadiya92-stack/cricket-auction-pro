@@ -153,7 +153,7 @@ const PlayerTile: React.FC<{ player: DirectoryPlayer; onClick: () => void }> = (
         {p.inLiveTournament && <div className="absolute top-2.5 left-2.5"><LiveDot /></div>}
         <div className="absolute bottom-0 inset-x-0 p-3">
           <div className="font-display font-black text-[15px] leading-tight line-clamp-2 drop-shadow">{p.name}</div>
-          <div className="text-[11px] text-slate-300 mt-0.5 truncate">{ROLE_ICON[p.role]} {ROLE_LABEL[p.role]}{p.city ? ` · ${p.city}` : ''}</div>
+          <div className="caption text-[11px] text-slate-300 mt-0.5 truncate">{ROLE_ICON[p.role]} {ROLE_LABEL[p.role]}{p.city ? ` · ${p.city}` : ''}</div>
         </div>
       </div>
       <div className="grid grid-cols-3 divide-x divide-white/[0.06] border-t border-white/[0.06] text-center">
@@ -168,6 +168,6 @@ const PlayerTile: React.FC<{ player: DirectoryPlayer; onClick: () => void }> = (
 const MiniStat: React.FC<{ label: string; value: number; gold?: boolean }> = ({ label, value, gold }) => (
   <div className="py-2">
     <div className={`text-sm font-black ${gold ? 'text-gold-400' : 'text-white'}`}>{value}</div>
-    <div className="text-[9px] uppercase tracking-wider text-slate-500 font-bold">{label}</div>
+    <div className="caption text-[11px] text-slate-500 font-bold">{label}</div>
   </div>
 );

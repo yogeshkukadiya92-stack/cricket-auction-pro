@@ -208,7 +208,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
               </div>
             </div>
             <div>
-              <h3 className="text-4xl font-extrabold uppercase leading-none text-white font-display">
+              <h3 className="text-4xl font-extrabold leading-tight text-white font-display">
                 {isEditing ? 'Edit tournament' : 'New tournament'}
               </h3>
             </div>
@@ -231,7 +231,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Section 1: Brand & Logo */}
           <div className="p-4 sm:p-5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
-            <h4 className="text-xs font-black uppercase tracking-wider text-gold-400 flex items-center gap-2">
+            <h4 className="text-xs font-black text-gold-400 flex items-center gap-2">
               <Sparkles className="w-3.5 h-3.5" />
               Basics
             </h4>
@@ -357,7 +357,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
 
                   {/* Preset Emojis */}
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[11px] text-slate-400 font-semibold mr-1">Or pick:</span>
+                    <span className="caption text-[11px] text-slate-400 font-semibold mr-1">Or pick:</span>
                     {presetEmojis.map((emoji) => (
                       <button
                         key={emoji}
@@ -413,7 +413,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
 
           {/* Section 3: Auction Economy & Team Rules */}
           <div className="p-4 sm:p-5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
-            <h4 className="text-xs font-black uppercase tracking-wider text-emerald-400 flex items-center gap-2">
+            <h4 className="text-xs font-black text-emerald-400 flex items-center gap-2">
               <DollarSign className="w-3.5 h-3.5" />
               Auction
             </h4>
@@ -450,7 +450,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
                   onChange={(e) => setDefaultBasePrice(Number(e.target.value))}
                   className="w-full bg-obsidian-950 border border-white/10 text-white font-mono font-bold text-sm px-4 py-2.5 rounded-xl focus:border-gold-400 focus:outline-none"
                 />
-                <span className="text-[10px] text-slate-500 mt-1 block">
+                <span className="caption text-[11px] text-slate-500 mt-1 block">
                   e.g. ₹20,000 for regular pool
                 </span>
               </div>
@@ -467,7 +467,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
                   onChange={(e) => setTotalPursePerTeam(Number(e.target.value))}
                   className="w-full bg-obsidian-950 border border-white/10 text-white font-mono font-bold text-sm px-4 py-2.5 rounded-xl focus:border-gold-400 focus:outline-none"
                 />
-                <span className="text-[10px] text-slate-500 mt-1 block">
+                <span className="caption text-[11px] text-slate-500 mt-1 block">
                   e.g. ₹10,00,000 budget per franchise
                 </span>
               </div>
@@ -484,7 +484,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
                   onChange={(e) => setExpectedTeamsCount(Number(e.target.value))}
                   className="w-full bg-obsidian-950 border border-white/10 text-white font-mono font-bold text-sm px-4 py-2.5 rounded-xl focus:border-gold-400 focus:outline-none"
                 />
-                <span className="text-[10px] text-slate-500 mt-1 block">
+                <span className="caption text-[11px] text-slate-500 mt-1 block">
                   Target number of franchises
                 </span>
               </div>
@@ -562,7 +562,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
           {/* Section 5: Player Registration & UPI / GPay */}
           <div className="p-4 sm:p-5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
             <div className="flex items-center justify-between">
-              <h4 className="text-xs font-black uppercase tracking-wider text-purple-400 flex items-center gap-2">
+              <h4 className="text-xs font-black text-purple-400 flex items-center gap-2">
                 <Users className="w-3.5 h-3.5" />
                 5. Public Registration & Payment Info
               </h4>

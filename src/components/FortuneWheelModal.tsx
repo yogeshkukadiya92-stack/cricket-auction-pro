@@ -130,7 +130,7 @@ export const FortuneWheelModal: React.FC<FortuneWheelModalProps> = ({
       ctx.rotate(startAngle + sliceAngle / 2);
       ctx.textAlign = 'right';
       ctx.fillStyle = '#FFFFFF';
-      ctx.font = 'bold 13px system-ui, sans-serif';
+      ctx.font = 'bold 13px "Anek Gujarati", sans-serif';
       ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
       ctx.shadowBlur = 4;
 
@@ -160,7 +160,7 @@ export const FortuneWheelModal: React.FC<FortuneWheelModalProps> = ({
 
     // Center Gold Icon / Label
     ctx.fillStyle = '#F59E0B';
-    ctx.font = 'bold 11px system-ui, sans-serif';
+    ctx.font = 'bold 11px "Anek Gujarati", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('SPIN', radius, radius);
@@ -298,7 +298,7 @@ export const FortuneWheelModal: React.FC<FortuneWheelModalProps> = ({
                 <h2 className="text-lg font-bold tracking-tight text-white">
                   Interactive Fortune Wheel
                 </h2>
-                <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                <span className="px-2 py-0.5 rounded caption text-[11px] font-black bg-amber-500/20 text-amber-400 border border-amber-500/30">
                   Lucky Draw
                 </span>
               </div>
@@ -393,7 +393,7 @@ export const FortuneWheelModal: React.FC<FortuneWheelModalProps> = ({
             <button
               onClick={spinWheel}
               disabled={isSpinning || availableSectors.length === 0}
-              className="mt-5 px-8 py-3 bg-gold-500 hover:bg-gold-400 disabled:opacity-50 text-slate-950 font-black rounded-2xl shadow-xl shadow-amber-500/25 text-sm uppercase tracking-wider flex items-center gap-2 transition active:scale-95 cursor-pointer"
+              className="mt-5 px-8 py-3 bg-gold-500 hover:bg-gold-400 disabled:opacity-50 text-slate-950 font-black rounded-2xl shadow-xl shadow-amber-500/25 text-sm flex items-center gap-2 transition active:scale-95 cursor-pointer"
             >
               <RotateCw className={`w-4 h-4 ${isSpinning ? 'animate-spin' : ''}`} />
               <span>{isSpinning ? 'Spinning...' : 'SPIN THE WHEEL'}</span>
@@ -404,7 +404,7 @@ export const FortuneWheelModal: React.FC<FortuneWheelModalProps> = ({
           <div className="w-full md:w-64 space-y-4">
             {winner ? (
               <div className="p-5 bg-gradient-to-b from-amber-500/20 to-slate-950 border-2 border-amber-500/60 rounded-2xl text-center space-y-2.5 animate-zoomIn shadow-xl">
-                <div className="inline-flex p-2 bg-gold-500 text-slate-950 rounded-xl font-bold text-xs uppercase tracking-wider">
+                <div className="inline-flex p-2 bg-gold-500 text-slate-950 rounded-xl font-bold text-xs">
                   🎉 Selected Winner
                 </div>
 
@@ -438,7 +438,7 @@ export const FortuneWheelModal: React.FC<FortuneWheelModalProps> = ({
             {/* Spin History */}
             {spinHistory.length > 0 && (
               <div className="p-4 bg-slate-950/80 border border-slate-800 rounded-2xl">
-                <div className="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-400 mb-2">
                   <span>Spin History</span>
                   <span className="text-amber-400">{spinHistory.length}</span>
                 </div>
@@ -452,7 +452,7 @@ export const FortuneWheelModal: React.FC<FortuneWheelModalProps> = ({
                         <span className="w-4 h-4 rounded-full" style={{ backgroundColor: item.color }} />
                         <span className="font-semibold text-white truncate">{item.name}</span>
                       </div>
-                      <span className="text-[10px] font-mono text-slate-500 shrink-0">#{spinHistory.length - index}</span>
+                      <span className="caption text-[11px] font-mono text-slate-500 shrink-0">#{spinHistory.length - index}</span>
                     </div>
                   ))}
                 </div>

@@ -79,11 +79,11 @@ export const PlayerLiveAuction: React.FC<PlayerLiveAuctionProps> = ({ tournament
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-semibold">{isLive ? 'Live auction' : 'Auction board'}</p>
+            <p className="caption text-[11px] text-slate-400 font-semibold">{isLive ? 'Live auction' : 'Auction board'}</p>
             <p className="text-sm font-bold text-white truncate">{summary.tournament.name}</p>
           </div>
           {isLive && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500/10 border border-red-500/30 px-2.5 py-1 text-[11px] font-bold text-red-300">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500/10 border border-red-500/30 px-2.5 py-1 caption text-[11px] font-bold text-red-300">
               <span className="relative flex w-2 h-2"><span className="absolute inset-0 rounded-full bg-red-500 animate-ping opacity-75" /><span className="relative w-2 h-2 rounded-full bg-red-500" /></span>
               LIVE
             </span>

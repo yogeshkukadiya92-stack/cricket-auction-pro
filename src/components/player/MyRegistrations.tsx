@@ -34,7 +34,7 @@ export const MyRegistrations: React.FC<MyRegistrationsProps> = ({ me, onOpenLive
         <div className="relative flex items-center gap-4">
           <PlayerAvatar id={player.id} name={player.name} role={player.role} hasPhoto={player.hasPhoto} className="w-20 h-20" textClass="text-2xl" ring />
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold uppercase tracking-widest text-gold-400">Welcome back</p>
+            <p className="text-xs font-bold text-gold-400">Welcome back</p>
             <h2 className="font-display text-2xl font-black truncate">{player.name}</h2>
             <p className="text-sm text-slate-400 mt-0.5">{ROLE_ICON[player.role]} {ROLE_LABEL[player.role]}{player.city ? ` · ${player.city}` : ''}</p>
           </div>
@@ -107,9 +107,9 @@ const RegistrationCard: React.FC<{ registration: MyRegistration; onOpenLive: () 
         </div>
 
         <div className="flex flex-wrap gap-1.5 mt-3">
-          <span className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${approval.className}`}>{approval.label}</span>
-          {r.paymentStatus && <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-slate-300">{PAYMENT_LABEL[r.paymentStatus] || r.paymentStatus}</span>}
-          <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-slate-300">Base {formatAuctionPrice(r.basePrice, currency)}</span>
+          <span className={`rounded-full border px-2.5 py-1 caption text-[11px] font-bold ${approval.className}`}>{approval.label}</span>
+          {r.paymentStatus && <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 caption text-[11px] font-semibold text-slate-300">{PAYMENT_LABEL[r.paymentStatus] || r.paymentStatus}</span>}
+          <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 caption text-[11px] font-semibold text-slate-300">Base {formatAuctionPrice(r.basePrice, currency)}</span>
         </div>
 
         <div className="mt-3 rounded-2xl bg-obsidian-950/60 border border-white/[0.06] p-3">
@@ -117,7 +117,7 @@ const RegistrationCard: React.FC<{ registration: MyRegistration; onOpenLive: () 
             <div className="flex items-center gap-3">
               <TeamLogo logo={r.team.logo} name={r.team.name} className="w-10 h-10 rounded-xl grid place-items-center overflow-hidden text-xl shrink-0" />
               <div className="flex-1 min-w-0">
-                <div className="text-[10px] uppercase tracking-widest font-black text-emerald-300">Sold to</div>
+                <div className="caption text-[11px] font-black text-emerald-300">Sold to</div>
                 <div className="font-bold truncate" style={{ color: teamColor }}>{r.team.name}</div>
               </div>
               <div className="font-display text-xl font-black text-gold-400">{formatAuctionPrice(r.soldPrice || 0, currency)}</div>

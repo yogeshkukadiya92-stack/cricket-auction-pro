@@ -239,7 +239,7 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
 
               <div>
                 <div className="flex flex-wrap items-center gap-2 mb-2">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase bg-emerald-500/15 border border-emerald-500/40 text-emerald-300">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full caption text-[11px] font-bold bg-emerald-500/15 border border-emerald-500/40 text-emerald-300">
                     <Radio className="w-3 h-3 text-emerald-400 animate-pulse" />
                     Player list
                   </span>
@@ -320,7 +320,7 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
         <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
           <div className="p-4 rounded-2xl bg-gradient-to-br from-gold-500/15 via-gold-500/5 to-transparent border border-gold-500/30 backdrop-blur-md">
             <div className="flex items-center justify-between text-gold-400 mb-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider">Players</span>
+              <span className="caption text-[11px] font-bold">Players</span>
               <Users className="w-4 h-4" />
             </div>
             <p className="text-3xl font-display font-black text-gold-300">{statsCounts.total}</p>
@@ -328,7 +328,7 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
 
           <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-md">
             <div className="flex items-center justify-between text-amber-400 mb-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider">Batsmen</span>
+              <span className="caption text-[11px] font-bold">Batsmen</span>
               <span className="text-sm">🏏</span>
             </div>
             <p className="text-3xl font-display font-black text-white">{statsCounts.batsmen}</p>
@@ -336,7 +336,7 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
 
           <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-md">
             <div className="flex items-center justify-between text-cyan-400 mb-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider">Bowlers</span>
+              <span className="caption text-[11px] font-bold">Bowlers</span>
               <span className="text-sm">🎯</span>
             </div>
             <p className="text-3xl font-display font-black text-white">{statsCounts.bowlers}</p>
@@ -344,7 +344,7 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
 
           <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-md">
             <div className="flex items-center justify-between text-emerald-400 mb-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider">All-Rounders</span>
+              <span className="caption text-[11px] font-bold">All-Rounders</span>
               <Zap className="w-4 h-4" />
             </div>
             <p className="text-3xl font-display font-black text-white">{statsCounts.allRounders}</p>
@@ -352,7 +352,7 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
 
           <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-md">
             <div className="flex items-center justify-between text-purple-400 mb-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider">Keepers</span>
+              <span className="caption text-[11px] font-bold">Keepers</span>
               <span className="text-sm">🧤</span>
             </div>
             <p className="text-3xl font-display font-black text-white">{statsCounts.keepers}</p>
@@ -404,7 +404,7 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
                 >
                   <span>{tab.label}</span>
                   <span
-                    className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                    className={`caption text-[11px] px-1.5 py-0.2 rounded-full ${
                       selectedRole === tab.id ? 'bg-slate-950/30 text-slate-950' : 'bg-slate-800 text-slate-400'
                     }`}
                   >
@@ -489,7 +489,7 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
                     {/* Role Badge */}
                     <div className="absolute top-2.5 left-2.5">
                       <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border backdrop-blur-md shadow-sm ${roleMeta.bg}`}
+                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full caption text-[11px] font-black border backdrop-blur-md shadow-sm ${roleMeta.bg}`}
                       >
                         {roleMeta.label}
                       </span>
@@ -498,12 +498,12 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
                     {/* Approval Badge */}
                     <div className="absolute top-2.5 right-2.5">
                       {player.approvalStatus === 'APPROVED' ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 backdrop-blur-md">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full caption text-[11px] font-bold bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 backdrop-blur-md">
                           <CheckCircle2 className="w-3 h-3 text-emerald-400" />
                           Approved
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/20 border border-amber-500/50 text-amber-300 backdrop-blur-md">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full caption text-[11px] font-bold bg-amber-500/20 border border-amber-500/50 text-amber-300 backdrop-blur-md">
                           <Clock className="w-3 h-3 text-amber-400" />
                           Registered
                         </span>
@@ -512,7 +512,7 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
 
                     {/* City Tag on photo */}
                     {player.city && (
-                      <div className="absolute bottom-2 left-2.5 text-[10px] font-semibold text-slate-300 flex items-center gap-1 drop-shadow-md">
+                      <div className="absolute bottom-2 left-2.5 caption text-[11px] font-semibold text-slate-300 flex items-center gap-1 drop-shadow-md">
                         <MapPin className="w-3 h-3 text-gold-400" />
                         <span>{player.city}</span>
                       </div>
@@ -532,19 +532,19 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
                   {/* Cricket Statistics Pills */}
                   <div className="grid grid-cols-4 gap-1 p-2 rounded-xl bg-slate-950/60 border border-slate-800/80 text-center mb-3">
                     <div>
-                      <span className="block text-[9px] uppercase font-bold text-slate-500">M</span>
+                      <span className="block caption text-[11px] font-bold text-slate-500">M</span>
                       <span className="block text-xs font-black text-white">{player.stats?.matches || 0}</span>
                     </div>
                     <div>
-                      <span className="block text-[9px] uppercase font-bold text-slate-500">Runs</span>
+                      <span className="block caption text-[11px] font-bold text-slate-500">Runs</span>
                       <span className="block text-xs font-black text-amber-400">{player.stats?.runs || 0}</span>
                     </div>
                     <div>
-                      <span className="block text-[9px] uppercase font-bold text-slate-500">Wkt</span>
+                      <span className="block caption text-[11px] font-bold text-slate-500">Wkt</span>
                       <span className="block text-xs font-black text-cyan-400">{player.stats?.wickets || 0}</span>
                     </div>
                     <div>
-                      <span className="block text-[9px] uppercase font-bold text-slate-500">SR</span>
+                      <span className="block caption text-[11px] font-bold text-slate-500">SR</span>
                       <span className="block text-xs font-black text-emerald-400">
                         {player.stats?.strikeRate || 0}
                       </span>
@@ -553,10 +553,10 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
 
                   {/* Footer Card action */}
                   <div className="flex items-center justify-between pt-2 border-t border-white/5 text-xs">
-                    <span className="text-slate-400 text-[11px]">
+                    <span className="text-slate-400 caption text-[11px]">
                       Base Price: <strong className="text-white">₹{(player.basePrice || tournament?.defaultBasePrice || 20000).toLocaleString()}</strong>
                     </span>
-                    <span className="text-gold-400 font-bold group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5 text-[11px]">
+                    <span className="text-gold-400 font-bold group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5 caption text-[11px]">
                       View Profile <ChevronRight className="w-3.5 h-3.5" />
                     </span>
                   </div>
@@ -628,17 +628,17 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
 
               <div className="flex-1 w-full space-y-3">
                 <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-slate-500">Batting Style</span>
+                  <span className="caption text-[11px] font-bold text-slate-500">Batting Style</span>
                   <p className="text-xs font-bold text-white">{selectedPlayer.battingStyle || 'Right Hand'}</p>
                 </div>
 
                 <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-slate-500">Bowling Style</span>
+                  <span className="caption text-[11px] font-bold text-slate-500">Bowling Style</span>
                   <p className="text-xs font-bold text-white">{selectedPlayer.bowlingStyle || 'Right Arm Fast'}</p>
                 </div>
 
                 <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-slate-500">Base Price</span>
+                  <span className="caption text-[11px] font-bold text-slate-500">Base Price</span>
                   <p className="text-xs font-black text-gold-300">
                     ₹{(selectedPlayer.basePrice || tournament?.defaultBasePrice || 20000).toLocaleString()}
                   </p>
@@ -648,24 +648,24 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
 
             {/* Complete Cricket Stats Matrix */}
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+              <h4 className="text-xs font-bold text-slate-400 mb-2">
                 Verified Cricket Career Stats
               </h4>
               <div className="grid grid-cols-4 gap-2">
                 <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-center">
-                  <span className="text-[10px] uppercase font-bold text-slate-500 block">Matches</span>
+                  <span className="caption text-[11px] font-bold text-slate-500 block">Matches</span>
                   <span className="text-base font-black text-white">{selectedPlayer.stats?.matches || 0}</span>
                 </div>
                 <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-center">
-                  <span className="text-[10px] uppercase font-bold text-slate-500 block">Total Runs</span>
+                  <span className="caption text-[11px] font-bold text-slate-500 block">Total Runs</span>
                   <span className="text-base font-black text-amber-400">{selectedPlayer.stats?.runs || 0}</span>
                 </div>
                 <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-center">
-                  <span className="text-[10px] uppercase font-bold text-slate-500 block">Wickets</span>
+                  <span className="caption text-[11px] font-bold text-slate-500 block">Wickets</span>
                   <span className="text-base font-black text-cyan-400">{selectedPlayer.stats?.wickets || 0}</span>
                 </div>
                 <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-center">
-                  <span className="text-[10px] uppercase font-bold text-slate-500 block">Strike Rate</span>
+                  <span className="caption text-[11px] font-bold text-slate-500 block">Strike Rate</span>
                   <span className="text-base font-black text-emerald-400">
                     {selectedPlayer.stats?.strikeRate || 0}
                   </span>

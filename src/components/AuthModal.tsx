@@ -64,7 +64,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-obsidian-950/85 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby="auth-title">
       <div className="cap-rise relative w-full max-w-sm rounded-3xl border border-white/15 bg-obsidian-850 p-6 text-white">
         <button type="button" onClick={onClose} aria-label="Close" className="btn-icon absolute top-3 right-3"><X className="w-5 h-5" /></button>
-        <h2 id="auth-title" className="font-display text-4xl font-extrabold uppercase leading-none pr-10">
+        <h2 id="auth-title" className="font-display text-4xl font-extrabold leading-tight pr-10">
           {mode === 'ADMIN_LOGIN' ? 'Admin sign in' : registering ? 'Create account' : 'Sign in'}
         </h2>
 

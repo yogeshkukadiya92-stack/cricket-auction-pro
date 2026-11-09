@@ -191,7 +191,7 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
 
       {/* 2. General Form Settings (Fee, Deadline, UPI, Status) */}
       <div className="p-6 rounded-3xl glass-panel border border-white/10 space-y-6">
-        <h2 className="font-display text-2xl font-extrabold uppercase text-white">Settings</h2>
+        <h2 className="font-display text-2xl font-extrabold text-white">Settings</h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
@@ -239,7 +239,7 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
       <div className="p-6 rounded-3xl glass-panel border border-white/10 space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-white/10">
           <div>
-            <h2 className="font-display text-2xl font-extrabold uppercase text-white">Payment</h2>
+            <h2 className="font-display text-2xl font-extrabold text-white">Payment</h2>
           </div>
           <button
             type="button"
@@ -314,10 +314,10 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
               className="w-24 h-24 rounded-xl object-contain bg-white p-1 border border-white/20 shadow"
             />
           ) : (
-            <div className="w-24 h-24 rounded-xl bg-white flex flex-col items-center justify-center p-2 shadow text-black text-center font-bold text-[10px] leading-tight">
+            <div className="w-24 h-24 rounded-xl bg-white flex flex-col items-center justify-center p-2 shadow text-black text-center font-bold caption text-[11px] leading-tight">
               <span className="text-lg mb-0.5">📱</span>
               <span>Auto QR</span>
-              <span className="text-[9px] text-emerald-700 font-mono mt-0.5 font-black">₹{fee}</span>
+              <span className="caption text-[11px] text-emerald-700 font-mono mt-0.5 font-black">₹{fee}</span>
             </div>
           )}
 
@@ -348,13 +348,13 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
       <div className="p-6 rounded-3xl glass-panel border border-white/10 space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-white/10">
           <div>
-            <h2 className="font-display text-2xl font-extrabold uppercase text-white">Extra questions <Hint text="Name, photo, mobile, role and playing style are always asked." /></h2>
+            <h2 className="font-display text-2xl font-extrabold text-white">Extra questions <Hint text="Name, photo, mobile, role and playing style are always asked." /></h2>
           </div>
         </div>
 
         {/* Existing Custom Fields List */}
         <div className="space-y-3">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-gold-400 block">
+          <span className="caption text-[11px] font-bold text-gold-400 block">
             Added ({customFields.length})
           </span>
 
@@ -370,7 +370,7 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
                   className="p-4 rounded-2xl bg-obsidian-950 border border-white/10 flex flex-wrap items-center justify-between gap-3 hover:border-gold-400/40 transition-all"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="p-2 rounded-xl bg-white/5 text-gold-400 text-xs font-mono font-bold uppercase">
+                    <span className="p-2 rounded-xl bg-white/5 text-gold-400 text-xs font-mono font-bold">
                       {field.type}
                     </span>
                     <div>
@@ -381,7 +381,7 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
                         )}
                       </h4>
                       {field.type === 'select' && field.options && (
-                        <p className="text-[11px] text-slate-400 mt-0.5">
+                        <p className="caption text-[11px] text-slate-400 mt-0.5">
                           Options: {field.options.join(', ')}
                         </p>
                       )}
@@ -416,7 +416,7 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
 
         {/* Add New Question Section */}
         <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 space-y-4">
-          <span className="text-xs font-black uppercase tracking-wider text-slate-300 block flex items-center gap-1.5">
+          <span className="text-xs font-black text-slate-300 block flex items-center gap-1.5">
             <Plus className="w-4 h-4 text-gold-400" />
             Add Custom Question
           </span>

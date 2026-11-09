@@ -43,7 +43,7 @@ export function RegistrationResponsesView({ tournamentId, embedded = false }: { 
   const players = data?.players || [];
   return <section className={embedded ? 'text-white space-y-5' : 'min-h-screen bg-slate-950 text-white px-4 py-6 sm:p-8'}>
     <div className="max-w-5xl mx-auto space-y-5">
-      <header><p className="text-xs font-bold uppercase text-amber-400 mb-2">Organizer only • Form Responses</p><h1 className="text-2xl sm:text-3xl font-black break-words">{data?.tournament.name || 'Form Responses'}</h1><p className="text-sm text-slate-400 mt-1">{data?.tournament.season}</p></header>
+      <header><p className="text-xs font-bold text-amber-400 mb-2">Organizer only • Form Responses</p><h1 className="text-2xl sm:text-3xl font-black break-words">{data?.tournament.name || 'Form Responses'}</h1><p className="text-sm text-slate-400 mt-1">{data?.tournament.season}</p></header>
       {error && <p role="alert" className="p-3 rounded-xl bg-red-500/10 text-red-300">{error}</p>}
       {denied && <a href="/" className="inline-block text-amber-400 underline">Sign in with the tournament organizer account</a>}
       {!data && !error && <p role="status">Loading responses…</p>}
