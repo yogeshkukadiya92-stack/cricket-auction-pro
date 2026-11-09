@@ -223,7 +223,7 @@ export const SoldPosterModal: React.FC<SoldPosterModalProps> = ({
           OFFICIAL "SOLD" SOCIAL POSTER
         </h3>
         <p className="text-xs text-slate-400 mb-4">
-          Instagram & WhatsApp HD Poster automatically generated for viral sharing.
+          
         </p>
 
         {/* Canvas Display */}

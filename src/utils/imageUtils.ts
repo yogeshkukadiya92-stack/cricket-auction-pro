@@ -1,3 +1,4 @@
+import { notify } from '../ui/kit';
 /** Compress photos, logos and receipts before upload; preserve PNG transparency. */
 const MAX_IMAGE_BYTES = 300_000;
 const TARGET_IMAGE_BYTES = 250_000;
@@ -9,7 +10,7 @@ export const processUploadedImage = (
   callback: (dataUrl: string) => void
 ) => {
   const reader = new FileReader();
-  const fail = () => window.alert('Could not process this image. Please choose a JPG, PNG or WebP image.');
+  const fail = () => notify('Could not read this image. Use JPG, PNG or WebP.', 'warn');
   reader.onerror = fail;
   reader.onload = () => {
     const img = new Image();

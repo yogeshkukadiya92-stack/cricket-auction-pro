@@ -78,7 +78,7 @@ export const PlayerDirectory: React.FC<PlayerDirectoryProps> = ({ onOpenProfile,
 
   return (
     <div className="space-y-4">
-      <div className="sticky top-14 z-20 -mx-4 -mt-4 px-4 pt-4 pb-3 bg-obsidian-950/85 backdrop-blur-xl">
+      <div className="sticky top-14 z-20 -mx-4 -mt-4 px-4 pt-4 pb-3 bg-obsidian-950/85 ">
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
           <input

@@ -1,34 +1,42 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Ban, ChevronDown, ChevronUp, Gavel, SkipForward, Undo2 } from 'lucide-react';
 import { getBidBudget } from '../../shared/auctionBudget.js';
-import { Player, Team, AuctionRules } from '../types';
+import { AuctionRules, Player, Team } from '../types';
 import { formatAuctionPrice } from '../utils/currency';
+import { ask } from '../ui/kit';
 import { TeamLogo } from './TeamLogo';
 
 export function StageBidControls({ teams, players, rules, currentPlayer, currentBid, leadingTeam, busy = false, onBid, onSold, onUnsold, onUndo, onNext }: {
   teams: Team[]; players: Player[]; rules: AuctionRules; currentPlayer: Player | null; currentBid: number; leadingTeam: Team | null; busy?: boolean;
   onBid: (team: Team, amount: number) => void; onSold?: () => void; onUnsold?: () => void; onUndo?: () => void; onNext?: () => void;
 }) {
+  // The audience sees this screen, so controls can fold away.
+  const [open, setOpen] = useState(true);
   const price = (value: number) => formatAuctionPrice(value, rules.currency);
   const nextBid = currentBid > 0 ? currentBid + (rules.bidIncrement || currentPlayer?.basePrice || 20000) : currentPlayer?.basePrice || 0;
-  return <section aria-label="Stage auction controls" className="rounded-2xl border border-gold-400/30 bg-obsidian-950/70 p-4 space-y-3">
-    <div className="flex flex-wrap justify-between gap-2 items-center"><h3 className="font-bold text-gold-400">Tap a team to bid</h3><span role="status" className="text-xs text-slate-300">{busy ? 'Saving auction action…' : currentPlayer ? `Next bid: ${price(nextBid)}` : 'Draw a player to begin'}</span></div>
-    {!teams.length && <p className="text-sm text-slate-400">Add franchises to enable bidding.</p>}
-    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2">{teams.map(team => {
-      const budget = getBidBudget(team, players, rules);
-      const overBudget = (rules.minimumPlayerReserve || !rules.allowNegativePurse) && nextBid > budget.maxBid;
-      const disabled = busy || !currentPlayer || nextBid <= 0 || budget.squadComplete || !!overBudget;
-      return <button key={team.id} type="button" disabled={disabled} aria-label={`Bid ${price(nextBid)} for ${team.name}`} onClick={() => onBid(team, nextBid)} className={`rounded-xl border p-3 text-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${leadingTeam?.id === team.id ? 'border-gold-400 bg-gold-500/15' : 'border-white/10 bg-white/5 hover:bg-gold-500/15 hover:border-gold-400/60'}`}>
-        <TeamLogo logo={team.logo} name={team.name} className="w-10 h-10 mx-auto mb-2 text-3xl" />
-        <span className="block text-sm font-black text-white break-words">{team.shortCode || team.name}</span>
-        <span className="block text-xs text-gold-300 mt-1">{budget.squadComplete ? 'Squad full' : overBudget ? 'Purse limit' : `Bid ${price(nextBid)}`}</span>
-        <span className="block text-[10px] text-slate-400 mt-1">Left: {price(team.remainingPurse)}</span>
-      </button>;
-    })}</div>
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-white/10">
-      {onSold && <button disabled={busy || !currentPlayer || !leadingTeam || currentBid <= 0} onClick={onSold} className="rounded-xl bg-emerald-500 text-black font-black px-3 py-3 disabled:opacity-40">SOLD{leadingTeam ? ` · ${leadingTeam.shortCode || leadingTeam.name}` : ''}</button>}
-      {onUnsold && <button disabled={busy || !currentPlayer} onClick={() => { if (!currentBid || window.confirm('Mark this player unsold and discard the current bids?')) onUnsold(); }} className="rounded-xl bg-rose-500/20 text-rose-200 font-bold px-3 py-3 disabled:opacity-40">UNSOLD</button>}
-      {onUndo && <button disabled={busy || !currentPlayer || currentBid <= 0} onClick={onUndo} className="rounded-xl bg-white/10 text-white font-bold px-3 py-3 disabled:opacity-40">Undo bid</button>}
-      {onNext && <button disabled={busy || currentBid > 0} onClick={onNext} className="rounded-xl bg-gold-500 text-black font-bold px-3 py-3 disabled:opacity-40">Next player</button>}
-    </div>
+  return <section aria-label="Auction controls" className="panel p-3">
+    <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="w-full flex items-center justify-between gap-2 min-h-8 px-1 text-sm font-bold text-slate-300">
+      <span role="status">{busy ? 'Saving…' : currentPlayer ? <>Next bid <strong className="text-gold-400">{price(nextBid)}</strong></> : 'Draw a player'}</span>
+      {open ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+    </button>
+    {open && <div className="mt-2 space-y-2">
+      <div className="grid grid-cols-3 sm:grid-cols-4 xl:grid-cols-6 gap-1.5">{teams.map((team) => {
+        const budget = getBidBudget(team, players, rules);
+        const overBudget = (rules.minimumPlayerReserve || !rules.allowNegativePurse) && nextBid > budget.maxBid;
+        const leading = leadingTeam?.id === team.id;
+        const disabled = busy || !currentPlayer || nextBid <= 0 || budget.squadComplete || !!overBudget || leading;
+        return <button key={team.id} type="button" disabled={disabled} aria-label={`Bid ${price(nextBid)} for ${team.name}`} onClick={() => onBid(team, nextBid)} className={`tile p-2 text-center transition-colors enabled:hover:bg-obsidian-800 ${leading ? '!border-gold-400' : 'disabled:opacity-40'}`}>
+          <TeamLogo logo={team.logo} name={team.name} className="w-7 h-7 mx-auto text-xl" />
+          <span className="block font-display text-lg font-extrabold uppercase leading-tight text-white truncate">{team.shortCode || team.name}</span>
+          <span className="block text-[10px] text-slate-400 truncate">{budget.squadComplete ? 'Squad full' : overBudget ? 'Over limit' : price(team.remainingPurse)}</span>
+        </button>;
+      })}</div>
+      <div className="grid grid-cols-4 gap-1.5">
+        {onUndo && <button disabled={busy || !currentPlayer || currentBid <= 0} onClick={onUndo} className="btn btn-ghost"><Undo2 className="w-4 h-4" /><span className="hidden sm:inline">Undo</span></button>}
+        {onUnsold && <button disabled={busy || !currentPlayer} onClick={async () => { if (!currentBid || await ask({ title: 'Mark unsold?', body: 'The current bids will be discarded.', confirmLabel: 'Mark unsold', danger: true })) onUnsold(); }} className="btn bg-red-500/15 border border-red-500/40 text-red-200"><Ban className="w-4 h-4" /><span className="hidden sm:inline">Unsold</span></button>}
+        {onNext && <button disabled={busy || currentBid > 0} onClick={onNext} className="btn btn-ghost"><SkipForward className="w-4 h-4" /><span className="hidden sm:inline">Next</span></button>}
+        {onSold && <button disabled={busy || !currentPlayer || !leadingTeam || currentBid <= 0} onClick={onSold} className="btn bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold disabled:bg-white/5 disabled:text-slate-500"><Gavel className="w-4 h-4" />Sold</button>}
+      </div>
+    </div>}
   </section>;
 }

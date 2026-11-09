@@ -1,3 +1,6 @@
+import { Hint } from '../ui/kit';
+import { qrDataUrl } from '../utils/qr';
+import { notify } from '../ui/kit';
 import { registrationPayment } from '../../shared/registrationPayment.js';
 import { normalizeMobile, isUploadedImage } from '../../shared/registrationValidation.js';
 import { getPaymentLinks } from '../../shared/paymentLinks.js';
@@ -130,7 +133,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
   const upiDeepLink = paymentLinks?.upi || '';
 
   // Dynamic QR generator link fallback
-  const generatedQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=12&data=${encodeURIComponent(upiDeepLink)}`;
+  const generatedQrUrl = qrDataUrl(upiDeepLink);
   const activeQrUrl = tournament.gpayQrUrl || (paymentLinks ? generatedQrUrl : '');
 
   const handleCopyText = (text: string, type: 'gpay' | 'upi') => {
@@ -149,16 +152,14 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
     if (submitting) return;
     if (duplicateMobile === normalizeMobile(mobile)) { setSubmitError(mobileNotice); return; }
     if (!fullName.trim() || !mobile.trim()) {
-      alert('Please enter your full name and valid mobile number.');
+      notify('Enter your full name and mobile number.', 'warn');
       return;
     }
 
-    if (!isUploadedImage(photoUrl)) { alert("Player photo upload is compulsory. Please upload your photo."); return; }
-    if (!/^[6-9]\d{9}$/.test(normalizeMobile(mobile))) { alert("Enter a valid 10-digit Indian mobile number."); return; }
+    if (!isUploadedImage(photoUrl)) { notify('Upload your photo to continue.', 'warn'); return; }
+    if (!/^[6-9]\d{9}$/.test(normalizeMobile(mobile))) { notify('Enter a valid 10-digit mobile number.', 'warn'); return; }
     if (paymentRequired && !paymentScreenshotUrl) {
-      alert(
-        '⚠️ Payment screenshot is mandatory. Please complete payment via a UPI app and upload the screenshot to proceed.'
-      );
+      notify('Upload your payment screenshot to continue.', 'warn');
       return;
     }
 
@@ -232,7 +233,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
           <button type="button" onClick={onBack} className="shrink-0 inline-flex items-center gap-2 rounded-xl border border-white/15 px-3 py-2 text-sm font-bold text-white hover:bg-white/10">
             <ArrowLeft className="w-4 h-4" /> Back
           </button>
-          <div className="w-20 h-20 rounded-full bg-emerald-500/20 border border-emerald-400/50 mx-auto flex items-center justify-center text-4xl animate-bounce">
+          <div className="w-20 h-20 rounded-full bg-emerald-500/20 border border-emerald-400/50 mx-auto flex items-center justify-center text-4xl ">
             🎉
           </div>
 
@@ -258,7 +259,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
       <header className="p-4 sm:p-6 border-b border-white/10 glass-panel">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-gold-500 to-amber-300 p-0.5 shadow-glow-gold flex items-center justify-center">
+            <div className="w-10 h-10 rounded-2xl bg-gold-500 p-0.5 shadow-glow-gold flex items-center justify-center">
               <div className="w-full h-full bg-obsidian-950 rounded-[14px] flex items-center justify-center text-lg">
                 🏏
               </div>
@@ -268,7 +269,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                 {tournament.name}
               </h1>
               <p className="text-[11px] text-gold-400 font-semibold">
-                {tournament.season} • Official Player Registration
+                {tournament.season}
               </p>
             </div>
           </div>
@@ -285,7 +286,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
           <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
             <span className="flex items-center gap-1.5 font-black text-gold-400 uppercase tracking-wider">
               <Trophy className="w-4 h-4" />
-              AUCTION PLAYER ENROLLMENT 2026
+              Player sign-up
             </span>
 
             <div className="flex items-center gap-3">
@@ -320,13 +321,13 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
           <div className="lg:col-span-7">
             <form onSubmit={handleSubmit} className="p-6 sm:p-8 rounded-3xl glass-panel border border-white/10 space-y-6">
               <h2 className="text-xl font-black text-white font-display border-b border-white/10 pb-3">
-                Player Profile & Registration
+                Your details
               </h2>
 
               {/* Step 1: Basic Identity */}
               <div className="space-y-4">
                 <span className="text-xs font-bold uppercase tracking-wider text-gold-400 block">
-                  1. Basic Identity
+                  1. About you
                 </span>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -346,7 +347,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
 
                   <div>
                     <label className="text-xs font-bold text-slate-300 block mb-1">
-                      WhatsApp / Mobile Number <span className="text-red-400">*</span>
+                      WhatsApp number <span className="text-red-400">*</span>
                     </label>
                     <input
                       type="tel"
@@ -359,13 +360,13 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                       aria-invalid={!!duplicateMobile}
                       className="w-full bg-obsidian-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white focus:border-gold-400 focus:outline-none font-mono"
                     />
-                    <p id="registration-mobile-notice" role={mobileNotice ? 'alert' : undefined} className={`text-xs mt-2 ${mobileNotice ? 'text-rose-400' : 'text-slate-400'}`}>{mobileNotice || 'One registration per mobile number in this tournament.'}</p>
+                    <p id="registration-mobile-notice" role={mobileNotice ? 'alert' : undefined} className={`text-xs mt-2 ${mobileNotice ? 'text-rose-400' : 'text-slate-400'}`}>{mobileNotice || ''}</p>
                   </div>
                 </div>
 
                 <div>
                   <label className="text-xs font-bold text-slate-300 block mb-1">
-                    Email Address (Optional)
+                    Email (optional)
                   </label>
                   <input
                     type="email"
@@ -380,12 +381,12 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
               {/* Step 2: Cricket Credentials */}
               <div className="space-y-4 pt-4 border-t border-white/10">
                 <span className="text-xs font-bold uppercase tracking-wider text-gold-400 block">
-                  2. Cricket Playing Style & Stats
+                  2. Your game
                 </span>
 
                 <div>
                   <label className="text-xs font-bold text-slate-300 block mb-2">
-                    Select Primary Cricket Role:
+                    Role
                   </label>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                     {[
@@ -498,7 +499,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
               {/* Step 3: Photo Upload */}
               <div className="space-y-3 pt-4 border-t border-white/10">
                 <span className="text-xs font-bold uppercase tracking-wider text-gold-400 block">
-                  3. Passport Size Stage Photo * (Compulsory)
+                  3. Your photo *
                 </span>
                 <div className="p-4 rounded-2xl bg-white/[0.02] border border-dashed border-white/20 flex flex-col sm:flex-row items-center gap-4">
                   <img
@@ -508,9 +509,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                   />
                   <div className="flex-1 space-y-1 text-center sm:text-left">
                     <p className="text-xs font-bold text-white">Upload a clear, front-facing photo</p>
-                    <p className="text-[11px] text-slate-400">
-                      This photo will be displayed on 3D player cards and live projector screens during the auction.
-                    </p>
+                    <p className="text-[11px] text-slate-400">Passport-style, shown on the big screen.</p>
                     <input
                       type="file"
                       accept="image/*"
@@ -603,7 +602,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                                 onChange={(e) => handleCustomFieldChange(field.id, e.target.checked)}
                                 className="rounded text-gold-500"
                               />
-                              <span>I agree to abide by all official tournament rules and guidelines.</span>
+                              <span>I agree to the tournament rules.</span>
                             </label>
                           )}
                         </div>
@@ -710,7 +709,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                         Open {manualPaymentApp} manually → Send / Pay to UPI ID → enter <strong className="break-all">{upiId}</strong> → pay <strong>₹{regFee.toLocaleString('en-IN')}</strong> to {gpayName}. You can also scan this QR from another screen. Return here to upload the payment screenshot.
                       </div>}
                       {/Android/i.test(navigator.userAgent) && <a href={paymentLinks.upi} className="w-full py-2.5 text-center text-xs font-bold text-gold-300 underline">Pay with another UPI app</a>}
-                      <p className="text-[11px] text-slate-400 text-center">On Android, these buttons open the selected installed app. On iPhone, Google Pay and Paytm use their own app links. For BHIM, use the QR / UPI instructions. If an app link does not open, use the QR or UPI ID. After payment, return here and upload the screenshot.</p>
+                      <p className="text-center"><Hint text="Buttons open your UPI app. If one does not open, scan the QR or copy the UPI ID, then come back and upload the screenshot." label="Payment help" /></p>
                       </> : <p className="mt-3 text-xs text-amber-300">Direct payment requires a valid UPI ID and a positive registration fee. Contact the organizer or use the displayed mobile number in your payment app.</p>}
                     </div>
 
@@ -819,11 +818,11 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                         ) : (
                           /* Dropzone to Upload */
                           <label className="flex flex-col items-center justify-center p-5 rounded-2xl border-2 border-dashed border-gold-400/50 hover:border-gold-400 bg-gold-500/[0.03] hover:bg-gold-500/[0.07] cursor-pointer transition-all text-center group">
-                            <div className="w-12 h-12 rounded-2xl bg-gold-500/10 border border-gold-400/30 flex items-center justify-center text-gold-400 group-hover:scale-110 transition-transform mb-2">
+                            <div className="w-12 h-12 rounded-2xl bg-gold-500/10 border border-gold-400/30 flex items-center justify-center text-gold-400  transition-transform mb-2">
                               <Upload className="w-6 h-6" />
                             </div>
                             <span className="text-xs font-black text-white group-hover:text-gold-300 transition-colors">
-                              Click to upload payment screenshot
+                              Upload payment screenshot
                             </span>
                             <span className="text-[11px] text-slate-400 mt-0.5">
                               Google Pay Payment Success screen (JPG, PNG)
@@ -845,18 +844,16 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                       {/* 3. Transaction UTR / Ref Number */}
                       <div>
                         <label className="text-xs font-bold text-slate-300 block mb-1">
-                          Google Pay UPI Reference / UTR Number (Optional 12-digit number)
+                          UTR number (optional)
                         </label>
                         <input
                           type="text"
                           value={paymentUtr}
                           onChange={(e) => setPaymentUtr(e.target.value)}
-                          placeholder="e.g. 423871928341 (From Google Pay)"
+                          placeholder="12-digit UPI reference"
                           className="w-full bg-obsidian-950 border border-white/10 rounded-xl px-3.5 py-2 text-xs font-mono text-white focus:border-gold-400 focus:outline-none"
                         />
-                        <span className="text-[10px] text-slate-500 mt-1 block">
-                          Find the 12-digit 'UPI Transaction ID' or 'UPI Ref No.' in your Google Pay transaction details.
-                        </span>
+                        <span className="text-[10px] text-slate-500 mt-1 block"></span>
                       </div>
                     </div>
                   </div>
@@ -875,14 +872,14 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                   </div>
                 )}
 
-                {!isUploadedImage(photoUrl) && <p role="status" className="text-xs text-amber-300">Player photo is compulsory. Upload your photo to enable submission.</p>}
+                {!isUploadedImage(photoUrl) && <p role="status" className="text-xs text-amber-300">Add your photo to submit.</p>}
                 <button
                   type="submit"
                   disabled={submitting || !!duplicateMobile || !isUploadedImage(photoUrl) || (paymentRequired && !paymentScreenshotUrl)}
                   className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
                     paymentRequired && !paymentScreenshotUrl
                       ? 'bg-white/10 text-slate-500 cursor-not-allowed border border-white/10 opacity-70'
-                      : 'bg-gradient-to-r from-gold-500 via-amber-400 to-yellow-500 hover:from-gold-400 hover:to-amber-300 text-black shadow-glow-gold active:scale-95 cursor-pointer'
+                      : 'bg-gold-500 hover:bg-gold-400 text-black shadow-glow-gold active:scale-95 cursor-pointer'
                   }`}
                 >
                   {paymentRequired && !paymentScreenshotUrl ? (
@@ -897,9 +894,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                     </>
                   )}
                 </button>
-                <p className="text-[11px] text-slate-500 text-center">
-                  You will receive your official digital player pass and confirmation receipt upon submission.
-                </p>
+                <p className="text-[11px] text-slate-500 text-center"></p>
               </div>
             </form>
           </div>
@@ -912,7 +907,7 @@ export const PublicRegistrationView: React.FC<PublicRegistrationViewProps> = ({
                 LIVE 3D AUCTION CARD PREVIEW
               </span>
               <p className="text-[11px] text-slate-400">
-                Your auction card updates in real-time as you fill out the form:
+                Your auction card
               </p>
             </div>
 

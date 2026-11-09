@@ -1,10 +1,11 @@
-import { PlayerAuctionHistory } from './PlayerAuctionHistory';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Ban, Check, Gavel, Keyboard, ListOrdered, Search, Shield, Shuffle, Sparkles, Undo2, Users, X, Zap } from 'lucide-react';
 import { getBidBudget } from '../../shared/auctionBudget.js';
-import { formatAuctionPrice } from '../utils/currency';
-import React, { useState, useEffect } from 'react';
-import { Player, Team, AuctionRules } from '../types';
+import { AuctionRules, Player, Team } from '../types';
 import { sounds } from '../soundEffects';
-import { Gavel, Undo2, Ban, ChevronRight, Shuffle, AlertCircle, ArrowUpRight, Sparkles, Zap } from 'lucide-react';
+import { formatAuctionPrice } from '../utils/currency';
+import { ask, Empty, Hint, notify } from '../ui/kit';
+import { PlayerAuctionHistory } from './PlayerAuctionHistory';
 import { TeamLogo } from './TeamLogo';
 
 interface AuctioneerConsoleProps {
@@ -14,6 +15,10 @@ interface AuctioneerConsoleProps {
   allTeams: Team[];
   allPlayers: Player[];
   rules: AuctionRules;
+  busy?: boolean;
+  isSold?: boolean;
+  isUnsold?: boolean;
+  lastSoldInfo?: { player: Player; team: Team; price: number } | null;
   onPlaceBid: (team: Team, newAmount: number) => void;
   onSold: () => void;
   onUnsold: () => void;
@@ -22,331 +27,218 @@ interface AuctioneerConsoleProps {
   onRandomDraw: () => void;
   onOpenFortuneWheel?: () => void;
   onLaunchAcceleratedRound?: (discountPercent: number) => void;
+  onOpenPlayers?: () => void;
+  onOpenTeams?: () => void;
 }
 
+const roleName: Record<string, string> = { BATSMAN: 'Batsman', BOWLER: 'Bowler', ALL_ROUNDER: 'All-rounder', WICKET_KEEPER: 'Keeper' };
+
 export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
-  currentPlayer,
-  currentBid,
-  leadingTeam,
-  allTeams,
-  allPlayers,
-  rules,
-  onPlaceBid,
-  onSold,
-  onUnsold,
-  onUndoBid,
-  onSelectPlayer,
-  onRandomDraw,
-  onOpenFortuneWheel,
-  onLaunchAcceleratedRound,
+  currentPlayer, currentBid, leadingTeam, allTeams, allPlayers, rules, busy = false, isSold, isUnsold, lastSoldInfo,
+  onPlaceBid, onSold, onUnsold, onUndoBid, onSelectPlayer, onRandomDraw, onOpenFortuneWheel, onLaunchAcceleratedRound, onOpenPlayers, onOpenTeams,
 }) => {
-  const [selectedTeamId, setSelectedTeamId] = useState<string>(allTeams[0]?.id || '');
-  const [customInc, setCustomInc] = useState<number>(currentPlayer?.basePrice || rules.bidIncrement || 20000);
-  useEffect(() => { setCustomInc(currentPlayer?.basePrice || rules.bidIncrement || 20000); }, [currentPlayer?.id]);
+  const baseStep = rules.bidIncrement || currentPlayer?.basePrice || 20000;
+  const [multiplier, setMultiplier] = useState(1);
+  const [customOpen, setCustomOpen] = useState(false);
+  const [custom, setCustom] = useState('');
+  const [queueOpen, setQueueOpen] = useState(false);
+  const [roundOpen, setRoundOpen] = useState(false);
 
-  const selectedTeam = allTeams.find((t) => t.id === selectedTeamId) || allTeams[0];
+  const price = (value: number) => formatAuctionPrice(value, rules.currency);
+  const available = useMemo(() => allPlayers.filter((p) => (!p.approvalStatus || p.approvalStatus === 'APPROVED') && (p.status === 'AVAILABLE' || p.status === 'IN_AUCTION')).sort((a, b) => (a.lotOrder || 0) - (b.lotOrder || 0)), [allPlayers]);
+  const unsoldCount = allPlayers.filter((p) => p.status === 'UNSOLD').length;
+  const soldCount = allPlayers.filter((p) => p.status === 'SOLD').length;
 
-  const formatPrice = (val: number) => {
-    return formatAuctionPrice(val, rules.currency);
-  };
+  useEffect(() => { setMultiplier(1); setCustom(''); setCustomOpen(false); }, [currentPlayer?.id]);
 
-  const bidBase = currentBid > 0 ? currentBid : currentPlayer?.basePrice || 0;
-  const bidIncrement = rules.bidIncrement || currentPlayer?.basePrice || 20000;
-  const nextBidAmount = currentBid > 0 ? currentBid + bidIncrement : bidBase;
+  const customAmount = customOpen && custom ? Number(custom) : 0;
+  const nextBid = customAmount > 0 ? customAmount : currentBid > 0 ? currentBid + baseStep * multiplier : currentPlayer?.basePrice || 0;
+  const hasBid = currentBid > 0 && !!leadingTeam;
+  const locked = busy || !!isSold || !!isUnsold;
 
-  const handleBidStep = (targetAmount: number, team = selectedTeam) => {
-    if (!team || !currentPlayer) return;
-    if (!Number.isFinite(targetAmount) || targetAmount < currentPlayer.basePrice || targetAmount <= currentBid) {
-      alert(`Bid must meet the base price and exceed the current bid.`);
-      return;
-    }
+  const blockReason = (team: Team) => {
     const budget = getBidBudget(team, allPlayers, rules);
-    if (budget.squadComplete) { alert(`Squad complete — ${team.name} has ${budget.bought}/${rules.maxPlayersPerTeam} players and cannot bid.`); return; }
-    if ((rules.minimumPlayerReserve || !rules.allowNegativePurse) && targetAmount > budget.maxBid) {
-      alert(`⚠️ ${team.name} can bid at most ${formatPrice(budget.maxBid)}. ${formatPrice(budget.reserve)} is reserved for remaining players.`);
-      return;
-    }
-    setSelectedTeamId(team.id);
-    sounds.playBidSound();
-    onPlaceBid(team, targetAmount);
+    if (leadingTeam?.id === team.id) return 'Leading';
+    if (budget.squadComplete) return 'Squad full';
+    if ((rules.minimumPlayerReserve || !rules.allowNegativePurse) && nextBid > budget.maxBid) return 'Over limit';
+    return '';
   };
 
-  const availablePlayers = allPlayers.filter((p) => (!p.approvalStatus || p.approvalStatus === 'APPROVED') && (p.status === 'AVAILABLE' || p.status === 'IN_AUCTION'));
-  const unsoldPlayers = allPlayers.filter((p) => p.status === 'UNSOLD');
+  const bid = (team: Team) => {
+    if (!currentPlayer || locked) return;
+    if (!Number.isFinite(nextBid) || nextBid < currentPlayer.basePrice || nextBid <= currentBid) {
+      notify(`Bid must be above ${price(Math.max(currentBid, currentPlayer.basePrice - 1))}.`, 'warn');
+      return;
+    }
+    const reason = blockReason(team);
+    if (reason === 'Over limit') { notify(`${team.name} can bid up to ${price(getBidBudget(team, allPlayers, rules).maxBid)}.`, 'warn'); return; }
+    if (reason) return;
+    sounds.playBidSound();
+    onPlaceBid(team, nextBid);
+    setCustom(''); setCustomOpen(false);
+  };
+  const sell = () => { if (!hasBid || locked) return; sounds.playGavel(); onSold(); };
+  const pass = async () => {
+    if (!currentPlayer || locked) return;
+    if (currentBid > 0 && !await ask({ title: 'Mark unsold?', body: 'The current bids will be discarded.', confirmLabel: 'Mark unsold', danger: true })) return;
+    sounds.playUnsoldBuzzer();
+    onUnsold();
+  };
+
+  // One-key operation for a fast live desk. Bids are direct; selling asks first.
+  useEffect(() => {
+    const onKey = async (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement;
+      if (event.metaKey || event.ctrlKey || event.altKey || queueOpen || roundOpen || document.querySelector('[role="alertdialog"]') || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return;
+      const key = event.key.toLowerCase();
+      if (/^[1-9]$/.test(key)) { const team = allTeams[Number(key) - 1]; if (team) bid(team); }
+      else if (key === 'z' && currentBid > 0 && !locked) onUndoBid();
+      else if (key === 'n' && currentBid === 0 && !locked) onRandomDraw();
+      else if (key === 'u') void pass();
+      else if (key === 's' && hasBid && !locked && await ask({ title: `Sell to ${leadingTeam?.name}?`, body: price(currentBid), confirmLabel: 'Sold' })) sell();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+
+  if (allTeams.length === 0 || allPlayers.length === 0) {
+    return <Empty icon={allTeams.length === 0 ? Shield : Users} title={allTeams.length === 0 ? 'Add teams to start' : 'Add players to start'} actions={
+      <button className="btn btn-primary" onClick={allTeams.length === 0 ? onOpenTeams : onOpenPlayers}>{allTeams.length === 0 ? 'Add teams' : 'Add players'}</button>
+    } />;
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Top Controller Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-5 rounded-2xl glass-panel border border-white/10">
-        <div>
-          <h2 className="text-xl font-black text-white font-display flex items-center gap-2">
-            🎙️ AUCTIONEER COMMAND DESK
-          </h2>
-          <p className="text-xs text-slate-400">
-            Current Lot: #{currentPlayer?.lotOrder || 0} • {currentPlayer?.name || 'No Player Active'}
-          </p>
-        </div>
-
+    <div className="space-y-4 pb-32 md:pb-24">
+      {/* Progress and lot selection */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-bold text-slate-300"><span className="text-white">{soldCount}</span> sold · <span className="text-white">{available.length}</span> waiting · <span className="text-white">{unsoldCount}</span> unsold</p>
         <div className="flex flex-wrap items-center gap-2">
-          {onOpenFortuneWheel && (
-            <button
-              onClick={onOpenFortuneWheel}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 transition active:scale-95 cursor-pointer shadow-md"
-              title="Interactive Fortune Wheel for Team Picks or Lucky Draw"
-            >
-              <Sparkles className="w-4 h-4 text-amber-400" />
-              <span>Fortune Wheel</span>
-            </button>
-          )}
-
-          {onLaunchAcceleratedRound && unsoldPlayers.length > 0 && (
-            <button
-              onClick={() => {
-                const choice = window.prompt(
-                  `⚡ Accelerated Round for ${unsoldPlayers.length} Unsold Players!\nEnter discount percentage on base price (e.g. 0 for original, 20 for -20%, 50 for -50%):`,
-                  '0'
-                );
-                if (choice !== null) {
-                  const pct = Math.max(0, Math.min(90, Number(choice) || 0));
-                  onLaunchAcceleratedRound(pct);
-                }
-              }}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/40 transition active:scale-95 cursor-pointer animate-pulse"
-              title="Recall unsold players with optional base price discount"
-            >
-              <Zap className="w-4 h-4 text-cyan-400" />
-              <span>Accelerated Round ({unsoldPlayers.length})</span>
-            </button>
-          )}
-
-          <button
-            onClick={onRandomDraw}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 transition-all active:scale-95"
-          >
-            <Shuffle className="w-4 h-4 text-gold-400" />
-            Random Draw
-          </button>
-          <div className="flex items-center gap-1.5 bg-obsidian-900 border border-white/10 p-1 rounded-xl">
-            <span className="text-xs font-bold text-slate-400 px-2">Jump to:</span>
-            <select
-              value={currentPlayer?.id || ''}
-              onChange={(e) => {
-                const found = allPlayers.find((p) => p.id === e.target.value);
-                if (found) onSelectPlayer(found);
-              }}
-              className="bg-obsidian-850 text-xs font-semibold text-white px-3 py-1.5 rounded-lg border border-white/10 focus:outline-none focus:border-gold-400"
-            >
-              <option value="">Select available player</option>
-              {availablePlayers.map((p) => (
-                <option key={p.id} value={p.id}>
-                  Lot #{p.lotOrder} - {p.name} ({p.role} - {p.status})
-                </option>
-              ))}
-            </select>
-          </div>
+          <Hint label="Keyboard shortcuts" text={<span className="flex items-start gap-2"><Keyboard className="w-4 h-4 shrink-0" /><span>1–9 bid for team · S sold · U unsold · Z undo · N next player</span></span>} />
+          {onOpenFortuneWheel && <button onClick={onOpenFortuneWheel} className="btn btn-ghost"><Sparkles className="w-4 h-4" />Wheel</button>}
+          {onLaunchAcceleratedRound && unsoldCount > 0 && <button onClick={() => setRoundOpen(true)} disabled={currentBid > 0} className="btn btn-ghost"><Zap className="w-4 h-4" />Unsold round ({unsoldCount})</button>}
+          <button onClick={() => setQueueOpen(true)} disabled={currentBid > 0} className="btn btn-ghost"><ListOrdered className="w-4 h-4" />Pick player</button>
         </div>
       </div>
 
-      {currentPlayer ? (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Column: Team Selector & Quick Bids */}
-          <div className="lg:col-span-8 space-y-5">
-            {/* Step 1: Select Bidding Team */}
-            <div className="p-5 rounded-2xl glass-panel border border-white/10">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-3">
-                1. Select Bidding Franchise (Paddle)
-              </span>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                {allTeams.map((team) => {
-                  const budget = getBidBudget(team, allPlayers, rules);
-                  const isSelected = selectedTeam?.id === team.id;
-                  const isLeading = leadingTeam?.id === team.id;
-                  return (
-                    <div key={team.id} className="flex flex-col gap-2 min-w-0">
-                    <button
-                      onClick={() => {
-                        setSelectedTeamId(team.id);
-                        sounds.playTick();
-                      }}
-                      className={`p-3 rounded-2xl border text-left transition-all relative ${
-                        isSelected
-                          ? 'border-gold-400 bg-gold-500/15 shadow-glow-gold'
-                          : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.05]'
-                      }`}
-                    >
-                      {isLeading && (
-                        <span className="absolute -top-2 -right-2 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase bg-emerald-500 text-black shadow">
-                          HIGHEST
-                        </span>
-                      )}
-                      <div className="w-10 h-10 mx-auto mb-1 flex items-center justify-center overflow-hidden">
-                        <TeamLogo logo={team.logo} name={team.name} className="w-full h-full text-2xl" />
-                      </div>
-                      <div className="text-sm font-extrabold text-white truncate">{team.name}</div>
-                      <div className="text-[11px] text-slate-400 font-medium">
-                        Purse: {formatPrice(team.remainingPurse)}
-                        <span className="block text-gold-300 mt-1">Max bid: {formatPrice(budget.maxBid)}</span>
-                        <span className="block">Reserved: {formatPrice(budget.reserve)}</span>
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => handleBidStep(nextBidAmount, team)}
-                      disabled={((rules.minimumPlayerReserve || !rules.allowNegativePurse) && nextBidAmount > budget.maxBid) || budget.squadComplete}
-                      className="px-3 py-3 rounded-xl bg-gold-500 hover:bg-gold-400 text-black font-black text-sm transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
-                      aria-label={`Place ${formatPrice(nextBidAmount)} bid for ${team.name}`}
-                    >
-                      <span className="block text-[10px] font-bold">{budget.squadComplete ? 'Limit reached' : currentBid > 0 ? `+${formatPrice(bidIncrement)}` : 'Opening Bid'}</span>
-                      {budget.squadComplete ? 'Squad complete' : formatPrice(nextBidAmount)}
-                    </button>
-                    <span className="text-[11px] text-slate-400">Squad: {budget.bought}/{rules.maxPlayersPerTeam}{budget.squadComplete ? ' • Bidding closed' : ''}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+      {isSold && lastSoldInfo && <div role="status" className="cap-rise rounded-2xl bg-emerald-500 px-4 py-3 text-black font-extrabold flex items-center gap-2"><Check className="w-5 h-5" />{lastSoldInfo.player.name} sold to {lastSoldInfo.team.name} for {price(lastSoldInfo.price)}</div>}
 
-            {/* Step 2: Place Next Bid */}
-            <div className="p-5 rounded-2xl glass-panel border border-white/10">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                  2. Raise Bid for {selectedTeam?.name || 'Selected Team'}
-                </span>
-                <span className="text-xs font-bold text-gold-400">
-                  Current: {currentBid > 0 ? formatPrice(currentBid) : `Base ${formatPrice(currentPlayer.basePrice)}`}
-                </span>
-              </div>
-
-              <button
-                onClick={() => handleBidStep(nextBidAmount)}
-                disabled={!selectedTeam}
-                className="w-full p-3 rounded-xl bg-gold-500/15 hover:bg-gold-500/25 border border-gold-400/40 text-center transition-all active:scale-95 disabled:opacity-40"
-              >
-                <span className="block text-xs font-bold text-gold-300">
-                  {currentBid > 0 ? `Increase by ${formatPrice(bidIncrement)}` : 'Place Opening Bid'}
-                </span>
-                <span className="text-base font-black text-white font-display">{formatPrice(nextBidAmount)}</span>
-              </button>
-              <p className="mt-2 text-[11px] text-slate-400">
-                Tournament bid increment: {formatPrice(bidIncrement)}. Each team button places the next bid directly.
-              </p>
-
-              {/* Custom Bid Input */}
-              <div className="mt-4 pt-4 border-t border-white/10 flex items-center gap-3">
-                <span className="text-xs font-semibold text-slate-400">Custom Bid:</span>
-                <input
-                  type="number"
-                  step={bidIncrement}
-                  value={customInc}
-                  onChange={(e) => setCustomInc(Number(e.target.value))}
-                  className="bg-obsidian-900 border border-white/10 px-3 py-1.5 rounded-xl text-sm font-bold text-white w-36 focus:border-gold-400 focus:outline-none"
-                  aria-label="Custom bid amount"
-                  min={Math.max(currentPlayer?.basePrice || 0, currentBid + 1)}
-                  placeholder="Amount"
-                />
-                <button
-                  disabled={!selectedTeam || !currentPlayer || !Number.isFinite(customInc) || customInc < currentPlayer.basePrice || customInc <= currentBid}
-                  onClick={() => handleBidStep(customInc)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold bg-gold-500 hover:bg-gold-400 text-black flex items-center gap-1.5 active:scale-95 transition-all shadow-glow-gold"
-                >
-                  <ArrowUpRight className="w-4 h-4" />
-                  Place {formatPrice(customInc)}
-                </button>
-              </div>
+      {currentPlayer ? <>
+        {/* The board */}
+        <section className="panel pitch-stripes overflow-hidden grid md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]" aria-label="Current lot">
+          <div className="flex gap-4 p-4 sm:p-5 min-w-0">
+            <img src={currentPlayer.photoUrl || '/player-placeholder.svg'} alt="" className="w-24 h-28 sm:w-32 sm:h-40 shrink-0 rounded-xl object-cover bg-obsidian-950" />
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-extrabold uppercase tracking-wider text-gold-400">Lot {currentPlayer.lotOrder || '–'}{currentPlayer.category === 'MARQUEE' ? ' · Marquee' : currentPlayer.category === 'ACCELERATED' ? ' · Unsold round' : ''}</p>
+              <h1 className="font-display text-4xl sm:text-5xl font-extrabold uppercase leading-[0.95] text-white break-words">{currentPlayer.name}</h1>
+              <p className="mt-1 text-sm font-semibold text-slate-300">{roleName[currentPlayer.role] || currentPlayer.role}{currentPlayer.city ? ` · ${currentPlayer.city}` : ''}</p>
+              <dl className="mt-2 flex gap-4 text-sm">
+                <div><dt className="text-[11px] text-slate-400">Runs</dt><dd className="font-bold text-white">{currentPlayer.stats?.runs ?? 0}</dd></div>
+                <div><dt className="text-[11px] text-slate-400">Wkts</dt><dd className="font-bold text-white">{currentPlayer.stats?.wickets ?? 0}</dd></div>
+                <div><dt className="text-[11px] text-slate-400">Base</dt><dd className="font-bold text-white">{price(currentPlayer.basePrice)}</dd></div>
+              </dl>
             </div>
           </div>
+          <div className="relative border-t md:border-t-0 md:border-l border-white/10 p-4 sm:p-5 flex flex-col justify-center min-w-0" style={leadingTeam ? { backgroundColor: `${leadingTeam.colorHex}22` } : undefined}>
+            <p className="text-xs font-extrabold uppercase tracking-wider text-slate-300">{hasBid ? 'Highest bid' : 'Opening bid'}</p>
+            <p key={currentBid} className="cap-bid score text-6xl sm:text-7xl xl:text-8xl leading-none text-white truncate">{price(hasBid ? currentBid : currentPlayer.basePrice)}</p>
+            <div className="mt-2 flex items-center gap-2 min-h-8">
+              {leadingTeam ? <><TeamLogo logo={leadingTeam.logo} name={leadingTeam.name} className="w-7 h-7 text-xl" /><span className="font-extrabold text-white truncate">{leadingTeam.name}</span></> : <span className="text-sm font-semibold text-slate-400">No bids yet</span>}
+            </div>
+            <PlayerAuctionHistory tournamentId={currentPlayer.tournamentId} playerId={currentPlayer.id} />
+          </div>
+        </section>
 
-          {/* Right Column: Hammer / Sold / Unsold Controls */}
-          <div className="lg:col-span-4 space-y-4">
-            <div className="p-5 rounded-2xl glass-panel border border-white/10 space-y-4">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
-                3. Final Hammer Decision
+        {/* Bid amount */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm font-bold text-slate-300 mr-1">Next bid <strong className="score text-2xl text-gold-400 align-middle ml-1">{price(nextBid)}</strong></span>
+          {currentBid > 0 && !customOpen && [1, 2, 5, 10].map((times) => <button key={times} onClick={() => setMultiplier(times)} aria-pressed={multiplier === times} className={`btn min-h-9 px-3 ${multiplier === times ? 'bg-white text-black' : 'btn-ghost'}`}>+{price(baseStep * times)}</button>)}
+          {customOpen
+            ? <span className="inline-flex items-center gap-1"><input autoFocus type="number" inputMode="numeric" min={Math.max(currentPlayer.basePrice, currentBid + 1)} value={custom} onChange={(e) => setCustom(e.target.value)} aria-label="Custom bid amount" placeholder="Amount" className="field min-h-9 w-36" /><button aria-label="Close custom amount" onClick={() => { setCustomOpen(false); setCustom(''); }} className="btn-icon"><X className="w-4 h-4" /></button></span>
+            : <button onClick={() => setCustomOpen(true)} className="btn btn-ghost min-h-9 px-3">Custom</button>}
+        </div>
+
+        {/* Team tiles: one tap places the bid */}
+        <section aria-label="Tap a team to bid" className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2.5">
+          {allTeams.map((team, index) => {
+            const budget = getBidBudget(team, allPlayers, rules);
+            const reason = blockReason(team);
+            const leading = reason === 'Leading';
+            return <button key={team.id} onClick={() => bid(team)} disabled={locked || !!reason} aria-label={`Bid ${price(nextBid)} for ${team.name}`}
+              className={`relative tile text-left p-3 min-h-[104px] transition-colors enabled:hover:bg-obsidian-800 enabled:active:translate-y-px ${leading ? '!border-gold-400 disabled:opacity-100' : 'disabled:opacity-40'}`}>
+              <span aria-hidden className="absolute inset-y-0 left-0 w-1.5" style={{ backgroundColor: team.colorHex }} />
+              <span className="flex items-center gap-2 pl-1.5">
+                <TeamLogo logo={team.logo} name={team.name} className="w-8 h-8 text-2xl" />
+                <span className="font-display text-2xl font-extrabold uppercase leading-none text-white truncate">{team.shortCode || team.name}</span>
+                {index < 9 && <kbd className="hidden lg:block ml-auto text-[10px] font-bold text-slate-500">{index + 1}</kbd>}
               </span>
+              <span className="mt-2 block pl-1.5 text-xs text-slate-400">Left <strong className="font-bold text-slate-100">{price(team.remainingPurse)}</strong></span>
+              <span className="block pl-1.5 text-xs text-slate-400">{reason && !leading ? <strong className="font-bold text-amber-300">{reason}</strong> : leading ? <strong className="font-bold text-gold-400">Leading</strong> : <>Max {price(budget.maxBid)}</>} · {budget.bought}/{rules.maxPlayersPerTeam}</span>
+            </button>;
+          })}
+        </section>
+      </> : <div className="panel pitch-stripes p-10 text-center">
+        <h1 className="font-display text-5xl font-extrabold uppercase text-white">{available.length ? 'Ready for the next lot' : unsoldCount ? 'Main round finished' : 'Auction finished'}</h1>
+        <div className="mt-5 flex flex-wrap justify-center gap-2">
+          {available.length > 0 && <>
+            <button onClick={() => onSelectPlayer(available[0])} disabled={busy} className="btn btn-primary min-h-12 text-base"><Gavel className="w-5 h-5" />Call lot {available[0].lotOrder || 1}</button>
+            <button onClick={onRandomDraw} disabled={busy} className="btn btn-ghost min-h-12"><Shuffle className="w-4 h-4" />Random</button>
+          </>}
+          {!available.length && unsoldCount > 0 && onLaunchAcceleratedRound && <button onClick={() => setRoundOpen(true)} className="btn btn-primary min-h-12 text-base"><Zap className="w-5 h-5" />Start unsold round</button>}
+        </div>
+      </div>}
 
-              {/* Big SOLD Button */}
-              <button
-                disabled={!leadingTeam || currentBid === 0}
-                onClick={() => {
-                  sounds.playGavel();
-                  onSold();
-                }}
-                className={`w-full py-4 rounded-2xl font-black text-base flex items-center justify-center gap-2 shadow-2xl transition-all ${
-                  leadingTeam && currentBid > 0
-                    ? 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black shadow-glow-emerald cursor-pointer active:scale-95'
-                    : 'bg-white/5 border border-white/10 text-slate-500 cursor-not-allowed'
-                }`}
-              >
-                <Gavel className="w-5 h-5" />
-                HAMMER SOLD! ({leadingTeam?.shortCode || 'None'})
-              </button>
+      {/* Always-reachable hammer bar */}
+      {currentPlayer && <div className="fixed z-30 inset-x-0 bottom-[72px] md:bottom-0 md:left-16 xl:left-56 border-t border-white/10 bg-obsidian-900/95 backdrop-blur-lg p-2.5 sm:p-3">
+        <div className="max-w-[1500px] mx-auto grid grid-cols-[1fr_1fr_2.2fr] sm:flex items-stretch gap-2 sm:justify-end">
+          <button onClick={onUndoBid} disabled={locked || currentBid <= 0} className="btn btn-ghost min-h-14 sm:px-5"><Undo2 className="w-5 h-5" /><span className="hidden sm:inline">Undo</span><span className="sm:hidden sr-only">Undo</span></button>
+          <button onClick={() => void pass()} disabled={locked} className="btn min-h-14 sm:px-5 bg-red-500/15 border border-red-500/40 text-red-200 hover:bg-red-500/25"><Ban className="w-5 h-5" />Unsold</button>
+          <button onClick={sell} disabled={locked || !hasBid} className="btn min-h-14 sm:min-w-72 bg-emerald-500 hover:bg-emerald-400 text-black text-lg font-extrabold disabled:bg-white/5 disabled:text-slate-500"><Gavel className="w-5 h-5" />SOLD{hasBid ? ` · ${leadingTeam?.shortCode || leadingTeam?.name}` : ''}</button>
+        </div>
+      </div>}
 
-              {/* UNSOLD Button */}
-              <button
-                onClick={() => {
-                  sounds.playUnsoldBuzzer();
-                  onUnsold();
-                }}
-                className="w-full py-3 rounded-xl font-bold text-xs bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 flex items-center justify-center gap-2 transition-all active:scale-95"
-              >
-                <Ban className="w-4 h-4" />
-                Mark UNSOLD (To Accelerated Round)
-              </button>
-
-              {/* UNDO Last Bid */}
-              <button
-                disabled={currentBid <= 0}
-              onClick={onUndoBid}
-                className="w-full py-2.5 rounded-xl font-bold text-xs bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 flex items-center justify-center gap-2 transition-all active:scale-95"
-              >
-                <Undo2 className="w-4 h-4 text-gold-400" />
-                Undo Previous Bid (Rollback)
-              </button>
-            </div>
-
-            {/* Quick Player Profile Snapshot */}
-            <div className="p-4 rounded-2xl bg-obsidian-900/60 border border-white/5">
-              <span className="text-[10px] font-bold uppercase text-slate-400 block mb-2">Active Player Info</span>
-              <div className="flex items-center gap-3">
-                <img
-                  src={currentPlayer.photoUrl || "/player-placeholder.svg"}
-                  alt={currentPlayer.name}
-                  className="w-12 h-12 rounded-xl object-cover border border-white/10"
-                />
-                <div>
-                  <h4 className="text-sm font-bold text-white">{currentPlayer.name}</h4>
-                  <PlayerAuctionHistory tournamentId={currentPlayer.tournamentId} playerId={currentPlayer.id} />
-                  <p className="text-xs text-gold-400">{currentPlayer.role} • {currentPlayer.category}</p>
-                </div>
-              </div>
-            </div>
+      {queueOpen && <PlayerQueue players={available} current={currentPlayer} price={price} onClose={() => setQueueOpen(false)} onPick={(player) => { setQueueOpen(false); onSelectPlayer(player); }} onRandom={() => { setQueueOpen(false); onRandomDraw(); }} />}
+      {roundOpen && <div className="fixed inset-0 z-50 grid place-items-center bg-obsidian-950/85 backdrop-blur-sm p-4" onClick={() => setRoundOpen(false)}>
+        <div role="dialog" aria-modal="true" aria-labelledby="round-title" onClick={(e) => e.stopPropagation()} className="cap-rise w-full max-w-sm panel bg-obsidian-850 p-5">
+          <h2 id="round-title" className="font-display text-3xl font-extrabold uppercase text-white">Unsold round</h2>
+          <p className="mt-1 text-sm text-slate-300">{unsoldCount} {unsoldCount === 1 ? 'player returns' : 'players return'}. Choose a base price cut.</p>
+          <div className="mt-4 grid grid-cols-4 gap-2">
+            {[0, 10, 25, 50].map((percent) => <button key={percent} onClick={() => { setRoundOpen(false); onLaunchAcceleratedRound?.(percent); }} className="btn btn-ghost min-h-14 text-base">{percent === 0 ? 'None' : `−${percent}%`}</button>)}
           </div>
         </div>
-      ) : (
-        <div className="p-12 text-center rounded-3xl glass-panel border border-white/10 space-y-4 max-w-xl mx-auto my-6">
-          <div className="w-16 h-16 rounded-2xl bg-gold-500/10 border border-gold-400/30 flex items-center justify-center text-3xl mx-auto">
-            🎙️
-          </div>
-          <h3 className="text-xl font-black text-white font-display">
-            Podium is Empty
-          </h3>
-          <p className="text-xs text-slate-400 leading-relaxed">
-            {allPlayers.length === 0
-              ? 'No players registered yet. Share the registration link from the "Reg. Form" tab or add players in "Players".'
-              : 'To begin the auction, bring a player to the podium below:'}
-          </p>
-          {availablePlayers.length > 0 ? (
-            <button
-              onClick={onRandomDraw}
-              className="px-6 py-3 rounded-2xl bg-gold-500 hover:bg-gold-400 text-black font-black text-xs shadow-glow-gold active:scale-95 transition-all cursor-pointer"
-            >
-              Call First Player to Block (Random Draw)
-            </button>
-          ) : (
-            <p className="text-[11px] text-amber-400 font-semibold">
-              {allPlayers.length > 0 ? 'All players in this pool have completed their auction round.' : ''}
-            </p>
-          )}
-        </div>
-      )}
+      </div>}
     </div>
   );
 };
+
+function PlayerQueue({ players, current, price, onClose, onPick, onRandom }: { players: Player[]; current: Player | null; price: (value: number) => string; onClose: () => void; onPick: (player: Player) => void; onRandom: () => void }) {
+  const [query, setQuery] = useState('');
+  const shown = players.filter((p) => p.name.toLowerCase().includes(query.trim().toLowerCase()));
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+  return <div className="fixed inset-0 z-50 flex justify-end bg-obsidian-950/70 backdrop-blur-sm" onClick={onClose}>
+    <aside role="dialog" aria-modal="true" aria-label="Pick player" onClick={(e) => e.stopPropagation()} className="cap-rise w-full max-w-md h-full flex flex-col border-l border-white/10 bg-obsidian-900">
+      <div className="p-4 border-b border-white/10 space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-3xl font-extrabold uppercase text-white">Pick player <span className="text-slate-500">{players.length}</span></h2>
+          <button onClick={onClose} aria-label="Close" className="btn-icon"><X className="w-5 h-5" /></button>
+        </div>
+        <div className="flex gap-2">
+          <label className="relative flex-1"><span className="sr-only">Search player</span><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" /><input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search" className="field pl-9" /></label>
+          <button onClick={onRandom} className="btn btn-ghost min-h-11"><Shuffle className="w-4 h-4" />Random</button>
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto p-2">
+        {shown.map((player) => <button key={player.id} onClick={() => onPick(player)} className={`w-full flex items-center gap-3 rounded-xl p-2 text-left hover:bg-white/5 ${current?.id === player.id ? 'bg-white/5' : ''}`}>
+          <span className="w-8 text-center text-xs font-bold text-slate-500">{player.lotOrder}</span>
+          <img loading="lazy" src={player.photoUrl || '/player-placeholder.svg'} alt="" className="w-10 h-10 rounded-lg object-cover bg-obsidian-950" />
+          <span className="min-w-0 flex-1"><span className="block text-sm font-bold text-white truncate">{player.name}</span><span className="block text-xs text-slate-400 truncate">{roleName[player.role] || player.role} · {price(player.basePrice)}</span></span>
+          {current?.id === player.id && <Check className="w-4 h-4 text-gold-400" />}
+        </button>)}
+        {!shown.length && <p className="p-8 text-center text-sm text-slate-400">No match</p>}
+      </div>
+    </aside>
+  </div>;
+}

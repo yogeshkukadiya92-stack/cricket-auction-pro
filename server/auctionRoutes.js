@@ -17,7 +17,8 @@ app.post('/api/tournaments/:id/auction', requireUser, async (req, res) => {
     if (!state.currentPlayerId) state = { ...state, currentPlayerId: '', currentBid: 0, leadingTeam: null, bidsHistory: [] };
     const playerRows = await client.query(`SELECT ${mediaColumns('players')} FROM players WHERE tournament_id=$1`, [req.params.id]);
     const teamRows = await client.query(`SELECT ${mediaColumns('teams')} FROM teams WHERE tournament_id=$1`, [req.params.id]);
-    let players = playerRows.rows.map(row => projectMedia('players', row)), teams = teamRows.rows.map(row => projectMedia('teams', row));
+    // Lots run in lot order, whatever order the database returns rows in.
+    let players = playerRows.rows.map(row => projectMedia('players', row)).sort((a, b) => (a.lotOrder || 0) - (b.lotOrder || 0)), teams = teamRows.rows.map(row => projectMedia('teams', row));
     const body = req.body || {};
     const fail = message => { throw Object.assign(new Error(message), { status: 409 }); };
     const eligible = p => p && (!p.approvalStatus || p.approvalStatus === 'APPROVED') && ['AVAILABLE','IN_AUCTION'].includes(p.status);
@@ -30,11 +31,19 @@ app.post('/api/tournaments/:id/auction', requireUser, async (req, res) => {
       const recalled = players.filter(p => p.status === 'UNSOLD' && (!p.approvalStatus || p.approvalStatus === 'APPROVED'));
       if (!recalled.length) fail('No unsold players available');
       const recalledIds = new Set(recalled.map(p => p.id));
-      players = players.map(p => recalledIds.has(p.id) ? { ...p, status: 'AVAILABLE', category: 'ACCELERATED', basePrice: Math.max(0, Math.round(p.basePrice * (1 - discount / 100))) } : p);
+      // Discount from the original price, so repeat rounds do not compound and a reset can undo them.
+      players = players.map(p => {
+        if (!recalledIds.has(p.id)) return p;
+        const originalBasePrice = p.originalBasePrice ?? p.basePrice, originalCategory = p.originalCategory ?? p.category;
+        return { ...p, originalBasePrice, originalCategory, status: 'AVAILABLE', category: 'ACCELERATED', basePrice: Math.max(0, Math.round(originalBasePrice * (1 - discount / 100))) };
+      });
       await patchAuctionPlayers(client, req.params.id, players.filter(p => recalledIds.has(p.id)));
       state = { currentPlayerId: recalled[0].id, currentBid: 0, leadingTeam: null, bidsHistory: [] };
     } else if (body.action === 'RESET') {
-      players = players.map(p => { const { soldPrice, soldToTeamId, ...rest } = p; return { ...rest, status: 'AVAILABLE' }; });
+      players = players.map(p => {
+        const { soldPrice, soldToTeamId, originalBasePrice, originalCategory, ...rest } = p;
+        return { ...rest, status: 'AVAILABLE', basePrice: originalBasePrice ?? p.basePrice, ...(originalCategory ? { category: originalCategory } : {}) };
+      });
       teams = teams.map(t => ({ ...t, remainingPurse: t.totalPurse }));
       await patchAuctionPlayers(client, req.params.id, players);
       await patchAuctionTeams(client, req.params.id, teams);

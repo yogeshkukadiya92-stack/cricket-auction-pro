@@ -1,17 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import {
-  X,
-  Mail,
-  Lock,
-  User as UserIcon,
-  Trophy,
-  Shield,
-  ArrowRight,
-  AlertCircle,
-  CheckCircle2,
-  Sparkles,
-} from 'lucide-react';
+import { AlertCircle, Eye, EyeOff, Loader2, X } from 'lucide-react';
 import { User } from '../types';
 
 interface AuthModalProps {
@@ -21,356 +10,87 @@ interface AuthModalProps {
   initialMode?: 'LOGIN' | 'REGISTER' | 'ADMIN_LOGIN';
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({
-  isOpen,
-  onClose,
-  onSuccess,
-  initialMode = 'LOGIN',
-}) => {
-  const [mode, setMode] = useState<'LOGIN' | 'REGISTER' | 'ADMIN_LOGIN'>(initialMode);
-  const [role, setRole] = useState<'ORGANIZER' | 'USER'>('ORGANIZER');
+export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, initialMode = 'LOGIN' }) => {
+  const [mode, setMode] = useState(initialMode);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
     setMode(initialMode);
     setError(null);
-    setSuccessMsg(null);
     setPassword('');
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = previousOverflow; };
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => { document.body.style.overflow = previousOverflow; window.removeEventListener('keydown', onKey); };
   }, [isOpen, initialMode]);
 
   if (!isOpen) return null;
 
-  const handleQuickLogin = async (demoEmail: string, demoPass: string) => {
+  const registering = mode === 'REGISTER';
+  const switchMode = (next: typeof mode) => { setMode(next); setPassword(''); setError(null); };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setError(null);
-    setSuccessMsg(null);
+    if (registering && !/^\d{5}$/.test(password) && password.length < 12) { setError('Use exactly 5 digits, or at least 12 characters.'); return; }
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/login', {
+      const response = await fetch(registering ? '/api/auth/register' : '/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: demoEmail, password: demoPass }),
+        body: JSON.stringify(registering
+          ? { name: name.trim(), email: email.trim(), password }
+          : { email: email.trim(), password, ...(mode === 'ADMIN_LOGIN' ? { loginAs: 'ADMIN' } : {}) }),
       });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Quick login failed.');
-      }
-      setSuccessMsg(`Logged in as ${data.user.name}`);
-      setTimeout(() => {
-        onSuccess(data.user);
-        onClose();
-      }, 500);
-    } catch (err: any) {
-      setError(err.message || 'Quick login failed.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setSuccessMsg(null);
-    setLoading(true);
-
-    try {
-      if (mode !== 'REGISTER') {
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email.trim(), password, ...(mode === 'ADMIN_LOGIN' ? { loginAs: 'ADMIN' } : {}) }),
-        });
-        const data = await res.json();
-        if (!res.ok || !data.success) {
-          throw new Error(data.error || 'Login failed. Please check your credentials.');
-        }
-        setSuccessMsg(`Welcome back, ${data.user.name}!`);
-        onSuccess(data.user);
-        onClose();
-      } else {
-        if (!name.trim()) throw new Error('Please enter your full name or organizer name.');
-        if (!/^\d{5}$/.test(password) && password.length < 12) throw new Error('Password must contain exactly 5 digits or at least 12 characters.');
-
-        const res = await fetch('/api/auth/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: name.trim(),
-            email: email.trim(),
-            password,
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok || !data.success) {
-          throw new Error(data.error || 'Registration failed. Please try again.');
-        }
-        setSuccessMsg('Account created successfully! Logging you in...');
-        onSuccess(data.user);
-        onClose();
-      }
-    } catch (err: any) {
-      setError(err.message || 'Something went wrong.');
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.error || 'Please try again.');
+      onSuccess(data.user);
+      onClose();
+    } catch (err) {
+      setError((err as Error).message === 'Failed to fetch' ? 'No connection. Check your internet and retry.' : (err as Error).message);
     } finally {
       setLoading(false);
     }
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain bg-obsidian-950 p-4" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
-      <div className="relative w-full max-w-md bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden text-white my-auto shrink-0">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-obsidian-950/85 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+      <div className="cap-rise relative w-full max-w-sm rounded-3xl border border-white/15 bg-obsidian-850 p-6 text-white">
+        <button type="button" onClick={onClose} aria-label="Close" className="btn-icon absolute top-3 right-3"><X className="w-5 h-5" /></button>
+        <h2 id="auth-title" className="font-display text-4xl font-extrabold uppercase leading-none pr-10">
+          {mode === 'ADMIN_LOGIN' ? 'Admin sign in' : registering ? 'Create account' : 'Sign in'}
+        </h2>
 
-        {/* Modal Header */}
-        <div className="relative p-6 pb-4 flex items-start justify-between border-b border-slate-800/80">
-          <div className="flex items-center gap-3">
-            <div className="shrink-0 w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-amber-500/20">
-{mode === 'ADMIN_LOGIN' ? <Shield className="w-6 h-6" /> : <Trophy className="w-6 h-6" />}
-            </div>
-            <div>
-              <h2 id="auth-modal-title" className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-                {mode === 'ADMIN_LOGIN' ? 'Admin Login' : 'Cricket Auction Pro'}
-              </h2>
-              <p className="text-xs text-slate-400">
-                {mode === 'ADMIN_LOGIN' ? 'Sign in with your administrator account' : mode === 'LOGIN'
-                  ? 'Sign in to access your auctions and tournaments'
-                  : 'Create an organizer account to host live auctions'}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            aria-label="Close sign in"
-            className="shrink-0 p-2 text-slate-400 hover:text-white rounded-xl bg-slate-800/50 hover:bg-slate-800 transition"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Mode Toggle Tabs */}
-        <div className="px-6 pt-4">
-          <div className="grid grid-cols-3 p-1 bg-slate-950/60 rounded-xl border border-slate-800">
-            <button
-              type="button"
-              onClick={() => {
-                setMode('LOGIN');
-                setPassword('');
-                setError(null);
-              }}
-              className={`py-2 text-xs font-semibold rounded-lg transition-all ${
-                mode === 'LOGIN'
-                  ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md font-bold'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Organizer Login
-            </button>
-            <button type="button" disabled={loading} onClick={() => { setMode('ADMIN_LOGIN'); setPassword(''); setError(null); }} className={`py-3 text-xs font-semibold rounded-lg transition-all ${mode === 'ADMIN_LOGIN' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold' : 'text-slate-400 hover:text-white'}`}>Admin Login</button>
-            <button
-              type="button"
-              onClick={() => {
-                setMode('REGISTER');
-                setPassword('');
-                setError(null);
-              }}
-              className={`py-2 text-xs font-semibold rounded-lg transition-all ${
-                mode === 'REGISTER'
-                  ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md font-bold'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Create Account
-            </button>
-          </div>
-        </div>
-
-        {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {error && (
-            <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl flex items-center gap-2 text-rose-400 text-xs animate-shake">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          {successMsg && (
-            <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center gap-2 text-emerald-400 text-xs">
-              <CheckCircle2 className="w-4 h-4 shrink-0" />
-              <span>{successMsg}</span>
-            </div>
-          )}
-
-          {mode === 'REGISTER' && (
-            <>
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                  I want to join as <span className="text-amber-400">*</span>
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setRole('ORGANIZER')}
-                    className={`p-2.5 rounded-xl border text-left transition ${
-                      role === 'ORGANIZER'
-                        ? 'bg-amber-500/15 border-amber-500/60 text-amber-300 shadow-sm'
-                        : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5 text-xs font-bold mb-0.5">
-                      <Trophy className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Organizer</span>
-                    </div>
-                    <p className="text-[10px] text-slate-400">Host & manage leagues</p>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setRole('USER')}
-                    className={`p-2.5 rounded-xl border text-left transition ${
-                      role === 'USER'
-                        ? 'bg-cyan-500/15 border-cyan-500/60 text-cyan-300 shadow-sm'
-                        : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5 text-xs font-bold mb-0.5">
-                      <UserIcon className="w-3.5 h-3.5 text-cyan-400" />
-                      <span>Player / User</span>
-                    </div>
-                    <p className="text-[10px] text-slate-400">Join & track my auctions</p>
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                  {role === 'ORGANIZER' ? 'Full Name / Committee Name' : 'Player Full Name'} <span className="text-amber-400">*</span>
-                </label>
-                <div className="relative">
-                  <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                  <input
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder={role === 'ORGANIZER' ? "e.g. Surat Premier League Committee" : "e.g. Rohit Sharma"}
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/50 transition"
-                  />
-                </div>
-              </div>
-            </>
-          )}
-
-          <div>
-            <label htmlFor="organizer-login-email" className="block text-xs font-medium text-slate-300 mb-1.5">
-              Email Address <span className="text-amber-400">*</span>
-            </label>
-            <div className="relative">
-              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-              <input
-                type="email"
-                id="organizer-login-email"
-                autoComplete="username"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="your.email@example.com"
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/50 transition"
-              />
-            </div>
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label htmlFor="organizer-login-password" className="block text-xs font-medium text-slate-300">
-                Password <span className="text-amber-400">*</span>
-              </label>
-              {mode !== 'REGISTER' && (
-                <span className="text-[11px] text-slate-500">Use your account password</span>
-              )}
-            </div>
-            <div className="relative">
-              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-              <input
-                type="password"
-                id="organizer-login-password"
-                autoComplete={mode === 'REGISTER' ? 'new-password' : 'current-password'}
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/50 transition"
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-xl shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 transition disabled:opacity-50"
-          >
-            {loading ? (
-              <span className="inline-block w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <>
-                <span>{mode === 'ADMIN_LOGIN' ? 'Open Admin Panel' : mode === 'LOGIN' ? 'Sign In to Workspace' : `Create ${role === 'USER' ? 'Player' : 'Organizer'} Account`}</span>
-                <ArrowRight className="w-4 h-4" />
-              </>
-            )}
+        <form onSubmit={handleSubmit} className="mt-5 space-y-3.5">
+          {error && <p role="alert" className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200"><AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />{error}</p>}
+          {registering && <label className="block"><span className="field-label">Your or your committee's name</span>
+            <input type="text" required maxLength={100} autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} className="field" />
+          </label>}
+          <label className="block"><span className="field-label">Email</span>
+            <input type="email" id="organizer-login-email" required autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} className="field" />
+          </label>
+          <label className="block"><span className="field-label">Password{registering && <span className="font-medium text-slate-400"> · 5 digits or 12+ characters</span>}</span>
+            <span className="relative block">
+              <input type={showPassword ? 'text' : 'password'} id="organizer-login-password" required maxLength={128} autoComplete={registering ? 'new-password' : 'current-password'} value={password} onChange={(e) => setPassword(e.target.value)} className="field pr-11" />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Hide password' : 'Show password'} className="absolute right-0 top-0 grid place-items-center w-11 h-11 text-slate-400 hover:text-white">{showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>
+            </span>
+          </label>
+          <button type="submit" disabled={loading} className="btn btn-primary w-full min-h-12 text-base">
+            {loading ? <Loader2 aria-label="Please wait" className="w-5 h-5 animate-spin" /> : registering ? 'Create account' : 'Sign in'}
           </button>
         </form>
 
-        {/* Quick Demo Access Section */}
-        <div className="p-6 pt-2 border-t border-slate-800/80 bg-slate-950/40">
-          <div className="flex items-center gap-2 mb-3">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span className="text-[11px] uppercase tracking-wider font-bold text-slate-400">
-              Quick 1-Click Demo Login
-            </span>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('admin@cricketauction.pro', 'admin123')}
-              className="p-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-xl text-left transition group"
-            >
-              <div className="flex items-center gap-1 text-amber-400 text-[11px] font-bold mb-0.5">
-                <Shield className="w-3 h-3" />
-                <span>Super Admin</span>
-              </div>
-              <p className="text-[9px] text-slate-400 truncate">admin@...</p>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('organizer@cricketauction.pro', 'user123')}
-              className="p-2 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 rounded-xl text-left transition group"
-            >
-              <div className="flex items-center gap-1 text-cyan-400 text-[11px] font-bold mb-0.5">
-                <Trophy className="w-3 h-3" />
-                <span>Organizer</span>
-              </div>
-              <p className="text-[9px] text-slate-400 truncate">organizer@...</p>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('player@cricketauction.pro', 'player123')}
-              className="p-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-xl text-left transition group"
-            >
-              <div className="flex items-center gap-1 text-emerald-400 text-[11px] font-bold mb-0.5">
-                <UserIcon className="w-3 h-3" />
-                <span>Player / User</span>
-              </div>
-              <p className="text-[9px] text-slate-400 truncate">player@...</p>
-            </button>
-          </div>
-        </div>
+        {mode !== 'ADMIN_LOGIN' && <button type="button" onClick={() => switchMode(registering ? 'LOGIN' : 'REGISTER')} className="mt-3 w-full min-h-11 text-sm font-bold text-gold-400 hover:text-gold-300">
+          {registering ? 'I already have an account' : 'New here? Create an account'}
+        </button>}
+        {mode === 'ADMIN_LOGIN' && <button type="button" onClick={() => switchMode('LOGIN')} className="mt-3 w-full min-h-11 text-sm font-bold text-slate-400 hover:text-white">Organizer sign in</button>}
       </div>
     </div>,
     document.body,

@@ -1,3 +1,4 @@
+import { notify } from '../ui/kit';
 import { TeamLogo } from './TeamLogo';
 import { createJsonPoller } from '../../shared/requestJson.js';
 import React, { useEffect, useState, useMemo } from 'react';
@@ -182,7 +183,7 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
       setCopied(true);
       setTimeout(() => setCopied(false), 3000);
     } catch {
-      alert('Could not copy link to clipboard');
+      notify('Could not copy the link.', 'warn');
     }
   };
 
@@ -220,7 +221,7 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-10 space-y-6 sm:space-y-8">
         {/* Top Header Card */}
-        <header className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/10 p-5 sm:p-8 backdrop-blur-xl shadow-2xl">
+        <header className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/10 p-5 sm:p-8  shadow-2xl">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-4 sm:gap-6">
               {tournament?.logoUrl ? (
@@ -231,7 +232,7 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
                   imgClassName="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-gold-400 to-amber-600 flex items-center justify-center text-3xl sm:text-4xl shadow-glow-gold shrink-0 text-slate-950 font-black">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gold-500 flex items-center justify-center text-3xl sm:text-4xl shadow-glow-gold shrink-0 text-slate-950 font-black">
                   🏏
                 </div>
               )}
@@ -240,7 +241,7 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
                 <div className="flex flex-wrap items-center gap-2 mb-2">
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase bg-emerald-500/15 border border-emerald-500/40 text-emerald-300">
                     <Radio className="w-3 h-3 text-emerald-400 animate-pulse" />
-                    Public Directory • No Login Required
+                    Player list
                   </span>
                   {tournament?.season && (
                     <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white/10 text-slate-300 border border-white/10">
@@ -304,7 +305,7 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
               {tournament?.registrationOpen !== false && tournament?.id && (
                 <a
                   href={`/?mode=register&tournamentId=${encodeURIComponent(tournament.id)}`}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-xs bg-gradient-to-r from-gold-400 to-amber-500 hover:from-gold-300 hover:to-amber-400 text-slate-950 shadow-glow-gold transition-all active:scale-95"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-xs bg-gold-500 hover:bg-gold-400 text-slate-950 shadow-glow-gold transition-all active:scale-95"
                 >
                   <Sparkles className="w-4 h-4" />
                   <span>Register Now</span>
@@ -316,14 +317,13 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
         </header>
 
         {/* Counter Statistics Grid */}
-        <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+        <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
           <div className="p-4 rounded-2xl bg-gradient-to-br from-gold-500/15 via-gold-500/5 to-transparent border border-gold-500/30 backdrop-blur-md">
             <div className="flex items-center justify-between text-gold-400 mb-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider">Total Forms</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider">Players</span>
               <Users className="w-4 h-4" />
             </div>
             <p className="text-3xl font-display font-black text-gold-300">{statsCounts.total}</p>
-            <p className="text-[10px] text-slate-400 mt-1">Registered players</p>
           </div>
 
           <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-md">
@@ -332,7 +332,6 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
               <span className="text-sm">🏏</span>
             </div>
             <p className="text-3xl font-display font-black text-white">{statsCounts.batsmen}</p>
-            <p className="text-[10px] text-slate-400 mt-1">Pure hitters</p>
           </div>
 
           <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-md">
@@ -341,7 +340,6 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
               <span className="text-sm">🎯</span>
             </div>
             <p className="text-3xl font-display font-black text-white">{statsCounts.bowlers}</p>
-            <p className="text-[10px] text-slate-400 mt-1">Pace & spin</p>
           </div>
 
           <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-md">
@@ -350,7 +348,6 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
               <Zap className="w-4 h-4" />
             </div>
             <p className="text-3xl font-display font-black text-white">{statsCounts.allRounders}</p>
-            <p className="text-[10px] text-slate-400 mt-1">Bat & bowl</p>
           </div>
 
           <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-md">
@@ -359,17 +356,8 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
               <span className="text-sm">🧤</span>
             </div>
             <p className="text-3xl font-display font-black text-white">{statsCounts.keepers}</p>
-            <p className="text-[10px] text-slate-400 mt-1">Wicket keepers</p>
           </div>
 
-          <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-md">
-            <div className="flex items-center justify-between text-emerald-400 mb-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider">Approved</span>
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            </div>
-            <p className="text-3xl font-display font-black text-emerald-300">{statsCounts.approved}</p>
-            <p className="text-[10px] text-slate-400 mt-1">Verified for auction</p>
-          </div>
         </section>
 
         {/* Search & Role Filter Bar */}
@@ -410,7 +398,7 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
                   onClick={() => setSelectedRole(tab.id)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
                     selectedRole === tab.id
-                      ? 'bg-gradient-to-r from-gold-500 to-amber-500 text-slate-950 shadow-md shadow-gold-500/20'
+                      ? 'bg-gold-500 text-slate-950'
                       : 'text-slate-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
@@ -487,7 +475,7 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
                         src={player.photoUrl}
                         alt={player.name}
                         loading="lazy"
-                        className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
+                        className="w-full h-full object-cover object-top transition-transform duration-500 "
                       />
                     ) : (
                       <div className="w-full h-full grid place-items-center text-4xl bg-slate-900 text-slate-600">
@@ -582,14 +570,11 @@ export const RegistrationSummaryView: React.FC<RegistrationSummaryViewProps> = (
         {tournament?.registrationOpen !== false && tournament?.id && (
           <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-amber-500/10 via-gold-500/5 to-cyan-500/10 border border-gold-500/20 text-center space-y-3">
             <h2 className="text-xl sm:text-2xl font-display font-black text-white">
-              Want to participate in {tournament.name}?
+              Play in {tournament.name}
             </h2>
-            <p className="text-xs sm:text-sm text-slate-400 max-w-lg mx-auto">
-              Self-registration is currently active. Submit your cricket statistics, batting & bowling styles, and high-res photo in 60 seconds!
-            </p>
             <a
               href={`/?mode=register&tournamentId=${encodeURIComponent(tournament.id)}`}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-sm bg-gradient-to-r from-gold-400 to-amber-500 hover:from-gold-300 hover:to-amber-400 text-slate-950 shadow-glow-gold transition-all active:scale-95"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-sm bg-gold-500 hover:bg-gold-400 text-slate-950 shadow-glow-gold transition-all active:scale-95"
             >
               <Sparkles className="w-4 h-4" />
               <span>Fill Player Registration Form</span>

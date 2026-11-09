@@ -1,7 +1,9 @@
+import { csvCell } from '../utils/csvHelper';
+import { PageHead } from '../ui/kit';
 import { formatAuctionPrice } from '../utils/currency';
 import React from 'react';
 import { Player, Team, AuctionRules } from '../types';
-import { Printer, Trophy, Users, Wallet, Zap, Shield, Sparkles, FileSpreadsheet, Download } from 'lucide-react';
+import { Camera, Printer, Trophy, Users, Wallet, Zap, Shield, Sparkles, FileSpreadsheet, Download } from 'lucide-react';
 import { TeamLogo } from './TeamLogo';
 
 interface SquadSummaryViewProps {
@@ -25,65 +27,36 @@ export const SquadSummaryView: React.FC<SquadSummaryViewProps> = ({
   const topBuys = [...soldPlayers].sort((a, b) => (b.soldPrice || 0) - (a.soldPrice || 0)).slice(0, 4);
 
   const handleExportCSV = () => {
-    let csv = 'Franchise,Owner,Player Name,Role,Category,Base Price (INR),Sold Price (INR),Status\n';
+    const rows = [['Team', 'Owner', 'Player', 'Role', 'Category', 'Base price', 'Sold price', 'Status']];
     soldPlayers.forEach((p) => {
-      const tm = teams.find((t) => t.id === p.soldToTeamId);
-      csv += `"${tm?.name || ''}","${tm?.ownerName || ''}","${p.name}","${p.role}","${p.category || ''}",${p.basePrice},${p.soldPrice || p.basePrice},"SOLD"\n`;
+      const team = teams.find((t) => t.id === p.soldToTeamId);
+      rows.push([team?.name || '', team?.ownerName || '', p.name, p.role, p.category || '', String(p.basePrice), String(p.soldPrice ?? p.basePrice), 'SOLD']);
     });
-    const unsold = players.filter((p) => p.status === 'UNSOLD');
-    unsold.forEach((p) => {
-      csv += `"Unsold","-","${p.name}","${p.role}","${p.category || ''}",${p.basePrice},0,"UNSOLD"\n`;
-    });
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
+    players.filter((p) => p.status === 'UNSOLD').forEach((p) => rows.push(['Unsold', '', p.name, p.role, p.category || '', String(p.basePrice), '0', 'UNSOLD']));
+    const csv = `\uFEFF${rows.map((row) => row.map(csvCell).join(',')).join('\n')}`;
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `cricket_auction_squad_report_${Date.now()}.csv`);
+    link.download = `squads_${Date.now()}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    window.setTimeout(() => URL.revokeObjectURL(url), 10000);
   };
 
   return (
-    <div className="space-y-8">
-      {/* Header Banner */}
-      <div className="p-6 rounded-3xl glass-panel border border-white/10 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-black text-white font-display flex items-center gap-2">
-            📊 OFFICIAL SQUAD ROSTERS & BOOKLET
-          </h2>
-          <p className="text-xs text-slate-400 mt-1">
-            Complete team composition, spending analytics, and top buy leaderboards.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          <button
-            onClick={handleExportCSV}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 transition-all active:scale-95 cursor-pointer shadow-md"
-            title="Download full squad and auction analytics as CSV/Excel"
-          >
-            <FileSpreadsheet className="w-4 h-4" />
-            <span>Export to Excel (CSV)</span>
-          </button>
-
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs bg-white/10 hover:bg-white/15 border border-white/10 text-white transition-all active:scale-95 cursor-pointer"
-          >
-            <Printer className="w-4 h-4 text-gold-400" />
-            <span>Print / PDF Export</span>
-          </button>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <PageHead title="Squads" count={soldPlayers.length} actions={<>
+        <button onClick={handleExportCSV} className="btn btn-ghost"><FileSpreadsheet className="w-4 h-4" />Excel</button>
+        <button onClick={() => window.print()} className="btn btn-ghost"><Printer className="w-4 h-4" />Print / PDF</button>
+      </>} />
 
       {/* Top 4 Most Expensive Buys Ribbon */}
       {topBuys.length > 0 && (
-        <div className="p-6 rounded-3xl bg-gradient-to-r from-obsidian-850 via-obsidian-900 to-obsidian-850 border border-gold-400/30">
+        <div className="panel pitch-stripes p-5">
           <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-gold-400 mb-4">
             <Trophy className="w-4 h-4" />
-            TOP BUYS OF THE AUCTION
+            Top buys
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             {topBuys.map((p, idx) => {
@@ -160,9 +133,7 @@ export const SquadSummaryView: React.FC<SquadSummaryViewProps> = ({
                   </span>
 
                   {squad.length === 0 ? (
-                    <div className="p-6 text-center text-xs text-slate-500 rounded-xl bg-white/[0.01]">
-                      No players acquired yet.
-                    </div>
+                    <p className="py-4 text-center text-xs text-slate-500">No players yet</p>
                   ) : (
                     <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
                       {squad.map((p) => (
@@ -188,7 +159,7 @@ export const SquadSummaryView: React.FC<SquadSummaryViewProps> = ({
                                 aria-label="Generate WhatsApp & Instagram Poster"
                                 title="Generate WhatsApp & Instagram Poster"
                               >
-                                📸
+                                <Camera className="w-4 h-4" />
                               </button>
                             )}
                           </div>
@@ -201,9 +172,10 @@ export const SquadSummaryView: React.FC<SquadSummaryViewProps> = ({
 
               {/* Composition Pills Footer */}
               <div className="mt-5 pt-4 border-t border-white/10 flex items-center justify-between text-[11px] text-slate-400 font-semibold">
-                <span>Batsmen: {squad.filter((p) => p.role === 'BATSMAN').length}</span>
-                <span>Bowlers: {squad.filter((p) => p.role === 'BOWLER').length}</span>
-                <span>All-Round: {squad.filter((p) => p.role === 'ALL_ROUNDER').length}</span>
+                <span>BAT {squad.filter((p) => p.role === 'BATSMAN').length}</span>
+                <span>BOWL {squad.filter((p) => p.role === 'BOWLER').length}</span>
+                <span>AR {squad.filter((p) => p.role === 'ALL_ROUNDER').length}</span>
+                <span>WK {squad.filter((p) => p.role === 'WICKET_KEEPER').length}</span>
               </div>
             </div>
           );

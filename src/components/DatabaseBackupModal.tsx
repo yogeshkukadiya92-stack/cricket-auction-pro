@@ -90,12 +90,9 @@ export const DatabaseBackupModal: React.FC<DatabaseBackupModalProps> = ({
               </div>
             </div>
             <div>
-              <h3 className="text-xl font-black text-white font-display">
-                POSTGRESQL DATABASE STORAGE
+              <h3 className="text-4xl font-extrabold uppercase leading-none text-white font-display">
+                Backup
               </h3>
-              <p className="text-xs text-slate-400">
-                Persistent tournament storage & manual backups
-              </p>
             </div>
           </div>
           <button
@@ -176,10 +173,6 @@ export const DatabaseBackupModal: React.FC<DatabaseBackupModalProps> = ({
           {/* Erase All Demo Data */}
 
         </div>
-
-        <p className="text-[11px] text-slate-500 text-center leading-relaxed">
-          Changes save automatically; check any save warnings before closing. You can download the JSON backup anytime to transfer your tournament data between computers.
-        </p>
       </div>
     </div>
   );

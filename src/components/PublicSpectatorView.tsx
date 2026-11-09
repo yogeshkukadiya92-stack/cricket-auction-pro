@@ -1,3 +1,4 @@
+import { Tile } from '../ui/kit';
 import { formatAuctionPrice } from '../utils/currency';
 import React, { useState, useEffect, useRef } from 'react';
 import {
@@ -97,7 +98,7 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
   const activeTeam = teams.find((t) => t.id === selectedTeamTab);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white font-sans selection:bg-amber-500 selection:text-slate-950">
+    <div className="min-h-screen bg-slate-950 text-white font-sans selection:bg-gold-500 selection:text-slate-950">
       {/* Top Floating Spectator Header */}
       <header className="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 px-4 py-3">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
@@ -126,14 +127,14 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
               onClick={handleShare}
               className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
             >
-              {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5 text-amber-400" />}
-              <span>{copiedLink ? 'Link Copied!' : shareError ? 'Copy failed — try again' : 'Share Live Link'}</span>
+              {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5 text-gold-400" />}
+              <span>{copiedLink ? 'Copied' : shareError ? 'Copy failed — try again' : 'Share'}</span>
             </button>
 
             {onExitSpectatorMode && (
               <button
                 onClick={onExitSpectatorMode}
-                className="px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-bold transition"
+                className="px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-gold-400 border border-amber-500/30 rounded-xl text-xs font-bold transition"
               >
                 Organizer Desk &rarr;
               </button>
@@ -146,10 +147,10 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
       <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
         {/* CURRENT IN-AUCTION SPOTLIGHT (IF ANY PLAYER IS CURRENTLY BEING BID ON) */}
         {currentPlayer && (
-          <div className="p-4 sm:p-6 bg-gradient-to-r from-amber-500/15 via-slate-900 to-slate-900 border-2 border-amber-500/50 rounded-3xl shadow-2xl relative overflow-hidden animate-fadeIn">
+          <div className="p-4 sm:p-6 panel pitch-stripes rounded-3xl shadow-2xl relative overflow-hidden animate-fadeIn">
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
               <div className="flex items-center gap-3 sm:gap-5 w-full min-w-0">
-                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-slate-800 border-2 border-amber-400/80 overflow-hidden shrink-0 shadow-lg">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-slate-800  overflow-hidden shrink-0 shadow-lg">
                   <img
                     src={currentPlayer.photoUrl || "/player-placeholder.svg"}
                     alt={currentPlayer.name}
@@ -157,13 +158,13 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
                   />
                 </div>
                 <div>
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500 text-slate-950 mb-1.5">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-gold-500 text-slate-950 mb-1.5">
                     <Flame className="w-3 h-3" />
-                    NOW ON THE FLOOR
+                    On the block
                   </div>
-                  <h2 className="text-lg sm:text-2xl font-black text-white break-words">{currentPlayer.name}</h2>
-                  <p className="text-xs text-slate-300 mt-0.5">
-                    {currentPlayer.role} • {currentPlayer.category} • {currentPlayer.city || 'State'}
+                  <h2 className="font-display text-4xl font-extrabold uppercase leading-none text-white break-words">{currentPlayer.name}</h2>
+                  <p className="text-xs text-slate-300 mt-0.5 capitalize">
+                    {currentPlayer.role.replace(/_/g, ' ').toLowerCase()}{currentPlayer.city ? ` · ${currentPlayer.city}` : ''}
                   </p>
                   <div className="mt-2 text-xs font-mono text-slate-400">
                     Base: <span className="text-slate-200">{formatPrice(currentPlayer.basePrice)}</span>
@@ -174,10 +175,10 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
               {/* Current Bid Display */}
               <div className="w-full md:w-auto text-center md:text-right bg-slate-950/80 p-4 sm:p-5 rounded-2xl border border-slate-800 shrink-0 min-w-[200px]">
                 <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
-                  Current Highest Bid
+                  Highest bid
                 </span>
-                <div aria-live="polite" aria-atomic="true" className="text-4xl sm:text-5xl font-black text-amber-400 break-words font-mono my-1">
-                  {currentBid > 0 ? formatPrice(currentBid) : 'No bids yet'}
+                <div aria-live="polite" aria-atomic="true" className="score text-6xl text-gold-400 break-words my-1">
+                  {currentBid > 0 ? formatPrice(currentBid) : formatPrice(currentPlayer.basePrice)}
                 </div>
                 {leadingTeam ? (
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-white">
@@ -185,7 +186,7 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
                     <span>Leading: {leadingTeam.name}</span>
                   </div>
                 ) : (
-                  <span className="text-xs text-slate-500 italic">Waiting for opening bid...</span>
+                  <span className="text-xs text-slate-500 italic">Waiting for first bid</span>
                 )}
               </div>
             </div>
@@ -195,49 +196,15 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
         {!currentPlayer && <div className="p-6 rounded-2xl border border-slate-800 bg-slate-900 text-center"><h2 className="text-xl font-bold">Waiting for the next player</h2><p className="text-sm text-slate-400 mt-2">This page updates automatically as the auction progresses.</p></div>}
         {currentPlayer && bidsHistory.length > 0 && <section className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
           <h3 className="text-xs font-bold uppercase text-slate-400 mb-3">Recent live bids</h3>
-          <div className="space-y-2">{bidsHistory.filter(b => b.playerId === currentPlayer.id).slice(0, 5).map((bid, index) => <div key={bid.id} className={`flex items-center justify-between gap-3 p-3 rounded-xl ${index === 0 ? 'bg-amber-500/10 text-amber-300' : 'bg-slate-950 text-slate-300'}`}><span className="text-sm font-bold min-w-0 break-words">{bid.teamName}</span><span className="text-sm font-black shrink-0">{formatPrice(bid.amount)}</span></div>)}</div>
+          <div className="space-y-2">{bidsHistory.filter(b => b.playerId === currentPlayer.id).slice(0, 5).map((bid, index) => <div key={bid.id} className={`flex items-center justify-between gap-3 p-3 rounded-xl ${index === 0 ? 'bg-amber-500/10 text-gold-300' : 'bg-slate-950 text-slate-300'}`}><span className="text-sm font-bold min-w-0 break-words">{bid.teamName}</span><span className="text-sm font-black shrink-0">{formatPrice(bid.amount)}</span></div>)}</div>
         </section>}
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[['Total Registrations', registrations.total], ['Approved Players', registrations.approved]].map(([label, count]) => (
-            <button key={label} onClick={() => openDetails(String(label))} className="p-4 text-left hover:border-amber-400 focus-visible:outline-amber-400 bg-slate-900/60 border border-slate-800 rounded-2xl">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{label}</span>
-              <div className="text-2xl font-black text-white mt-1">{count}</div>
-              <span className="text-xs text-amber-400">View players →</span>
-            </button>
-          ))}
-        </div>
-        {/* QUICK METRICS BAR */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <button onClick={() => openDetails('Total Sold')} className="p-4 text-left hover:border-amber-400 focus-visible:outline-amber-400 bg-slate-900/60 border border-slate-800 rounded-2xl">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Sold</span>
-            <div className="text-2xl font-black text-emerald-400 mt-1">{soldPlayers.length}</div>
-            <span className="text-[10px] text-slate-500">Players Acquired</span>
-            <span className="block text-xs text-amber-400 mt-2">View players →</span>
-          </button>
-
-          <button onClick={() => openDetails('Pending Auction')} className="p-4 text-left hover:border-amber-400 focus-visible:outline-amber-400 bg-slate-900/60 border border-slate-800 rounded-2xl">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Pending Auction</span>
-            <div className="text-2xl font-black text-cyan-400 mt-1">{availablePlayers.length}</div>
-            <span className="text-[10px] text-slate-500">Available to Bid</span>
-            <span className="block text-xs text-amber-400 mt-2">View players →</span>
-          </button>
-
-          <button onClick={() => openDetails('Unsold')} className="p-4 text-left hover:border-amber-400 focus-visible:outline-amber-400 bg-slate-900/60 border border-slate-800 rounded-2xl">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Unsold</span>
-            <div className="text-2xl font-black text-rose-400 mt-1">{unsoldPlayers.length}</div>
-            <span className="text-[10px] text-slate-500">Pass to Round 2</span>
-            <span className="block text-xs text-amber-400 mt-2">View players →</span>
-          </button>
-
-          <button onClick={() => openDetails('Total Purse Spent')} className="p-4 text-left hover:border-amber-400 focus-visible:outline-amber-400 bg-slate-900/60 border border-slate-800 rounded-2xl">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Purse Spent</span>
-            <div className="text-xl font-black text-amber-400 font-mono mt-1">
-              {formatPrice(soldPlayers.reduce((acc, p) => acc + (p.soldPrice || 0), 0))}
-            </div>
-            <span className="text-[10px] text-slate-500">Across all franchises</span>
-            <span className="block text-xs text-amber-400 mt-2">View players →</span>
-          </button>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+          <Tile label="Players" value={registrations.total} onClick={() => openDetails('Total Registrations')} active={detailFilter === 'Total Registrations'} />
+          <Tile label="Sold" value={soldPlayers.length} tone="lime" onClick={() => openDetails('Total Sold')} active={detailFilter === 'Total Sold'} />
+          <Tile label="Waiting" value={availablePlayers.length} onClick={() => openDetails('Pending Auction')} active={detailFilter === 'Pending Auction'} />
+          <Tile label="Unsold" value={unsoldPlayers.length} tone={unsoldPlayers.length ? 'red' : 'default'} onClick={() => openDetails('Unsold')} active={detailFilter === 'Unsold'} />
+          <div className="col-span-2 sm:col-span-1"><Tile label="Spent" value={formatPrice(soldPlayers.reduce((acc, p) => acc + (p.soldPrice || 0), 0))} onClick={() => openDetails('Total Purse Spent')} active={detailFilter === 'Total Purse Spent'} /></div>
         </div>
 
         {detailFilter && (
@@ -254,9 +221,9 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
                     <img loading="lazy" decoding="async" src={player.photoUrl || '/player-placeholder.svg'} alt={player.name} className="w-16 h-20 rounded-lg object-cover shrink-0" />
                     <div className="min-w-0 text-sm">
                       <h3 className="font-bold text-white break-words">{player.name}</h3>
-                      <p className="text-xs text-slate-400">{player.role}</p>
+                      <p className="text-xs text-slate-400 capitalize">{player.role.replace(/_/g, ' ').toLowerCase()}</p>
                       <p className="text-xs text-cyan-300 mt-1">{player.approvalStatus && player.approvalStatus !== 'APPROVED' ? player.approvalStatus : player.status}</p>
-                      <p className="text-amber-300 mt-1">{player.status === 'SOLD' ? `Sold: ${formatPrice(player.soldPrice)}` : `Base: ${formatPrice(player.basePrice)}`}</p>
+                      <p className="text-gold-300 mt-1">{player.status === 'SOLD' ? `Sold: ${formatPrice(player.soldPrice)}` : `Base: ${formatPrice(player.basePrice)}`}</p>
                       {player.status === 'SOLD' && <p className="text-xs text-slate-300">{teams.find(t => t.id === player.soldToTeamId)?.name}</p>}
                     </div>
                   </div>
@@ -272,7 +239,7 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
           <div className="p-5 bg-slate-900/60 border border-slate-800 rounded-3xl space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-white text-sm flex items-center gap-2">
-                <Shield className="w-4 h-4 text-amber-400" />
+                <Shield className="w-4 h-4 text-gold-400" />
                 Franchise Purse Leaderboard
               </h3>
               <span className="text-[11px] text-slate-400">{teams.length} Teams</span>
@@ -307,7 +274,7 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
                         </div>
                         <span className="font-bold text-white text-xs truncate">{team.name}</span>
                       </div>
-                      <span className="text-xs font-mono font-bold text-amber-400 shrink-0">
+                      <span className="text-xs font-mono font-bold text-gold-400 shrink-0">
                         {formatPrice(remaining)}
                       </span>
                     </div>
@@ -332,7 +299,7 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
                       <span>Minimum needed: <strong>{Math.max(0, minPlayers - teamSold.length)}</strong></span>
                       <span>Spent: <strong>{formatPrice(spent)}</strong></span>
                       <span>Reserve for next bid: <strong>{formatPrice(budget?.reserve)}</strong></span>
-                      <span className="col-span-2 text-amber-300 font-bold">{budget?.squadComplete ? 'Squad Complete — No More Bids' : `Maximum next bid: ${formatPrice(budget?.maxBid ?? remaining)}`}</span>
+                      <span className="col-span-2 text-gold-300 font-bold">{budget?.squadComplete ? 'Squad Complete — No More Bids' : `Maximum next bid: ${formatPrice(budget?.maxBid ?? remaining)}`}</span>
                     </div>
                   </button>
                 );
@@ -347,10 +314,10 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
               <div className="p-5 bg-slate-900/60 border border-slate-800 rounded-3xl">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-bold text-white text-sm flex items-center gap-2">
-                    <Trophy className="w-4 h-4 text-amber-400" />
+                    <Trophy className="w-4 h-4 text-gold-400" />
                     Top Buys Leaderboard
                   </h3>
-                  <span className="text-[10px] text-amber-400 font-bold uppercase">Highest Bids</span>
+                  <span className="text-[10px] text-gold-400 font-bold uppercase">Highest Bids</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
@@ -367,7 +334,7 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
                         <div className="truncate flex-1">
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-bold text-white truncate">{p.name}</span>
-                            <span className="text-[10px] font-black text-amber-400 font-mono">#{idx + 1}</span>
+                            <span className="text-[10px] font-black text-gold-400 font-mono">#{idx + 1}</span>
                           </div>
                           <p className="text-[11px] font-mono text-emerald-400 font-bold">{formatPrice(p.soldPrice)}</p>
                           <p className="text-[10px] text-slate-400 truncate">{buyerTeam?.name || 'Franchise'}</p>
@@ -396,7 +363,7 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
                   </div>
                 </div>
 
-                <span className="px-3 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-black">
+                <span className="px-3 py-1 bg-amber-500/10 text-gold-400 border border-amber-500/30 rounded-xl text-xs font-black">
                   {activeSquad.length} Players
                 </span>
               </div>
@@ -438,7 +405,7 @@ export const PublicSpectatorView: React.FC<PublicSpectatorViewProps> = ({
 
       {/* Spectator Footer */}
       <footer className="p-4 border-t border-slate-800/80 text-center text-xs text-slate-500">
-        Live Streaming Hub powered by Cricket Auction Pro 2026
+        Auction Pro
       </footer>
     </div>
   );

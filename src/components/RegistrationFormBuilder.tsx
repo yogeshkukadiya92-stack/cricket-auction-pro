@@ -1,4 +1,6 @@
+import { Hint } from '../ui/kit';
 import { processUploadedImage } from '../utils/imageUtils';
+import { qrDataUrl } from '../utils/qr';
 import { RegistrationResponsesView } from './RegistrationResponsesView';
 import React, { useState } from 'react';
 import { Tournament, CustomFormField, FormFieldType } from '../types';
@@ -164,138 +166,37 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
       <div className="flex gap-2" role="tablist" aria-label="Registration form">
-        {(['settings', 'responses'] as const).map(value => <button key={value} role="tab" aria-selected={tab === value} onClick={() => setTab(value)} className={`px-5 py-3 rounded-xl font-bold text-sm ${tab === value ? 'bg-gold-500 text-black' : 'bg-white/5 text-slate-300'}`}>{value === 'settings' ? 'Form Settings' : 'Form Responses'}</button>)}
+        {(['settings', 'responses'] as const).map(value => <button key={value} role="tab" aria-selected={tab === value} onClick={() => setTab(value)} className={`btn ${tab === value ? 'bg-white text-black' : 'btn-ghost'}`}>{value === 'settings' ? 'Form' : 'Responses'}</button>)}
       </div>
       {tab === 'responses' ? <RegistrationResponsesView key={tournament.id} tournamentId={tournament.id} embedded /> : <>
-      {/* 1. Public Shareable Link Hero Card */}
-      <div className="p-6 lg:p-8 rounded-3xl bg-gradient-to-r from-obsidian-850 via-obsidian-900 to-obsidian-850 border-2 border-gold-400/50 shadow-glow-gold relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-          <Link className="w-48 h-48 text-gold-400" />
-        </div>
-
-        <div className="relative z-10 space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <span className="px-3 py-1 rounded-full text-xs font-black tracking-widest uppercase bg-gold-500/20 text-gold-400 border border-gold-400/30">
-              SHAREABLE PLAYER REGISTRATION LINK
-            </span>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-400">Status:</span>
-              <span
-                className={`px-2.5 py-0.5 rounded-full text-xs font-black uppercase ${
-                  registrationOpen
-                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                    : 'bg-red-500/20 text-red-400 border border-red-500/40'
-                }`}
-              >
-                {registrationOpen ? '● ACCEPTING RESPONSES' : '● REGISTRATION CLOSED'}
-              </span>
-            </div>
-          </div>
-
-          <h2 className="text-2xl lg:text-3xl font-black text-white font-display">
-            Share Player Registration Link
-          </h2>
-          <p className="text-xs lg:text-sm text-slate-300 max-w-2xl leading-relaxed">
-            Share this link via WhatsApp, Instagram, or social media. Players can open the form on mobile devices, upload photos, provide stats, and submit required information directly.
-          </p>
-
-          {/* Link Box with Copy Button */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-2 rounded-2xl bg-obsidian-950 border border-white/10">
-            <input
-              type="text"
-              readOnly
-              value={publicUrl}
-              className="flex-1 bg-transparent px-3 py-2 text-xs font-mono font-bold text-gold-400 select-all focus:outline-none truncate"
-            />
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleCopyLink}
-                className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black bg-gold-500 hover:bg-gold-400 text-black shadow-glow-gold active:scale-95 transition-all"
-              >
-                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                {copied ? 'Copied!' : 'Copy Link'}
-              </button>
-
-              <button
-                onClick={handleShareWhatsApp}
-                className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black bg-emerald-500 hover:bg-emerald-400 text-black shadow-glow-emerald active:scale-95 transition-all"
-              >
-                <Share2 className="w-4 h-4" />
-                WhatsApp
-              </button>
-
-              <button
-                onClick={() => setShowQr(!showQr)}
-                className="p-2 rounded-xl bg-white/10 hover:bg-white/15 text-slate-200 border border-white/10 transition-all"
-                title="Show QR Code"
-              >
-                <QrCode className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* QR Code Container */}
-          {showQr && (
-            <div className="p-4 rounded-2xl bg-obsidian-950 border border-gold-400/30 flex flex-col items-center justify-center gap-3 animate-in fade-in">
-              <div className="p-4 bg-white rounded-2xl shadow-xl">
-                {/* SVG QR Code Simulation */}
-                <svg className="w-40 h-40" viewBox="0 0 100 100" fill="none">
-                  <rect width="100" height="100" fill="white" />
-                  <path d="M10 10h30v30H10zM15 15v20h20V15zM20 20h10v10H20z" fill="black" />
-                  <path d="M60 10h30v30H60zM65 15v20h20V15zM70 20h10v10H70z" fill="black" />
-                  <path d="M10 60h30v30H10zM15 65v20h20V65zM20 70h10v10H20z" fill="black" />
-                  <path d="M50 15h5v5h-5zM50 30h5v10h-5zM45 45h10v5H45zM65 50h5v5h-5zM60 65h10v5H60zM75 60h15v5H75zM70 75h5v15h-5zM85 80h5v10h-5zM50 75h5v5h-5zM35 50h5v5h-5zM25 45h5v5h-5z" fill="black" />
-                </svg>
-              </div>
-              <p className="text-xs text-slate-300 font-bold">
-                Players can scan this QR code with their mobile camera to open the registration form directly.
-              </p>
-            </div>
-          )}
-
-          {/* Preview Public Form Button */}
-          <div className="pt-2 flex justify-end">
-            <button
-              onClick={onPreviewPublicForm}
-              className="flex items-center gap-2 text-xs font-bold text-gold-400 hover:text-gold-300 underline underline-offset-4"
-            >
-              <Eye className="w-4 h-4" />
-              Live Preview: View Player Registration Form
-            </button>
+      {/* Share the form */}
+      <section className="panel pitch-stripes p-4 sm:p-5 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <button onClick={() => setRegistrationOpen(!registrationOpen)} aria-pressed={registrationOpen} className={`btn ${registrationOpen ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-300' : 'bg-red-500/15 border border-red-500/40 text-red-200'}`}>
+            {registrationOpen ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}{registrationOpen ? 'Open for sign-ups' : 'Sign-ups closed'}
+          </button>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={handleCopyLink} className="btn btn-primary">{copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}{copied ? 'Copied' : 'Copy link'}</button>
+            <button onClick={handleShareWhatsApp} className="btn btn-ghost"><Share2 className="w-4 h-4" />WhatsApp</button>
+            <button onClick={() => setShowQr(!showQr)} aria-expanded={showQr} className="btn btn-ghost"><QrCode className="w-4 h-4" />QR code</button>
+            <button onClick={onPreviewPublicForm} className="btn btn-ghost"><Eye className="w-4 h-4" />Preview</button>
           </div>
         </div>
-      </div>
+        <input type="text" readOnly aria-label="Sign-up link" value={publicUrl} onFocus={(e) => e.currentTarget.select()} className="field text-xs text-slate-300" />
+        {showQr && <div className="cap-rise flex flex-col items-center gap-2 pt-1">
+          <img src={qrDataUrl(publicUrl)} alt="QR code for the sign-up form" className="w-52 h-52 rounded-xl bg-white" />
+          <a href={qrDataUrl(publicUrl)} download={`${tournament.name.replace(/[^a-z0-9]+/gi, '-')}-signup-qr.svg`} className="btn btn-ghost">Download QR</a>
+        </div>}
+      </section>
 
       {/* 2. General Form Settings (Fee, Deadline, UPI, Status) */}
       <div className="p-6 rounded-3xl glass-panel border border-white/10 space-y-6">
-        <div className="flex items-center justify-between pb-3 border-b border-white/10">
-          <div className="flex items-center gap-2 text-sm font-black uppercase tracking-wider text-slate-300">
-            <Sliders className="w-4 h-4 text-electric-cyan" />
-            Registration Rules & Settings
-          </div>
-          <button
-            onClick={() => setRegistrationOpen(!registrationOpen)}
-            className="flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white"
-          >
-            {registrationOpen ? (
-              <>
-                <ToggleRight className="w-4 h-4 text-emerald-400" />
-                <span>Open for Registration</span>
-              </>
-            ) : (
-              <>
-                <ToggleLeft className="w-4 h-4 text-red-400" />
-                <span>Closed</span>
-              </>
-            )}
-          </button>
-        </div>
+        <h2 className="font-display text-2xl font-extrabold uppercase text-white">Settings</h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <label className="text-xs font-bold text-slate-300 block mb-1">
-              Entry / Registration Fee (₹)
+              Fee (₹)
             </label>
             <input
               type="number"
@@ -309,7 +210,7 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
 
           <div>
             <label className="text-xs font-bold text-slate-300 block mb-1">
-              Registration Deadline
+              Last date
             </label>
             <input
               type="date"
@@ -319,23 +220,11 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
             />
           </div>
 
-          <div>
-            <label className="text-xs font-bold text-slate-300 block mb-1">
-              Organizer UPI ID (For Fee Collection)
-            </label>
-            <input
-              type="text"
-              value={upiId}
-              onChange={(e) => setUpiId(e.target.value)}
-              placeholder="e.g. name@okhdfcbank"
-              className="w-full bg-obsidian-950 border border-white/10 rounded-xl px-3.5 py-2 text-sm text-white focus:border-gold-400 focus:outline-none font-mono"
-            />
-          </div>
         </div>
 
         <div>
           <label className="text-xs font-bold text-slate-300 block mb-1">
-            Instructions for Players (Displayed at Top of Form)
+            Instructions shown on the form
           </label>
           <textarea
             rows={2}
@@ -350,12 +239,7 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
       <div className="p-6 rounded-3xl glass-panel border border-white/10 space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-white/10">
           <div>
-            <h3 className="text-lg font-black text-white font-display flex items-center gap-2">
-              💳 Google Pay & UPI Payment Gateway Settings
-            </h3>
-            <p className="text-xs text-slate-400">
-              Players will pay using this Google Pay number or scanner during registration and upload the transaction screenshot.
-            </p>
+            <h2 className="font-display text-2xl font-extrabold uppercase text-white">Payment</h2>
           </div>
           <button
             type="button"
@@ -369,12 +253,12 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
             {paymentMandatory ? (
               <>
                 <ToggleRight className="w-4 h-4 text-emerald-400" />
-                <span>Screenshot Mandatory</span>
+                <span>Receipt required</span>
               </>
             ) : (
               <>
                 <ToggleLeft className="w-4 h-4 text-slate-500" />
-                <span>Screenshot Optional</span>
+                <span>Receipt optional</span>
               </>
             )}
           </button>
@@ -383,7 +267,7 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <label className="text-xs font-bold text-slate-300 block mb-1">
-              Google Pay Number (Phone Number)
+              GPay number
             </label>
             <input
               type="text"
@@ -396,7 +280,7 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
 
           <div>
             <label className="text-xs font-bold text-slate-300 block mb-1">
-              Google Pay UPI ID (VPA)
+              UPI ID
             </label>
             <input
               type="text"
@@ -409,7 +293,7 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
 
           <div>
             <label className="text-xs font-bold text-slate-300 block mb-1">
-              Payee Name (Account Holder)
+              Account name
             </label>
             <input
               type="text"
@@ -432,16 +316,13 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
           ) : (
             <div className="w-24 h-24 rounded-xl bg-white flex flex-col items-center justify-center p-2 shadow text-black text-center font-bold text-[10px] leading-tight">
               <span className="text-lg mb-0.5">📱</span>
-              <span>Auto GPay QR Active</span>
+              <span>Auto QR</span>
               <span className="text-[9px] text-emerald-700 font-mono mt-0.5 font-black">₹{fee}</span>
             </div>
           )}
 
           <div className="space-y-1.5 flex-1 text-center sm:text-left">
-            <h4 className="text-xs font-bold text-white">Upload Your Custom Google Pay / PhonePe QR Scanner</h4>
-            <p className="text-[11px] text-slate-400">
-              If your club or organization has an official Google Pay / UPI QR standee, upload it here so players can scan it directly.
-            </p>
+            <h3 className="text-sm font-bold text-white">Your own UPI QR (optional)</h3>
             <div className="flex flex-wrap items-center gap-3 pt-1">
               <input
                 type="file"
@@ -455,7 +336,7 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
                   onClick={() => setGpayQrUrl('')}
                   className="text-xs text-red-400 hover:underline"
                 >
-                  Remove Custom QR
+                  Remove
                 </button>
               )}
             </div>
@@ -467,24 +348,19 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
       <div className="p-6 rounded-3xl glass-panel border border-white/10 space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-white/10">
           <div>
-            <h3 className="text-lg font-black text-white font-display flex items-center gap-2">
-              📝 Form Questions & Custom Fields (Google Forms Style)
-            </h3>
-            <p className="text-xs text-slate-400">
-              In addition to default fields (Name, Photo, Role, Style), add any custom questions required from tournament players.
-            </p>
+            <h2 className="font-display text-2xl font-extrabold uppercase text-white">Extra questions <Hint text="Name, photo, mobile, role and playing style are always asked." /></h2>
           </div>
         </div>
 
         {/* Existing Custom Fields List */}
         <div className="space-y-3">
           <span className="text-[11px] font-bold uppercase tracking-wider text-gold-400 block">
-            Configured Custom Questions ({customFields.length})
+            Added ({customFields.length})
           </span>
 
           {customFields.length === 0 ? (
             <p className="text-xs text-slate-500 italic p-4 text-center rounded-2xl bg-white/[0.02]">
-              No custom questions added yet. Add a new question below.
+              None yet
             </p>
           ) : (
             <div className="space-y-2.5">
@@ -623,9 +499,7 @@ export const RegistrationFormBuilder: React.FC<RegistrationFormBuilderProps> = (
 
         {/* Save All Changes Button */}
         <div className="flex items-center justify-between pt-4 border-t border-white/10">
-          <span className="text-xs text-slate-400">
-            All updates are applied instantly to your live public player registration form.
-          </span>
+          <span className="text-xs text-slate-400">Live on your form as soon as you save.</span>
 
           <button
             onClick={handleSaveAllSettings}

@@ -2,7 +2,8 @@ import { changedRecords } from '../shared/recordChanges.js';
 import { requestJson, createJsonPoller } from '../shared/requestJson.js';
 import { lazyWithRecovery as lazy } from './utils/lazyWithRecovery';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
-import { OrganizerMobileNav } from './components/OrganizerMobileNav';
+import { AppShell } from './components/AppShell';
+import { FeedbackHost, notify } from './ui/kit';
 import React, { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import {
   initialTournament,
@@ -16,20 +17,17 @@ import {
   BidRecord,
   ViewMode,
   User,
-  AppPortal,
 } from './types';
-import { Navbar } from './components/Navbar';
 import { TournamentDashboardView } from './components/TournamentDashboardView';
 import { TournamentsListView } from './components/TournamentsListView';
 import { AuthModal } from './components/AuthModal';
 import { syncEngine, SyncAction } from './utils/syncEngine';
 import { dbService } from './services/dbService';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2, Trophy } from 'lucide-react';
 import { LandingScreen } from './components/LandingScreen';
 
 const OrganizerProfileView = lazy(() => import('./components/OrganizerProfileView').then(module => ({ default: module.OrganizerProfileView })));
 const RegistrationSummaryView = lazy(() => import('./components/RegistrationSummaryView').then(module => ({ default: module.RegistrationSummaryView })));
-const UserPortalView = lazy(() => import('./components/UserPortalView').then(module => ({ default: module.UserPortalView })));
 const TournamentModal = lazy(() => import('./components/TournamentModal').then(module => ({ default: module.TournamentModal })));
 const StageView = lazy(() => import('./components/StageView').then(module => ({ default: module.StageView })));
 const AuctioneerConsole = lazy(() => import('./components/AuctioneerConsole').then(module => ({ default: module.AuctioneerConsole })));
@@ -50,12 +48,14 @@ const DatabaseBackupModal = lazy(() => import('./components/DatabaseBackupModal'
 const PlayerApp = lazy(() => import('./components/player/PlayerApp').then(module => ({ default: module.PlayerApp })));
 const DeviceSimulatorView = lazy(() => import('./components/DeviceSimulatorView').then(module => ({ default: module.DeviceSimulatorView })));
 
+const RESUMABLE_VIEWS: ViewMode[] = ['TOURNAMENT_OVERVIEW', 'TOURNAMENTS', 'AUCTIONEER', 'STAGE', 'PADDLE', 'PLAYERS', 'TEAMS', 'SQUADS', 'RULES', 'FORM_BUILDER', 'ADMIN_PANEL', 'ORGANIZER_PROFILE'];
 const PLAYER_ROLE_KEY = 'cap_app_role';
 /** Player area opens via ?mode=player, or automatically for someone who last used it on this device. */
 const startsInPlayerMode = () => {
   if (typeof window === 'undefined') return false;
   const mode = new URLSearchParams(window.location.search).get('mode');
-  if (mode === 'player') return true;
+  if (mode === 'player' || mode === 'user' || mode === 'portal') return true;
+  if (['user', 'player'].includes(new URLSearchParams(window.location.search).get('portal') || '')) return true;
   try { return !mode && localStorage.getItem(PLAYER_ROLE_KEY) === 'player'; } catch { return false; }
 };
 
@@ -68,7 +68,6 @@ function AppContent() {
   const serverTeams = useRef('');
   const serverPlayers = useRef('');
   const [saveMessage, setSaveMessage] = useState('');
-  const [auctionError, setAuctionError] = useState('');
   const [auctionBusy, setAuctionBusy] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [dataReady, setDataReady] = useState(false);
@@ -86,44 +85,10 @@ function AppContent() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authInitialMode, setAuthInitialMode] = useState<'LOGIN' | 'ADMIN_LOGIN'>('LOGIN');
 
-  // Two-Portal Platform Architecture: 'ORGANIZER' vs 'USER'
-  const [activePortal, setActivePortal] = useState<AppPortal>(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const portalParam = params.get('portal');
-      if (portalParam === 'user' || portalParam === 'player') return 'USER';
-      if (portalParam === 'organizer' || portalParam === 'admin') return 'ORGANIZER';
-      if (params.get('mode') === 'user' || params.get('mode') === 'portal') return 'USER';
-    }
-    const savedPortal = localStorage.getItem('cap_active_portal');
-    if (savedPortal === 'USER' || savedPortal === 'ORGANIZER') return savedPortal;
-    const savedUser = localStorage.getItem('cap_current_user');
-    if (savedUser) {
-      try {
-        const u = JSON.parse(savedUser);
-        if (u.role === 'USER') return 'USER';
-      } catch {}
-    }
-    return 'ORGANIZER';
-  });
-
-  useEffect(() => {
-    localStorage.setItem('cap_active_portal', activePortal);
-  }, [activePortal]);
-
   const handleLoginSuccess = (user: User) => {
     setCurrentUser(user);
     setIsAuthModalOpen(false);
-    if (user.role === 'ADMIN') {
-      setActivePortal('ORGANIZER');
-      setViewMode('ADMIN_PANEL');
-    } else if (user.role === 'USER') {
-      setActivePortal('USER');
-      setViewMode('USER_PORTAL');
-    } else {
-      setActivePortal('ORGANIZER');
-      setViewMode('TOURNAMENT_OVERVIEW');
-    }
+    setViewMode(user.role === 'ADMIN' ? 'ADMIN_PANEL' : 'TOURNAMENT_OVERVIEW');
   };
 
   const handleLogout = async () => {
@@ -140,11 +105,7 @@ function AppContent() {
     setTournaments([]);
     setTeams([]);
     setPlayers([]);
-    if (activePortal === 'USER') {
-      setViewMode('USER_PORTAL');
-    } else {
-      setViewMode('TOURNAMENTS');
-    }
+    setViewMode('TOURNAMENTS');
   };
 
   // Multiple Tournaments state
@@ -188,9 +149,6 @@ function AppContent() {
       if (params.get('mode') === 'simulator' || params.get('mode') === 'device') {
         return 'SIMULATOR';
       }
-      if (params.get('mode') === 'players' && params.has('tournamentId') && !document.cookie.includes('__Host-cap_session')) {
-        return 'PUBLIC_REGISTRATIONS';
-      }
     }
     return 'TOURNAMENT_OVERVIEW';
   });
@@ -198,10 +156,11 @@ function AppContent() {
   const selectViewMode = (mode: ViewMode) => {
     if (!tournament.id && !['TOURNAMENTS', 'ADMIN_PANEL', 'ORGANIZER_PROFILE'].includes(mode)) { setViewMode('TOURNAMENTS'); return; }
     if (mode === 'ADMIN_PANEL' && currentUser?.role !== 'ADMIN') return;
-    if (mode === 'OBS') {
-      window.open(`/?mode=obs&tournamentId=${encodeURIComponent(tournament.id)}`, '_blank', 'noopener,noreferrer');
+    if (mode === 'OBS' || mode === 'PUBLIC_SUMMARY') {
+      window.open(`/?mode=${mode === 'OBS' ? 'obs' : 'summary'}&tournamentId=${encodeURIComponent(tournament.id)}`, '_blank', 'noopener,noreferrer');
       return;
     }
+    if (mode === 'PUBLIC_REGISTER') { openRegistrationPreview(); return; }
     window.history.replaceState({ ...window.history.state, capOrganizerMode: viewMode }, '');
     window.history.pushState({ capOrganizerMode: mode }, '');
     setViewMode(mode);
@@ -270,9 +229,12 @@ function AppContent() {
     const params = new URLSearchParams(window.location.search);
     if (params.get('mode') === 'simulator' || params.get('mode') === 'device') { setAuthChecked(true); return; }
     if (params.has('tournamentId') && ['obs', 'register', 'form', 'summary', 'live', 'spectator', 'registrations'].includes(params.get('mode') || '')) { setAuthChecked(true); return; }
-    if (params.has('tournamentId') && params.get('mode') === 'players' && !document.cookie.includes('__Host-cap_session')) { setAuthChecked(true); return; }
     if (startsInPlayerMode()) { setAuthChecked(true); return; }
-    requestJson('/api/auth/me').then((data) => data.user as User).then(setCurrentUser).catch(() => setCurrentUser(null)).finally(() => setAuthChecked(true));
+    requestJson('/api/auth/me').then((data) => data.user as User).then(setCurrentUser).catch(() => {
+      setCurrentUser(null);
+      // The session cookie is httpOnly, so only the server can say who is signed in.
+      if (params.has('tournamentId') && params.get('mode') === 'players') setViewMode('PUBLIC_REGISTRATIONS');
+    }).finally(() => setAuthChecked(true));
   }, []);
 
   useEffect(() => {
@@ -331,16 +293,28 @@ function AppContent() {
       setRules(data.tournaments?.[0]?.rules || data.rules || initialRules);
       const requestedId = new URLSearchParams(window.location.search).get('tournamentId');
       const requested = data.tournaments?.find(t => t.id === requestedId);
-      setActiveTournamentId(requested?.id || data.tournaments?.[0]?.id || '');
-      if (requested) setRules(requested.rules || initialRules);
+      // A refresh during the auction returns to the same tournament and screen.
+      let remembered: { id?: string; view?: ViewMode } = {};
+      try { remembered = JSON.parse(sessionStorage.getItem(`cap_place_${currentUser.id}`) || '{}'); } catch { /* start fresh */ }
+      const resumed = data.tournaments?.find(t => t.id === remembered.id);
+      const opened = requested || resumed || data.tournaments?.[0];
+      setActiveTournamentId(opened?.id || '');
+      if (opened) setRules(opened.rules || initialRules);
       if (new URLSearchParams(window.location.search).get('mode') !== 'summary') {
         if (new URLSearchParams(window.location.search).get('mode') === 'players' && requested) setViewMode('PLAYERS');
-        else setViewMode(currentUser.role === 'ADMIN' ? 'ADMIN_PANEL' : 'TOURNAMENTS');
+        else if (resumed && remembered.view && RESUMABLE_VIEWS.includes(remembered.view)) setViewMode(remembered.view);
+        else if (currentUser.role === 'ADMIN') setViewMode('ADMIN_PANEL');
+        else setViewMode(data.tournaments?.length === 1 ? 'TOURNAMENT_OVERVIEW' : 'TOURNAMENTS');
       }
       setDataReady(true);
     }).catch((err) => { if (!cancelled) setDataError(err.message); });
     return () => { cancelled = true; };
   }, [currentUser?.id]);
+
+  useEffect(() => {
+    if (!dataReady || !currentUser) return;
+    try { sessionStorage.setItem(`cap_place_${currentUser.id}`, JSON.stringify({ id: activeTournamentId, view: viewMode })); } catch { /* private mode */ }
+  }, [dataReady, currentUser?.id, activeTournamentId, viewMode]);
 
   // Persist changes only after the organizer's server data has loaded.
   useEffect(() => {
@@ -349,7 +323,11 @@ function AppContent() {
   }, [tournaments, dataReady, currentUser?.role]);
 
   useEffect(() => {
-    if (activeTournamentId) syncEngine.setScope(activeTournamentId);
+    if (!activeTournamentId) return;
+    syncEngine.setScope(activeTournamentId);
+    // Another tab may switch tournament; bidding must always use that tournament's rules.
+    const active = tournaments.find(t => t.id === activeTournamentId);
+    if (active?.rules) setRules(active.rules);
   }, [activeTournamentId]);
 
   useEffect(() => {
@@ -522,8 +500,7 @@ function AppContent() {
         body: JSON.stringify({ action, playerId: currentPlayerId, ...extra }),
       });
       applyAuctionSnapshot(data, id);
-      setAuctionError('');
-    } catch (error) { setAuctionError((error as Error).message); }
+      } catch (error) { notify((error as Error).message, 'warn'); }
     finally { settling.current = false; setAuctionBusy(false); }
   };
   const handlePlaceBid = (team: Team, amount: number) => { void runAuctionCommand('BID', { teamId: team.id, amount }); };
@@ -534,7 +511,7 @@ function AppContent() {
 
   // Display and paddle clients read the same authoritative auction state.
   useEffect(() => {
-    if (!dataReady || !activeTournamentId || !['STAGE', 'AUCTIONEER', 'PADDLE', 'OBS', 'PUBLIC_SUMMARY', 'PLAYERS', 'TOURNAMENT_OVERVIEW'].includes(viewMode)) return;
+    if (!dataReady || !activeTournamentId || !['STAGE', 'AUCTIONEER', 'PADDLE', 'OBS', 'PUBLIC_SUMMARY', 'PLAYERS', 'TEAMS', 'SQUADS', 'TOURNAMENT_OVERVIEW'].includes(viewMode)) return;
     let cancelled = false;
     let refreshing = false;
     const poll = createJsonPoller();
@@ -556,6 +533,7 @@ function AppContent() {
       } catch { /* Existing data stays visible until the next successful refresh. */ }
       finally { refreshing = false; }
     };
+    void refresh();
     const timer = setInterval(refresh, 2000);
     return () => { cancelled = true; controller?.abort(); clearInterval(timer); };
   }, [viewMode, dataReady, activeTournamentId]);
@@ -566,7 +544,7 @@ function AppContent() {
       (p) => (!p.approvalStatus || p.approvalStatus === 'APPROVED') && (p.status === 'AVAILABLE' || p.status === 'IN_AUCTION')
     );
     if (unAuctioned.length === 0) {
-      alert('All players in this tournament pool have been auctioned! Check the Squad Booklet.');
+      notify('All players have been auctioned. See Squads for the results.');
       return;
     }
     const randomIndex = Math.floor(Math.random() * unAuctioned.length);
@@ -755,7 +733,7 @@ function AppContent() {
       setPlayers((Array.isArray(oldPlayers) ? oldPlayers : []).map((p: Player) => ({ ...p, tournamentId: p.tournamentId || firstId })));
       setActiveTournamentId(firstId);
       setLegacyAvailable(false);
-    } catch (error) { alert((error as Error).message); }
+    } catch (error) { notify((error as Error).message, 'warn'); }
   };
 
   const enterPlayerMode = () => {
@@ -784,7 +762,7 @@ function AppContent() {
 
   // Dedicated clean view for public player registration (?mode=register)
   if (viewMode === 'PUBLIC_REGISTER') {
-    if (!publicTournament) return <main className="min-h-screen bg-obsidian-950 text-white grid place-items-center">{dataError || 'Loading tournament…'}</main>;
+    if (!publicTournament) return <LoadingScreen error={dataError} />;
     return (
       <PublicRegistrationView
         tournament={publicTournament}
@@ -795,42 +773,17 @@ function AppContent() {
   }
 
   if (viewMode === 'PUBLIC_SUMMARY' && new URLSearchParams(window.location.search).has('tournamentId')) {
-    if (!publicSummary) return <main className="min-h-screen bg-obsidian-950 text-white grid place-items-center"><div role="status">{dataError || 'Loading tournament…'}{dataError && <button className="ml-4 underline" onClick={() => window.location.reload()}>Retry</button>}</div></main>;
-    return <><div role="status" className="bg-slate-950 text-amber-300 text-center">{dataError}</div><PublicSpectatorView tournament={publicSummary.tournament} teams={publicSummary.teams} players={publicSummary.players} registrationStats={publicSummary.registrationStats} registrationPlayers={publicSummary.registrationPlayers} currentPlayer={publicSummary.players.find(p => p.id === (publicSummary as any).liveState?.currentPlayerId)} currentBid={(publicSummary as any).liveState?.currentBid} leadingTeam={publicSummary.teams.find(t => t.id === (publicSummary as any).liveState?.leadingTeam?.id)} bidsHistory={(publicSummary as any).liveState?.bidsHistory || []} /></>;
+    if (!publicSummary) return <LoadingScreen error={dataError} />;
+    return <>{dataError && <div role="status" className="bg-slate-950 text-amber-300 text-center text-sm py-1">{dataError}</div>}<PublicSpectatorView tournament={publicSummary.tournament} teams={publicSummary.teams} players={publicSummary.players} registrationStats={publicSummary.registrationStats} registrationPlayers={publicSummary.registrationPlayers} currentPlayer={publicSummary.players.find(p => p.id === (publicSummary as any).liveState?.currentPlayerId)} currentBid={(publicSummary as any).liveState?.currentBid} leadingTeam={publicSummary.teams.find(t => t.id === (publicSummary as any).liveState?.leadingTeam?.id)} bidsHistory={(publicSummary as any).liveState?.bidsHistory || []} /></>;
   }
   if (viewMode === 'OBS' && new URLSearchParams(window.location.search).has('tournamentId')) {
-    if (!publicSummary) return <main>{dataError || 'Loading auction…'}</main>;
+    if (!publicSummary) return <main className="sr-only" role="status">{dataError || 'Loading auction…'}</main>;
     const state = (publicSummary as any).liveState || {};
     return <ObsOverlayView timerSeconds={publicSummary.tournament.rules?.timerSeconds} currency={publicSummary.tournament.rules?.currency} currentPlayer={publicSummary.players.find(p => p.id === state.currentPlayerId) || null} currentBid={state.currentBid || 0} leadingTeam={publicSummary.teams.find(t => t.id === state.leadingTeam?.id) || null} bidsHistory={[]} isSold={isSold} isUnsold={isUnsold} lastSoldInfo={lastSoldInfo} />;
   }
-  if (!authChecked) return <main className="min-h-screen bg-obsidian-950 text-white grid place-items-center">Loading…</main>;
+  if (!authChecked) return <LoadingScreen />;
   if (!currentUser) return <LandingScreen onPlayer={enterPlayerMode} onOrganizer={() => { setAuthInitialMode('LOGIN'); setIsAuthModalOpen(true); }} onAdmin={() => { setAuthInitialMode('ADMIN_LOGIN'); setIsAuthModalOpen(true); }}><AuthModal initialMode={authInitialMode} isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onSuccess={handleLoginSuccess} /></LandingScreen>;
-  if (!dataReady) return <main className="min-h-screen bg-obsidian-950 text-white grid place-items-center"><div>{dataError || 'Loading your tournaments…'}{dataError && <button onClick={() => window.location.reload()} className="ml-4 underline">Retry</button>}</div></main>;
-
-  if (currentUser.role === 'ADMIN' && viewMode === 'ADMIN_PANEL') return <div className="pb-24 lg:pb-0"><div className="bg-slate-950 px-4 py-2 text-right"><button onClick={() => selectViewMode('ORGANIZER_PROFILE')} className="text-sm font-bold text-amber-400 min-h-11">My Profile</button></div><AdminPanelView
-    currentUser={currentUser}
-    tournaments={tournaments}
-    onSelectTournament={(t) => window.open(`/?mode=summary&tournamentId=${encodeURIComponent(t.id)}`, '_blank', 'noopener,noreferrer')}
-    onBackToApp={() => setViewMode('TOURNAMENTS')}
-    onLogout={handleLogout}
-    onRefreshData={() => dbService.fetchBootstrapData().then((data) => { if (data?.tournaments) setTournaments(data.tournaments); })}
-  /><OrganizerMobileNav user={currentUser} mode={viewMode} onSelect={selectViewMode} /></div>;
-
-  // Dedicated clean view for public live spectator summary (?mode=summary)
-  if (viewMode === 'PUBLIC_SUMMARY') {
-    return (
-      <PublicSpectatorView
-        tournament={tournament}
-        teams={activeTeams}
-        players={activePlayers}
-        currentPlayer={currentPlayer}
-        currentBid={currentBid}
-        leadingTeam={leadingTeam}
-        bidsHistory={bidsHistory}
-        onExitSpectatorMode={() => setViewMode('TOURNAMENT_OVERVIEW')}
-      />
-    );
-  }
+  if (!dataReady) return <LoadingScreen error={dataError} />;
 
   // Special full-screen transparent view for OBS Studio
   if (viewMode === 'OBS') {
@@ -861,100 +814,34 @@ function AppContent() {
   }
 
   return (
-    <div className={`min-h-screen bg-obsidian-950 text-slate-100 flex flex-col ${viewMode === 'STAGE' ? 'stage-mode' : ''}`}>
-      {auctionError && <div role="alert" className="sticky top-0 z-50 bg-rose-950 px-4 py-2 text-rose-100 text-center">{auctionError}<button onClick={() => setAuctionError('')} className="ml-4 underline">Dismiss</button></div>}
-      {saveMessage && <div role="status" className="sticky top-0 z-50 bg-amber-950 px-4 py-2 text-amber-100 text-center">{saveMessage}<button onClick={() => dbService.flushSync().catch(() => {})} className="ml-4 underline">Retry save</button></div>}
-      {/* Top Navbar */}
-      <Navbar
-        currentMode={viewMode}
-        onSelectMode={selectViewMode}
-        tournament={tournament}
-        tournaments={visibleTournaments}
-        onSelectTournament={handleSelectTournament}
-        onCreateNewTournament={() => {
-          setEditingTournamentData(null);
-          setIsTournamentModalOpen(true);
-        }}
-        onOpenDatabaseModal={() => setIsDbModalOpen(true)}
-        currentUser={currentUser}
-        onOpenAuthModal={() => setIsAuthModalOpen(true)}
-        onLogout={handleLogout}
-        onOpenFortuneWheel={() => setIsFortuneWheelOpen(true)}
-        activePortal={activePortal}
-        onSelectPortal={(portal) => {
-          setActivePortal(portal);
-          if (portal === 'USER') {
-            setViewMode('USER_PORTAL');
-          } else {
-            setViewMode('TOURNAMENT_OVERVIEW');
-          }
-        }}
-      />
-
-      {activePortal === 'ORGANIZER' && <OrganizerMobileNav user={currentUser} mode={viewMode} onSelect={selectViewMode} />}
-      {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 pb-28 sm:pb-28 lg:pb-8">
-
-        {/* PART 2: USER / PLAYER PORTAL */}
-        {(activePortal === 'USER' || viewMode === 'USER_PORTAL') && viewMode !== 'ADMIN_PANEL' && (
-          <UserPortalView
-            tournaments={tournaments}
-            teams={teams}
-            players={players}
+    <AppShell
+      mode={viewMode}
+      onSelect={selectViewMode}
+      tournament={tournament}
+      tournaments={visibleTournaments}
+      user={currentUser}
+      onSelectTournament={(id) => { void handleSelectTournament(id); }}
+      onCreateTournament={() => { setEditingTournamentData(null); setIsTournamentModalOpen(true); }}
+      onOpenBackup={() => setIsDbModalOpen(true)}
+      onOpenWheel={() => setIsFortuneWheelOpen(true)}
+      onLogout={handleLogout}
+    >
+        {saveMessage && <div role="status" className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-400/30 bg-amber-950/60 px-4 py-2.5 text-sm text-amber-100">{saveMessage}<button onClick={() => dbService.flushSync().catch(() => {})} className="font-bold underline">Retry</button></div>}
+        {viewMode === 'ADMIN_PANEL' && currentUser.role === 'ADMIN' && (
+          <AdminPanelView
             currentUser={currentUser}
-            onSelectTournament={handleSelectTournament}
-            onOpenRegisterForTournament={(t) => {
-              handleSelectTournament(t.id);
-              setViewMode('PUBLIC_REGISTER');
+            tournaments={tournaments}
+            onSelectTournament={(t) => { void handleSelectTournament(t.id); }}
+            onBackToApp={() => setViewMode('TOURNAMENTS')}
+            onRefreshData={() => {
+              dbService.fetchBootstrapData().then((data) => {
+                if (data?.tournaments) setTournaments(data.tournaments);
+                if (data?.teams) setTeams(data.teams);
+                if (data?.players) setPlayers(data.players);
+              });
             }}
-            onOpenSpectatorForTournament={(t) => {
-              handleSelectTournament(t.id);
-              setViewMode('PUBLIC_SUMMARY');
-            }}
-            onSwitchToOrganizerPortal={() => {
-              setActivePortal('ORGANIZER');
-              setViewMode('TOURNAMENT_OVERVIEW');
-            }}
-            onOpenAuthModal={() => setIsAuthModalOpen(true)}
-            onUpdateCurrentUser={(updated) => setCurrentUser(updated)}
+            onLogout={handleLogout}
           />
-        )}
-
-        {/* PART 1: ORGANIZER PORTAL SUITE */}
-        {activePortal === 'ORGANIZER' && viewMode !== 'USER_PORTAL' && (
-          <>
-            {viewMode === 'ADMIN_PANEL' && (
-          currentUser?.role === 'ADMIN' ? (
-            <AdminPanelView
-              currentUser={currentUser}
-              tournaments={tournaments}
-              onSelectTournament={(t) => {
-                handleSelectTournament(t.id);
-              }}
-              onBackToApp={() => setViewMode('TOURNAMENT_OVERVIEW')}
-              onRefreshData={() => {
-                dbService.fetchBootstrapData().then((data) => {
-                  if (data?.tournaments) setTournaments(data.tournaments);
-                  if (data?.teams) setTeams(data.teams);
-                  if (data?.players) setPlayers(data.players);
-                });
-              }}
-              onLogout={handleLogout}
-            />
-          ) : (
-            <div className="p-8 text-center space-y-4 max-w-md mx-auto my-12 bg-slate-900/60 border border-slate-800 rounded-3xl">
-              <h3 className="text-xl font-bold text-rose-400">Super Admin Access Required</h3>
-              <p className="text-xs text-slate-400">
-                You must be signed in with a Super Administrator account to view and manage platform data.
-              </p>
-              <button
-                onClick={() => setIsAuthModalOpen(true)}
-                className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold rounded-xl text-xs shadow-lg shadow-amber-500/20"
-              >
-                Sign In as Admin
-              </button>
-            </div>
-          )
         )}
 
         {viewMode === 'ORGANIZER_PROFILE' && <OrganizerProfileView key={currentUser.id} user={currentUser} tournaments={visibleTournaments} onUpdateUser={setCurrentUser} onBack={() => selectViewMode('TOURNAMENTS')} onAdmin={() => selectViewMode('ADMIN_PANEL')} onPlayer={enterPlayerMode} onLogout={handleLogout} />}
@@ -969,7 +856,7 @@ function AppContent() {
               setEditingTournamentData(tournament);
               setIsTournamentModalOpen(true);
             }}
-            onSwitchTournament={() => setViewMode('TOURNAMENTS')}
+            auctionLive={!!currentPlayerId}
             onCreateNewTournament={() => {
               setEditingTournamentData(null);
               setIsTournamentModalOpen(true);
@@ -981,7 +868,7 @@ function AppContent() {
 
         {viewMode === 'TOURNAMENTS' && (
           <>
-          {legacyAvailable && tournaments.length === 0 && <button onClick={importBrowserData} className="mb-5 rounded-xl bg-amber-400 px-5 py-3 font-bold text-slate-950">Import this browser’s previous tournaments</button>}
+          {legacyAvailable && tournaments.length === 0 && <button onClick={importBrowserData} className="btn btn-ghost mb-5">Import tournaments saved in this browser</button>}
           <TournamentsListView
             tournaments={visibleTournaments}
             activeTournamentId={activeTournamentId}
@@ -1042,6 +929,12 @@ function AppContent() {
             onRandomDraw={handleRandomDraw}
             onOpenFortuneWheel={() => setIsFortuneWheelOpen(true)}
             onLaunchAcceleratedRound={handleLaunchAcceleratedRound}
+            busy={auctionBusy || !liveReady}
+            onOpenPlayers={() => selectViewMode('PLAYERS')}
+            onOpenTeams={() => selectViewMode('TEAMS')}
+            isSold={isSold}
+            isUnsold={isUnsold}
+            lastSoldInfo={lastSoldInfo}
           />
         )}
 
@@ -1054,6 +947,7 @@ function AppContent() {
             allPlayers={activePlayers}
             rules={rules}
             onPlaceBid={handlePlaceBid}
+            onOpenTeams={() => selectViewMode('TEAMS')}
           />
         )}
 
@@ -1071,6 +965,7 @@ function AppContent() {
             onDeletePlayer={handleDeletePlayer}
             onNavigateToFormBuilder={() => setViewMode('FORM_BUILDER')}
             onVerifyPayment={(id) => setPlayers(prev => prev.map(p => p.id === id && p.paymentScreenshotUrl ? { ...p, paymentStatus: 'VERIFIED' } : p))}
+            onOpenBulkUpload={() => setIsBulkUploadModalOpen(true)}
           />
         )}
 
@@ -1109,16 +1004,13 @@ function AppContent() {
 
         {viewMode === 'RULES' && (
           <RulesSettingsView
+            key={activeTournamentId}
             defaultBidIncrement={tournament.defaultBasePrice}
             rules={rules}
             onUpdateRules={(updated) => { dbService.queueSync({ rules: updated, tournamentId: activeTournamentId }); setRules(updated); setTournaments(prev => prev.map(t => t.id === activeTournamentId ? { ...t, rules: updated } : t)); }}
             onResetAuction={handleResetAuction}
           />
         )}
-      </>
-    )}
-      </main>
-
       {/* Create / Edit Tournament Modal */}
       {isTournamentModalOpen && (<TournamentModal
         isOpen={isTournamentModalOpen}
@@ -1163,13 +1055,6 @@ function AppContent() {
         }}
       />)}
 
-      {/* Auth Modal (Sign In / Register / Quick 1-Click Demo) */}
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-        onSuccess={handleLoginSuccess}
-      />
-
       {/* Interactive Fortune Wheel Modal */}
       {isFortuneWheelOpen && (<FortuneWheelModal
         isOpen={isFortuneWheelOpen}
@@ -1188,18 +1073,20 @@ function AppContent() {
         onBulkAddPlayers={handleBulkAddPlayers}
       />)}
 
-      {/* Offline Alert Network Banner */}
-
-      {/* Footer Branding */}
-      <footer className="p-4 border-t border-white/5 text-center text-xs text-slate-500 font-medium">
-        Cricket Auction Pro 2026 • Designed with Ultra-Luxury IPL Broadcast Experience
-      </footer>
-    </div>
+    </AppShell>
   );
 }
 
+function LoadingScreen({ error }: { error?: string }) {
+  return <main role="status" className="min-h-screen bg-obsidian-950 text-white grid place-items-center p-6 text-center">
+    {error
+      ? <div><Trophy className="w-10 h-10 mx-auto text-slate-500" /><p className="mt-3 text-slate-200">{error}</p><button className="btn btn-primary mt-4" onClick={() => window.location.reload()}>Try again</button></div>
+      : <><Loader2 aria-hidden className="w-8 h-8 animate-spin text-gold-400" /><span className="sr-only">Loading</span></>}
+  </main>;
+}
+
 export function App() {
-  return <AppErrorBoundary><Suspense fallback={<main role="status" className="min-h-screen bg-obsidian-950 text-white grid place-items-center">Loading…</main>}><AppContent /></Suspense></AppErrorBoundary>;
+  return <AppErrorBoundary><FeedbackHost /><Suspense fallback={<LoadingScreen />}><AppContent /></Suspense></AppErrorBoundary>;
 }
 
 export default App;

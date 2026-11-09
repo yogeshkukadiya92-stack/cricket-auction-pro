@@ -1,3 +1,4 @@
+import { qrDataUrl } from '../utils/qr';
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Smartphone,
@@ -202,7 +203,7 @@ export const DeviceSimulatorView: React.FC<DeviceSimulatorViewProps> = ({
       </div>
 
       {/* Simulator Control Toolbar */}
-      <header className="relative z-20 w-full px-4 sm:px-6 py-4 bg-slate-900/80 border-b border-slate-800/80 backdrop-blur-xl">
+      <header className="relative z-20 w-full px-4 sm:px-6 py-4 bg-slate-900/80 border-b border-slate-800/80 ">
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center justify-between gap-4">
           {/* Brand & Preset Pills */}
           <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
@@ -225,7 +226,7 @@ export const DeviceSimulatorView: React.FC<DeviceSimulatorViewProps> = ({
                     onClick={() => navigateTo(preset.path, preset.id)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                       isActive
-                        ? 'bg-gradient-to-r from-gold-500 to-amber-500 text-slate-950 shadow-md shadow-gold-500/20 font-black'
+                        ? 'bg-gold-500 text-slate-950 font-black'
                         : 'bg-slate-950/60 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800'
                     }`}
                   >
@@ -418,9 +419,7 @@ export const DeviceSimulatorView: React.FC<DeviceSimulatorViewProps> = ({
             {/* QR Code Canvas / Image */}
             <div className="p-3 bg-white rounded-2xl shadow-inner mx-auto w-48 h-48 flex items-center justify-center">
               <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
-                  `http://192.168.1.14:5174${currentUrl}`
-                )}`}
+                src={qrDataUrl(`${window.location.origin}${currentUrl}`)}
                 alt="Mobile QR Code"
                 className="w-full h-full object-contain"
               />
@@ -428,7 +427,7 @@ export const DeviceSimulatorView: React.FC<DeviceSimulatorViewProps> = ({
 
             {/* Local Network URL */}
             <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs font-mono">
-              <span className="text-slate-300 truncate">http://192.168.1.14:5174{currentUrl}</span>
+              <span className="text-slate-300 truncate">{window.location.origin}{currentUrl}</span>
               <button
                 type="button"
                 onClick={copyUrl}

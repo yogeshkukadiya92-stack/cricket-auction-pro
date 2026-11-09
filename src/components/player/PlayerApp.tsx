@@ -106,10 +106,10 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({ onExit }) => {
 
       {/* Tabs stay mounted (hidden) under an open profile so scroll position and search are preserved. */}
       <div className={top ? 'hidden' : ''}>
-        <header className="sticky top-0 z-30 bg-obsidian-950/80 backdrop-blur-xl border-b border-white/[0.05]">
+        <header className="sticky top-0 z-30 bg-obsidian-950/80  border-b border-white/[0.05]">
           <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 grid place-items-center text-base shadow-glow-gold">🏏</span>
+              <span className="w-8 h-8 rounded-xl bg-gold-500 grid place-items-center text-base shadow-glow-gold">🏏</span>
               <span className="font-display font-black tracking-tight">AUCTION <span className="text-gold-400">PRO</span></span>
             </div>
             {liveCount > 0 && (

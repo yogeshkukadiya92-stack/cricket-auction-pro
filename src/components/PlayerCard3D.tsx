@@ -45,13 +45,13 @@ export const PlayerCard3D: React.FC<PlayerCard3DProps> = ({ player, isBigStage =
   const getRoleBadge = () => {
     switch (player.role) {
       case 'BATSMAN':
-        return { label: 'Top Batsman', color: 'from-amber-500 to-orange-600', icon: Zap };
+        return { label: 'Batsman', color: 'bg-obsidian-950/85', icon: Zap };
       case 'BOWLER':
-        return { label: 'Strike Bowler', color: 'from-blue-500 to-indigo-600', icon: Shield };
+        return { label: 'Bowler', color: 'bg-obsidian-950/85', icon: Shield };
       case 'ALL_ROUNDER':
-        return { label: 'All-Rounder', color: 'from-emerald-500 to-teal-600', icon: Sparkles };
+        return { label: 'All-rounder', color: 'bg-obsidian-950/85', icon: Sparkles };
       case 'WICKET_KEEPER':
-        return { label: 'Wicket Keeper', color: 'from-purple-500 to-pink-600', icon: Award };
+        return { label: 'Keeper', color: 'bg-obsidian-950/85', icon: Award };
     }
   };
 
@@ -67,7 +67,7 @@ export const PlayerCard3D: React.FC<PlayerCard3DProps> = ({ player, isBigStage =
       <div
         ref={cardRef}
         className={`relative rounded-3xl transition-transform duration-150 ease-out preserve-3d overflow-hidden ${
-          isBigStage ? 'w-full max-w-[440px] h-[600px]' : 'w-full max-w-[340px] h-[480px]'
+          isBigStage ? 'w-full max-w-[400px] h-[min(500px,62vh)] min-h-[420px]' : 'w-full max-w-[340px] h-[480px]'
         } ${
           isMarquee
             ? 'border-2 border-gold-400/80 shadow-glow-gold'
@@ -90,19 +90,19 @@ export const PlayerCard3D: React.FC<PlayerCard3DProps> = ({ player, isBigStage =
         <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span
-              className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider text-white shadow-lg flex items-center gap-1.5 bg-gradient-to-r ${roleInfo.color}`}
+              className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider text-white shadow-lg flex items-center gap-1.5 ${roleInfo.color}`}
             >
               <RoleIcon className="w-3.5 h-3.5" />
               {roleInfo.label}
             </span>
             {isMarquee && (
               <span className="px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-gold-500/20 text-gold-400 border border-gold-400/40 flex items-center gap-1 animate-pulse">
-                ★ MARQUEE
+                ★ Marquee
               </span>
             )}
           </div>
           <div className="px-3 py-1 rounded-full text-xs font-semibold bg-obsidian-950/80 backdrop-blur-md border border-white/10 text-slate-300">
-            LOT #{player.lotOrder}
+            #{player.lotOrder}
           </div>
         </div>
 
@@ -111,7 +111,7 @@ export const PlayerCard3D: React.FC<PlayerCard3DProps> = ({ player, isBigStage =
           <img
             src={player.photoUrl || "/player-placeholder.svg"}
             alt={player.name}
-            className="w-full h-full object-cover object-top sm:object-center transition-transform duration-500 hover:scale-105"
+            className="w-full h-full object-cover object-top sm:object-center transition-transform duration-500 "
             loading="lazy"
           />
           {/* Subtle bottom edge blend only (No heavy dark overlays) */}
@@ -120,9 +120,9 @@ export const PlayerCard3D: React.FC<PlayerCard3DProps> = ({ player, isBigStage =
 
         {/* Player Details & Key Stats Floating Glassmorphic Card */}
         <div className="absolute bottom-0 inset-x-0 p-3 sm:p-4 z-20 flex flex-col justify-end">
-          <div className="p-3.5 rounded-2xl bg-obsidian-950/85 backdrop-blur-xl border border-white/10 shadow-2xl space-y-2">
+          <div className="p-3.5 rounded-2xl bg-obsidian-950/85  border border-white/10 shadow-2xl space-y-2">
             <div className="space-y-0.5">
-              <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2 font-display truncate">
+              <h3 className="text-3xl sm:text-4xl font-extrabold uppercase leading-none text-white font-display truncate">
                 {player.name}
               </h3>
               <p className="text-[11px] sm:text-xs text-slate-300 font-medium flex items-center gap-1.5 truncate">
@@ -144,17 +144,17 @@ export const PlayerCard3D: React.FC<PlayerCard3DProps> = ({ player, isBigStage =
               </div>
               <div className="text-center p-1 rounded-xl bg-white/[0.04] border border-white/5">
                 <span className="block text-[9px] uppercase font-bold text-slate-400">Runs</span>
-                <span className="text-xs sm:text-sm font-black text-gold-400">{player.stats.runs}</span>
+                <span className="text-xs sm:text-sm font-black text-white">{player.stats.runs}</span>
               </div>
               <div className="text-center p-1 rounded-xl bg-white/[0.04] border border-white/5">
                 <span className="block text-[9px] uppercase font-bold text-slate-400">Wickets</span>
-                <span className="text-xs sm:text-sm font-black text-electric-cyan">{player.stats.wickets}</span>
+                <span className="text-xs sm:text-sm font-black text-white">{player.stats.wickets}</span>
               </div>
               <div className="text-center p-1 rounded-xl bg-white/[0.04] border border-white/5">
                 <span className="block text-[9px] uppercase font-bold text-slate-400">
                   {player.stats.strikeRate ? 'S.R.' : 'Econ'}
                 </span>
-                <span className="text-xs sm:text-sm font-black text-emerald-400">
+                <span className="text-xs sm:text-sm font-black text-white">
                   {player.stats.strikeRate || player.stats.economy || '-'}
                 </span>
               </div>

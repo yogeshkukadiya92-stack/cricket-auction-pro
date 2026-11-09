@@ -4,95 +4,97 @@
 
 @layer base {
   :root {
-    --team-color-glow: rgba(59, 130, 246, 0.4);
+    --team-color-glow: rgba(200, 243, 29, 0.35);
+    color-scheme: dark;
   }
+  body { font-feature-settings: "tnum" 1; }
+  /* A clearly visible keyboard focus on every control. */
+  :focus-visible { outline: 2px solid #D9FF4F; outline-offset: 2px; }
+  button:disabled { cursor: not-allowed; }
+  .font-display { letter-spacing: 0.005em; }
+  input[type="number"]::-webkit-inner-spin-button { opacity: 0.4; }
+  select, input, textarea { font-size: max(16px, 1em); }
+  @media (min-width: 768px) { select, input, textarea { font-size: inherit; } }
 }
 
-/* Custom Luxury Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #070C16;
-}
-::-webkit-scrollbar-thumb {
-  background: #1B2640;
-  border-radius: 9999px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #3B82F6;
-}
-
-/* Stadium Spotlight Beam Effect */
-.stadium-beam {
-  background: radial-gradient(circle at 50% -20%, rgba(59, 130, 246, 0.18), transparent 70%),
-              radial-gradient(circle at 10% 40%, rgba(245, 158, 11, 0.08), transparent 50%),
-              radial-gradient(circle at 90% 40%, rgba(139, 92, 246, 0.08), transparent 50%);
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 min-h-10 px-4 rounded-xl text-sm font-bold whitespace-nowrap transition-colors active:translate-y-px disabled:opacity-40;
+  }
+  .btn-primary { @apply bg-gold-500 text-black hover:bg-gold-400; }
+  .btn-ghost { @apply bg-white/5 border border-white/10 text-slate-100 hover:bg-white/10; }
+  .btn-danger { @apply bg-red-500 text-white hover:bg-red-400; }
+  .btn-icon { @apply grid place-items-center w-10 h-10 rounded-xl text-slate-300 hover:bg-white/5 hover:text-white transition-colors disabled:opacity-40; }
+  .panel { @apply rounded-3xl border border-white/10 bg-obsidian-900; }
+  .field { @apply w-full min-h-11 rounded-xl border border-white/10 bg-obsidian-950 px-3.5 text-white placeholder-slate-500 focus:border-gold-400 focus:outline-none; }
+  .field-label { @apply block mb-1.5 text-xs font-bold text-slate-300; }
+  /* Scoreboard tile: a flat board with a fine seam, like a stadium flip panel. */
+  .tile { @apply relative rounded-2xl border border-white/10 bg-obsidian-850 overflow-hidden; }
+  .score { font-family: 'Big Shoulders Display', Impact, sans-serif; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
 }
 
-/* Glassmorphism panel */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #0C120E; }
+::-webkit-scrollbar-thumb { background: #243128; border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: #A3CC00; }
+
+/* Mown-pitch stripes: the product's signature backdrop. */
+.stadium-beam, .pitch-stripes {
+  background-image: repeating-linear-gradient(90deg, rgba(255,255,255,0.018) 0 72px, transparent 72px 144px);
+}
+
 .glass-panel {
-  background: rgba(12, 19, 34, 0.72);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #0C120E;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
-
 .glass-panel-gold {
-  background: rgba(245, 158, 11, 0.06);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(245, 158, 11, 0.25);
+  background: rgba(200, 243, 29, 0.05);
+  border: 1px solid rgba(200, 243, 29, 0.25);
 }
 
-/* 3D Perspective Card Container */
-.preserve-3d {
-  transform-style: preserve-3d;
-}
+.preserve-3d { transform-style: preserve-3d; }
+.perspective-1000 { perspective: 1000px; }
 
-.perspective-1000 {
-  perspective: 1000px;
-}
-
-/* Holographic Shimmer */
 .holo-shimmer {
-  background: linear-gradient(
-    115deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.03) 30%,
-    rgba(255, 255, 255, 0.18) 50%,
-    rgba(255, 255, 255, 0.03) 70%,
-    transparent 100%
-  );
+  background: linear-gradient(115deg, transparent 0%, rgba(255, 255, 255, 0.03) 30%, rgba(255, 255, 255, 0.14) 50%, rgba(255, 255, 255, 0.03) 70%, transparent 100%);
   background-size: 200% 200%;
 }
 
-/* Projector mode contains only the live auction; Escape restores navigation. */
-:fullscreen .stage-mode > header,
-:fullscreen .stage-mode > footer,
+/* Big screen mode shows only the auction; Escape brings navigation back. */
+:fullscreen .stage-mode .app-rail,
+:fullscreen .stage-mode .app-top,
+:fullscreen .stage-mode .app-tabs,
 :fullscreen .stage-mode .stage-share { display: none; }
-:fullscreen .stage-mode > main { max-width: none; padding: clamp(12px, 2vw, 32px); }
-:fullscreen .auction-stage { min-height: calc(100dvh - 64px); padding: clamp(16px, 2vw, 32px); }
-:fullscreen .stage-grid { padding-top: 20px; gap: 24px; }
-:fullscreen .stage-grid .perspective-1000 > div { height: min(600px, calc(100dvh - 180px)); }
-@media (max-width: 639px) {
-  .auction-stage { padding: 16px; }
-  .stage-grid { gap: 20px; padding-top: 20px; }
-  .stage-grid .perspective-1000 > div { height: 460px; }
-}
+:fullscreen .stage-mode > div { padding-left: 0; }
+:fullscreen .stage-mode main { max-width: none; padding: clamp(12px, 2vw, 32px); }
+:fullscreen .auction-stage { min-height: calc(100dvh - 64px); }
 
-/* ---------- Player app ---------- */
+/* ---------- Motion ---------- */
 @keyframes cap-rise {
-  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: none; }
 }
-@keyframes cap-border-flow {
-  to { background-position: 200% 0; }
+@keyframes cap-border-flow { to { background-position: 200% 0; } }
+@keyframes cap-stamp {
+  0% { opacity: 0; transform: scale(1.8) rotate(-6deg); }
+  60% { opacity: 1; transform: scale(0.96) rotate(-6deg); }
+  100% { opacity: 1; transform: scale(1) rotate(-6deg); }
 }
-.cap-rise { animation: cap-rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes cap-bid {
+  0% { transform: translateY(10px); opacity: 0.2; }
+  100% { transform: none; opacity: 1; }
+}
+.cap-rise { animation: cap-rise 0.28s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.cap-stamp { animation: cap-stamp 0.42s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.cap-bid { animation: cap-bid 0.22s ease-out both; }
 .cap-border-flow { background-size: 200% 100%; animation: cap-border-flow 2.4s linear infinite; }
 .cap-scroll-hide { scrollbar-width: none; }
 .cap-scroll-hide::-webkit-scrollbar { display: none; }
 @media (prefers-reduced-motion: reduce) {
-  .cap-rise, .cap-border-flow { animation: none; }
+  .cap-rise, .cap-border-flow, .cap-stamp, .cap-bid, .animate-bounce, .animate-pulse, .animate-float, .animate-beam { animation: none; }
+}
+
+@media print {
+  .app-rail, .app-top, .app-tabs { display: none !important; }
+  .stage-mode > div, body > div > div > div { padding-left: 0 !important; }
 }

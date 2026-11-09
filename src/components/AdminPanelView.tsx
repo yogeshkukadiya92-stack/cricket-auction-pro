@@ -1,3 +1,4 @@
+import { notify } from '../ui/kit';
 import React, { useState, useEffect } from 'react';
 import {
   Shield,
@@ -78,7 +79,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
 
   const handleToggleUser = async (userId: string, currentRole: string) => {
     if (currentRole === 'ADMIN') {
-      alert('Cannot block Super Administrator account.');
+      notify('The admin account cannot be blocked.', 'warn');
       return;
     }
     try {
@@ -95,7 +96,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
         fetchUsersAndStats();
       }
     } catch (err: any) {
-      alert(err.message || 'Failed to update user status');
+      notify(err.message || 'Could not update this user.', 'warn');
     }
   };
 
@@ -118,14 +119,14 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
         });
         const data = await res.json();
         if (data.success) {
-          alert('Database restored successfully from backup!');
+          notify('Backup restored', 'ok');
           fetchUsersAndStats();
           onRefreshData();
         } else {
-          alert(data.error || 'Restore failed');
+          notify(data.error || 'Restore failed', 'warn');
         }
       } catch (err: any) {
-        alert('Failed to parse backup JSON file.');
+        notify('This is not a valid backup file.', 'warn');
       }
     };
     reader.readAsText(file);
@@ -143,12 +144,12 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
       <div className="border-b border-slate-800 bg-slate-900/60 backdrop-blur-md sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-amber-500/20">
+            <div className="w-10 h-10 rounded-xl bg-gold-500 flex items-center justify-center text-slate-950 font-black">
               <Shield className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-lg font-bold text-white">Super Admin Control Center</h1>
+                <h1 className="text-lg font-bold text-white">Admin</h1>
                 <span className="px-2 py-0.5 text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-md">
                   Root Admin
                 </span>
@@ -170,7 +171,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
             </button>
             <button
               onClick={onBackToApp}
-              className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-amber-500/20"
+              className="px-3.5 py-2 bg-gold-500 hover:bg-gold-400 text-slate-950 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
             >
               <Trophy className="w-3.5 h-3.5" />
               <span>Manage Tournaments</span>
@@ -185,29 +186,29 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
             onClick={() => setActiveTab('OVERVIEW')}
             className={`px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-2 ${
               activeTab === 'OVERVIEW'
-                ? 'bg-amber-500 text-slate-950 shadow-md font-extrabold'
+                ? 'bg-gold-500 text-slate-950 shadow-md font-extrabold'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
             }`}
           >
             <TrendingUp className="w-3.5 h-3.5" />
-            Platform Overview
+            Overview
           </button>
           <button
             onClick={() => setActiveTab('USERS')}
             className={`px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-2 ${
               activeTab === 'USERS'
-                ? 'bg-amber-500 text-slate-950 shadow-md font-extrabold'
+                ? 'bg-gold-500 text-slate-950 shadow-md font-extrabold'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
             }`}
           >
             <Users className="w-3.5 h-3.5" />
-            Organizers & Users ({usersList.length})
+            Organizers ({usersList.length})
           </button>
           <button
             onClick={() => setActiveTab('TOURNAMENTS')}
             className={`px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-2 ${
               activeTab === 'TOURNAMENTS'
-                ? 'bg-amber-500 text-slate-950 shadow-md font-extrabold'
+                ? 'bg-gold-500 text-slate-950 shadow-md font-extrabold'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
             }`}
           >
@@ -482,7 +483,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
             <div className="flex items-center justify-between p-4 bg-slate-900/60 border border-slate-800 rounded-2xl">
               <div>
                 <h3 className="font-bold text-white text-sm">Platform Tournaments</h3>
-                <p className="text-xs text-slate-400">View and inspect all tournaments across all organizers.</p>
+                <p className="text-xs text-slate-400"></p>
               </div>
               <span className="px-3 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-xl text-xs font-bold">
                 {tournaments.length} Tournaments Total
@@ -549,7 +550,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
                       onClick={() => {
                         onSelectTournament(tourney);
                       }}
-                      className="w-full py-2 bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5"
+                      className="w-full py-2 bg-slate-800 hover:bg-gold-500 hover:text-slate-950 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5"
                     >
                       <span>View Public Summary</span>
                       <ExternalLink className="w-3.5 h-3.5" />
@@ -587,7 +588,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
                   </div>
                   <button
                     onClick={handleExportBackup}
-                    className="mt-4 w-full py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-xl text-xs transition flex items-center justify-center gap-2"
+                    className="mt-4 w-full py-2.5 bg-gold-500 hover:bg-gold-400 text-slate-950 font-bold rounded-xl text-xs transition flex items-center justify-center gap-2"
                   >
                     <Download className="w-4 h-4" />
                     Download Backup File

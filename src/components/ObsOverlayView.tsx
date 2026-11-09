@@ -122,7 +122,7 @@ export const ObsOverlayView: React.FC<ObsOverlayViewProps> = ({
                 <Flame className="w-3 h-3 text-gold-400" />
                 HIGHEST BID
               </span>
-              <span className="text-4xl lg:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-gold-400 via-amber-300 to-yellow-500 font-display">
+              <span className="text-4xl lg:text-5xl font-black text-transparent bg-clip-text bg-gold-500 font-display">
                 {currentBid > 0 ? formatPrice(currentBid) : formatPrice(displayPlayer.basePrice)}
               </span>
             </div>

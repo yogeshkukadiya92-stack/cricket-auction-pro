@@ -1,5 +1,5 @@
-import React, { useRef } from 'react';
-import { Briefcase, ChevronRight, Radio, Shield, Trophy, UserRound, Users } from 'lucide-react';
+import React from 'react';
+import { ArrowRight, Briefcase, Gavel, Shield, UserRound } from 'lucide-react';
 
 interface LandingScreenProps {
   onPlayer: () => void;
@@ -10,73 +10,36 @@ interface LandingScreenProps {
 
 /** Entry screen: choose Player (mobile login) or Organizer (e-mail login). */
 export const LandingScreen: React.FC<LandingScreenProps> = ({ onPlayer, onOrganizer, onAdmin, children }) => (
-  <main className="relative min-h-screen overflow-hidden bg-obsidian-950 text-white flex flex-col">
-    <div aria-hidden className="pointer-events-none absolute inset-0">
-      <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[40rem] h-[40rem] rounded-full bg-gold-500/15 blur-3xl animate-beam" />
-      <div className="absolute bottom-0 -left-32 w-[26rem] h-[26rem] rounded-full bg-electric-blue/15 blur-3xl animate-beam [animation-delay:-4s]" />
-      <div className="absolute bottom-10 -right-32 w-[24rem] h-[24rem] rounded-full bg-electric-purple/15 blur-3xl animate-beam [animation-delay:-2s]" />
-    </div>
+  <main className="relative min-h-[100dvh] overflow-hidden bg-obsidian-950 text-white pitch-stripes flex flex-col">
+    <header className="relative z-10 flex items-center gap-2.5 px-5 sm:px-10 pt-6">
+      <span className="w-9 h-9 rounded-lg bg-gold-500 text-black grid place-items-center"><Gavel className="w-5 h-5" /></span>
+      <span className="font-display text-2xl font-extrabold uppercase">Auction Pro</span>
+    </header>
 
-    <section className="relative z-10 flex-1 flex flex-col justify-center px-5 py-10 max-w-md w-full mx-auto">
-      <div className="text-center mb-10 cap-rise">
-        <div className="mx-auto mb-6 w-24 h-24 rounded-[1.75rem] bg-gradient-to-br from-gold-400 to-gold-600 grid place-items-center text-5xl shadow-glow-gold animate-float">🏏</div>
-        <h1 className="font-display text-4xl font-black tracking-tight">
-          Cricket <span className="bg-gradient-to-r from-gold-400 to-amber-200 bg-clip-text text-transparent">Auction Pro</span>
+    <section className="relative z-10 flex-1 grid lg:grid-cols-[1.25fr_1fr] gap-10 lg:gap-16 items-center px-5 sm:px-10 py-10 max-w-7xl w-full mx-auto">
+      <div className="cap-rise">
+        <h1 className="font-display font-black uppercase leading-[0.86] text-[clamp(4rem,12vw,10rem)]">
+          Bid.<br />Hammer.<br /><span className="text-gold-400">Sold.</span>
         </h1>
-        <p className="text-slate-400 mt-3">Live player auctions for every league.</p>
-        <div className="flex justify-center gap-4 mt-5 text-xs text-slate-500">
-          <span className="inline-flex items-center gap-1"><Radio className="w-3.5 h-3.5 text-red-400" /> Live bids</span>
-          <span className="inline-flex items-center gap-1"><Users className="w-3.5 h-3.5 text-cyan-400" /> Player profiles</span>
-          <span className="inline-flex items-center gap-1"><Trophy className="w-3.5 h-3.5 text-gold-400" /> Squads</span>
-        </div>
+        <p className="mt-5 text-lg text-slate-300">Your league's player auction, live on every screen.</p>
       </div>
 
-      <div className="space-y-3">
-        <ChoiceCard
-          id="landing-player-login" onClick={onPlayer} icon={UserRound} delay={80}
-          title="I'm a Player" text="Sign in with your registered mobile number"
-          className="from-gold-400 to-gold-600 text-obsidian-950" primary
-        />
-        <ChoiceCard
-          id="landing-organizer-login" onClick={onOrganizer} icon={Briefcase} delay={160}
-          title="I'm an Organizer" text="Run tournaments, teams and the auction desk"
-          className="from-white/[0.08] to-white/[0.02] text-white"
-        />
-        <ChoiceCard id="landing-admin-login" onClick={onAdmin} icon={Shield} delay={220} title="Admin Panel" text="Sign in with your administrator account" className="from-white/[0.08] to-white/[0.02] text-white" />
+      <div className="w-full max-w-md lg:ml-auto space-y-3 cap-rise" style={{ animationDelay: '80ms' }}>
+        <button id="landing-organizer-login" type="button" onClick={onOrganizer} className="group w-full flex items-center gap-4 rounded-3xl bg-gold-500 hover:bg-gold-400 text-black p-5 text-left transition-colors">
+          <Briefcase className="w-7 h-7 shrink-0" />
+          <span className="flex-1 font-display text-3xl font-extrabold uppercase leading-none">I'm an organizer</span>
+          <ArrowRight className="w-6 h-6 transition-transform group-hover:translate-x-1" />
+        </button>
+        <button id="landing-player-login" type="button" onClick={onPlayer} className="group w-full flex items-center gap-4 rounded-3xl border border-white/15 bg-obsidian-850 hover:bg-obsidian-800 p-5 text-left transition-colors">
+          <UserRound className="w-7 h-7 shrink-0 text-gold-400" />
+          <span className="flex-1 font-display text-3xl font-extrabold uppercase leading-none">I'm a player</span>
+          <ArrowRight className="w-6 h-6 transition-transform group-hover:translate-x-1" />
+        </button>
+        <button id="landing-admin-login" type="button" onClick={onAdmin} className="inline-flex items-center gap-2 min-h-11 px-2 text-sm font-semibold text-slate-400 hover:text-white">
+          <Shield className="w-4 h-4" />Admin sign in
+        </button>
       </div>
     </section>
     {children}
   </main>
 );
-
-interface ChoiceCardProps {
-  id: string; title: string; text: string; icon: React.ElementType;
-  onClick: () => void; className: string; primary?: boolean; delay: number;
-}
-
-const ChoiceCard: React.FC<ChoiceCardProps> = ({ id, title, text, icon: Icon, onClick, className, primary, delay }) => {
-  const ref = useRef<HTMLButtonElement>(null);
-  const move = (e: React.PointerEvent) => {
-    if (e.pointerType !== 'mouse' || !ref.current) return;
-    const r = ref.current.getBoundingClientRect();
-    const x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
-    ref.current.style.transform = `perspective(800px) rotateX(${(-y * 6).toFixed(2)}deg) rotateY(${(x * 8).toFixed(2)}deg) translateY(-2px)`;
-  };
-  return (
-    <button
-      ref={ref} id={id} type="button" onClick={onClick} onPointerMove={move} onPointerLeave={() => { if (ref.current) ref.current.style.transform = ''; }}
-      style={{ animationDelay: `${delay}ms` }}
-      className={`cap-rise group relative w-full overflow-hidden rounded-3xl bg-gradient-to-br ${className} ${primary ? 'shadow-glow-gold' : 'border border-white/10 backdrop-blur-xl'} p-5 text-left transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98]`}
-    >
-      <span aria-hidden className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
-      <span className="relative flex items-center gap-4">
-        <span className={`w-12 h-12 rounded-2xl grid place-items-center ${primary ? 'bg-obsidian-950/15' : 'bg-white/10'}`}><Icon className="w-6 h-6" /></span>
-        <span className="flex-1">
-          <span className="block font-display text-lg font-black">{title}</span>
-          <span className={`block text-sm ${primary ? 'text-obsidian-950/70' : 'text-slate-400'}`}>{text}</span>
-        </span>
-        <ChevronRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
-      </span>
-    </button>
-  );
-};

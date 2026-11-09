@@ -4,7 +4,7 @@ import express from 'express';
 import { registerAuctionRoutes } from '../server/auctionRoutes.js';
 
 test('auction rehearsal: bid, undo, safe selection, sold once, unsold, recall and reset', async t => {
-  let players = [{ id:'p1',tournamentId:'t1',name:'Player One',status:'AVAILABLE',basePrice:100,photoUrl:'/one.png' },{ id:'p2',tournamentId:'t1',name:'Player Two',status:'AVAILABLE',basePrice:100 }];
+  let players = [{ id:'p2',tournamentId:'t1',name:'Player Two',status:'AVAILABLE',basePrice:100,lotOrder:2 },{ id:'p1',tournamentId:'t1',name:'Player One',status:'AVAILABLE',basePrice:100,photoUrl:'/one.png',lotOrder:1 }];
   let teams = [{ id:'k11',tournamentId:'t1',name:'Karma 11',totalPurse:1000,remainingPurse:1000 }];
   let state = {}; const rules = { minPlayersPerTeam:2,maxPlayersPerTeam:2,minimumPlayerReserve:100 };
   const pool = { connect: async () => {
@@ -39,9 +39,10 @@ test('auction rehearsal: bid, undo, safe selection, sold once, unsold, recall an
   assert.equal((await command('BID',{teamId:'k11',amount:950})).status,409,'Squad reserve enforced');
   await command('BID',{teamId:'k11',amount:200});await command('UNDO');assert.equal(state.currentBid,100);
   assert.equal((await command('SOLD',{teamId:'k11',amount:100})).status,200);
-  assert.equal(teams[0].remainingPurse,900);assert.equal(players[0].status,'SOLD');
+  assert.equal(teams[0].remainingPurse,900);assert.equal(players.find(p=>p.id==='p1').status,'SOLD');assert.equal(state.currentPlayerId,'p2','The next lot follows lot order');
   assert.equal((await command('SOLD',{playerId:'p1',teamId:'k11',amount:100})).status,409);assert.equal(teams[0].remainingPurse,900);
-  assert.equal((await command('UNSOLD')).status,200);assert.equal(players[1].status,'UNSOLD');
-  await command('ACCELERATE',{discountPercent:50});assert.equal(players[1].basePrice,50);
-  await command('RESET');assert.equal(teams[0].remainingPurse,1000);assert.ok(players.every(p=>p.status==='AVAILABLE'));assert.equal(players[0].photoUrl,'/one.png');
+  assert.equal((await command('UNSOLD')).status,200);assert.equal(players.find(p=>p.id==='p2').status,'UNSOLD');
+  await command('ACCELERATE',{discountPercent:50});assert.equal(players.find(p=>p.id==='p2').basePrice,50);
+  await command('UNSOLD');await command('ACCELERATE',{discountPercent:50});assert.equal(players.find(p=>p.id==='p2').basePrice,50,'Repeat rounds do not compound the discount');
+  await command('RESET');assert.equal(teams[0].remainingPurse,1000);assert.ok(players.every(p=>p.status==='AVAILABLE'));assert.equal(players.find(p=>p.id==='p2').basePrice,100,'Reset restores the original base price');assert.equal(players.find(p=>p.id==='p1').photoUrl,'/one.png');
 });

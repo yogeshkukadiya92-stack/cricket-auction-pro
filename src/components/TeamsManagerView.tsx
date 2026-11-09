@@ -1,3 +1,4 @@
+import { ask, Empty, PageHead } from '../ui/kit';
 import { processUploadedImage } from '../utils/imageUtils';
 import { formatAuctionPrice } from '../utils/currency';
 import React, { useState } from 'react';
@@ -124,7 +125,7 @@ export const TeamsManagerView: React.FC<TeamsManagerViewProps> = ({
       shortCode: shortCode.trim().toUpperCase() || name.substring(0, 3).toUpperCase(),
       logo: logo.trim() || '🏏',
       colorHex,
-      ownerName: ownerName.trim() || 'Franchise Owner',
+      ownerName: ownerName.trim(),
       ownerMobile: ownerMobile.trim(),
       totalPurse: Number(purse),
       remainingPurse: Number(purse),
@@ -158,68 +159,11 @@ export const TeamsManagerView: React.FC<TeamsManagerViewProps> = ({
   };
 
   return (
-    <div className="space-y-8">
-      {/* Tournament Identity Form */}
-      <div className="p-6 rounded-3xl glass-panel border border-white/10">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-gold-400">
-            <Trophy className="w-4 h-4" />
-            TOURNAMENT BRAND IDENTITY
-          </div>
-          {onOpenTournamentModal && (
-            <button
-              type="button"
-              onClick={onOpenTournamentModal}
-              className="text-xs font-bold text-gold-400 hover:text-amber-300 flex items-center gap-1.5 transition-colors"
-            >
-              <span>Edit Full Settings, Sponsors & Venue</span>
-              <Edit3 className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
-        <form onSubmit={handleSaveTourney} className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
-          <div>
-            <label className="text-xs font-bold text-slate-300 block mb-1">Tournament Title</label>
-            <input
-              type="text"
-              value={tourneyName}
-              onChange={(e) => setTourneyName(e.target.value)}
-              className="w-full bg-obsidian-950 border border-white/10 rounded-xl px-3.5 py-2 text-sm text-white font-bold focus:border-gold-400 focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-slate-300 block mb-1">Season / Edition</label>
-            <input
-              type="text"
-              value={season}
-              onChange={(e) => setSeason(e.target.value)}
-              className="w-full bg-obsidian-950 border border-white/10 rounded-xl px-3.5 py-2 text-sm text-white font-bold focus:border-gold-400 focus:outline-none"
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="py-2.5 px-5 rounded-xl font-black text-xs bg-gold-500 hover:bg-gold-400 text-black shadow-glow-gold flex items-center justify-center gap-1.5 active:scale-95 transition-all"
-          >
-            {tourneySaved ? <Check className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
-            {tourneySaved ? 'Updated!' : 'Save Tournament Info'}
-          </button>
-        </form>
-      </div>
-
-      {/* Teams Management Header */}
-      <div className="p-6 rounded-3xl glass-panel border border-white/10 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-black text-white font-display flex items-center gap-2">
-            🛡️ FRANCHISE TEAMS ({teams.length})
-          </h2>
-          <p className="text-xs text-slate-400 mt-1">
-            Configure participating franchise teams, logos, theme colors, purse allocation, and owners.
-          </p>
-        </div>
-
-        <button
+    <div className="space-y-5">
+      <PageHead
+        title="Teams"
+        count={teams.length}
+        actions={<button
           onClick={() => {
             setSelectedTournamentId(tournament.id);
             setTournamentSearch('');
@@ -228,145 +172,41 @@ export const TeamsManagerView: React.FC<TeamsManagerViewProps> = ({
             setCreatedMessage('');
             setIsAddModalOpen(true);
           }}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs bg-gold-500 hover:bg-gold-400 text-black shadow-glow-gold active:scale-95 transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          Add New Team
-        </button>
-      </div>
-
-      {createdMessage && <p role="status" className="text-sm text-emerald-400">{createdMessage}</p>}
-
-      {/* Teams Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {teams.map((team) => (
-          <div
-            key={team.id}
-            className="rounded-3xl border p-6 flex flex-col justify-between transition-all duration-300"
-            style={{
-              backgroundColor: `${team.colorHex}15`,
-              borderColor: `${team.colorHex}50`,
-              boxShadow: `0 0 30px -5px ${team.colorHex}25`,
-            }}
-          >
-            <div>
-              <div className="flex items-center justify-between pb-4 border-b border-white/10">
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-16 h-16 p-2 rounded-2xl bg-obsidian-950/90 border flex items-center justify-center overflow-hidden shrink-0 shadow-lg"
-                    style={{
-                      borderColor: `${team.colorHex}60`,
-                      boxShadow: `0 0 15px -3px ${team.colorHex}30`,
-                    }}
-                  >
-                    <TeamLogo logo={team.logo} name={team.name} className="w-full h-full text-3xl" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-black text-white font-display">{team.name}</h3>
-                    <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-white/10 text-slate-200">
-                      {team.shortCode}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => openEditModal(team)}
-                    className="p-2 rounded-xl text-slate-400 hover:text-gold-400 hover:bg-gold-500/10 transition-colors cursor-pointer"
-                    title="Edit Team & Upload Logo"
-                  >
-                    <Edit3 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (confirm(`Are you sure you want to delete ${team.name}?`)) {
-                        onDeleteTeam(team.id);
-                      }
-                    }}
-                    className="p-2 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
-                    title="Delete Team"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
+          className="btn btn-primary"
+        ><Plus className="w-4 h-4" />Add team</button>}
+      />
+      {createdMessage && <p role="status" className="text-sm font-semibold text-gold-400">{createdMessage}</p>}
+      {teams.length === 0 && <Empty icon={Shield} title="No teams yet" />}
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {teams.map((team) => {
+          const left = team.totalPurse > 0 ? Math.max(0, team.remainingPurse / team.totalPurse) : 0;
+          return <article key={team.id} className="tile p-4 pl-5">
+            <span aria-hidden className="absolute inset-y-0 left-0 w-1.5" style={{ backgroundColor: team.colorHex }} />
+            <div className="flex items-center gap-3">
+              <span className="w-14 h-14 shrink-0 rounded-xl bg-obsidian-950 border border-white/10 p-1.5 grid place-items-center overflow-hidden"><TeamLogo logo={team.logo} name={team.name} className="w-full h-full text-3xl" /></span>
+              <div className="min-w-0 flex-1">
+                <h2 className="font-display text-3xl font-extrabold uppercase leading-[0.95] text-white line-clamp-2 break-words">{team.name}</h2>
+                <p className="mt-1 text-xs text-slate-400 truncate">{team.shortCode}{team.ownerName ? ` · ${team.ownerName}` : ''}</p>
               </div>
-
-              <div className="space-y-2 mt-4 text-xs">
-                <div className="flex items-center justify-between text-slate-300">
-                  <span>Owner:</span>
-                  <span className="font-bold text-white">{team.ownerName}</span>
-                </div>
-                {team.ownerMobile && (
-                  <div className="flex items-center justify-between text-slate-400">
-                    <span>Contact:</span>
-                    <span className="font-mono">{team.ownerMobile}</span>
-                  </div>
-                )}
-                <div className="flex items-center justify-between text-slate-300">
-                  <span>Total Purse:</span>
-                  <span className="font-bold font-mono text-gold-400">{formatPrice(team.totalPurse)}</span>
-                </div>
-                <div className="flex items-center justify-between text-slate-300">
-                  <span>Remaining Purse:</span>
-                  <span className="font-bold font-mono text-emerald-400">
-                    {formatPrice(team.remainingPurse)}
-                  </span>
-                </div>
-              </div>
+              <button onClick={() => openEditModal(team)} aria-label={`Edit ${team.name}`} title="Edit" className="btn-icon"><Edit3 className="w-5 h-5" /></button>
+              <button onClick={async () => { if (await ask({ title: `Delete ${team.name}?`, confirmLabel: 'Delete', danger: true })) onDeleteTeam(team.id); }} aria-label={`Delete ${team.name}`} title="Delete" className="btn-icon hover:text-red-300"><Trash2 className="w-5 h-5" /></button>
             </div>
-
-            <div className="mt-5 pt-4 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">
-              <span>Theme Color:</span>
-              <div className="flex items-center gap-2">
-                <span className="w-4 h-4 rounded-full border border-white/20" style={{ backgroundColor: team.colorHex }} />
-                <span className="font-mono">{team.colorHex}</span>
-              </div>
+            <div className="mt-3 flex items-baseline justify-between gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Purse left</span>
+              <span className="score text-2xl text-white">{formatPrice(team.remainingPurse)} <span className="text-slate-500 text-lg">/ {formatPrice(team.totalPurse)}</span></span>
             </div>
-          </div>
-        ))}
+            <span className="mt-1.5 block h-1.5 rounded-full bg-white/10 overflow-hidden"><span className="block h-full rounded-full" style={{ width: `${left * 100}%`, backgroundColor: team.colorHex }} /></span>
+          </article>;
+        })}
       </div>
 
       {/* Add New Team Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-obsidian-950/85 backdrop-blur-md p-4 overflow-y-auto">
           <div className="relative max-w-lg w-full max-h-[90dvh] overflow-y-auto rounded-3xl p-6 bg-obsidian-900 border border-white/10 shadow-2xl">
-            <h3 className="text-2xl font-black text-white font-display mb-1">ADD FRANCHISE TEAM</h3>
-            <p className="text-xs text-slate-400 mb-6">Create a team with logo, custom color, and purse.</p>
+            <h3 className="font-display text-4xl font-extrabold uppercase text-white mb-4">Add team</h3>
 
             <form onSubmit={handleCreateTeam} className="space-y-4">
-              <div className="p-4 rounded-2xl bg-gold-500/5 border border-gold-400/20 space-y-3">
-                <label htmlFor="team-tournament-search" className="text-xs font-bold text-slate-300 block">Select Tournament</label>
-                <input
-                  id="team-tournament-search"
-                  type="search"
-                  placeholder="Search tournaments by name, season or year"
-                  value={tournamentSearch}
-                  onChange={(e) => setTournamentSearch(e.target.value)}
-                  className="w-full bg-obsidian-950 border border-white/10 rounded-xl px-3.5 py-2 text-sm text-white focus:border-gold-400 focus:outline-none"
-                />
-                <div role="group" aria-label="Available tournaments" className="max-h-36 overflow-y-auto space-y-2">
-                  {matchingTournaments.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      aria-pressed={selectedTournamentId === item.id}
-                      onClick={() => {
-                        setSelectedTournamentId(item.id);
-                        setPurse(item.totalPursePerTeam || item.rules?.pursePerTeam || 1000000);
-                        setRtm(item.rules?.rtmCardsPerTeam ?? 2);
-                      }}
-                      className={`w-full flex items-center justify-between gap-3 text-left rounded-xl px-3 py-2 border transition-colors ${selectedTournamentId === item.id ? 'border-gold-400 bg-gold-500/10 text-gold-300' : 'border-white/10 text-slate-300 hover:bg-white/5'}`}
-                    >
-                      <span><span className="block text-sm font-bold">{item.name}</span><span className="block text-xs opacity-75">{item.season} • {item.year}</span></span>
-                      {selectedTournamentId === item.id && <Check className="w-4 h-4 shrink-0" />}
-                    </button>
-                  ))}
-                  {matchingTournaments.length === 0 && <p className="text-xs text-slate-400 py-2">No tournaments found.</p>}
-                </div>
-                <p role="status" className="text-xs text-gold-300">
-                  {selectedTournament ? `Team will be saved to: ${selectedTournament.name} • ${selectedTournament.season} • ${selectedTournament.year}` : 'Select a tournament to create the team.'}
-                </p>
-              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-bold text-slate-300 block mb-1">Team Name</label>
@@ -436,8 +276,7 @@ export const TeamsManagerView: React.FC<TeamsManagerViewProps> = ({
                         className="hidden"
                       />
                     </label>
-                    <p className="text-[11px] text-slate-400">
-                      Upload transparent PNG for best 3D stage and screen display.
+                    <p className="text-[11px] text-slate-400">Transparent PNG looks best.
                     </p>
 
                     {/* Quick Emoji Presets */}
@@ -496,10 +335,10 @@ export const TeamsManagerView: React.FC<TeamsManagerViewProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">Owner Name</label>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">Owner</label>
                   <input
                     type="text"
-                    required
+                    
                     placeholder="e.g. Ramesh Bhai"
                     value={ownerName}
                     onChange={(e) => setOwnerName(e.target.value)}
@@ -508,7 +347,7 @@ export const TeamsManagerView: React.FC<TeamsManagerViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">Owner Mobile (Optional)</label>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">Owner mobile</label>
                   <input
                     type="tel"
                     placeholder="e.g. +91 98250 12345"
@@ -544,8 +383,7 @@ export const TeamsManagerView: React.FC<TeamsManagerViewProps> = ({
       {editingTeam && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-obsidian-950/85 backdrop-blur-md p-4 overflow-y-auto">
           <div className="relative max-w-lg w-full rounded-3xl p-6 bg-obsidian-900 border border-white/10 shadow-2xl">
-            <h3 className="text-2xl font-black text-white font-display mb-1">EDIT FRANCHISE TEAM</h3>
-            <p className="text-xs text-slate-400 mb-6">Update team logo, name, colors, and purse allocation.</p>
+            <h3 className="font-display text-4xl font-extrabold uppercase text-white mb-4">Edit team</h3>
 
             <form onSubmit={handleUpdateTeamSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -615,8 +453,7 @@ export const TeamsManagerView: React.FC<TeamsManagerViewProps> = ({
                         className="hidden"
                       />
                     </label>
-                    <p className="text-[11px] text-slate-400">
-                      Upload transparent PNG for best 3D stage and screen display.
+                    <p className="text-[11px] text-slate-400">Transparent PNG looks best.
                     </p>
 
                     {/* Quick Emoji Presets */}
@@ -675,7 +512,7 @@ export const TeamsManagerView: React.FC<TeamsManagerViewProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">Owner Name</label>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">Owner</label>
                   <input
                     type="text"
                     required
@@ -686,7 +523,7 @@ export const TeamsManagerView: React.FC<TeamsManagerViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">Owner Mobile (Optional)</label>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">Owner mobile</label>
                   <input
                     type="tel"
                     value={editOwnerMobile}

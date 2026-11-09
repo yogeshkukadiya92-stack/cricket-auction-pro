@@ -197,7 +197,7 @@ export const NetworkStatusBadge: React.FC = () => {
               <button
                 onClick={handleManualSync}
                 disabled={isManualSyncing || health.isSyncing}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 transition-all disabled:opacity-50"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs bg-gold-500 hover:bg-gold-400 text-slate-950 transition-all disabled:opacity-50"
               >
                 <RefreshCw
                   className={`w-3.5 h-3.5 ${isManualSyncing || health.isSyncing ? 'animate-spin' : ''}`}

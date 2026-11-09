@@ -6,7 +6,7 @@
  * - API requests (/api/*) are handled directly by IndexedDB + Local-First Sync Engine
  */
 
-const CACHE_NAME = 'cricket-auction-pro-shell-v3';
+const CACHE_NAME = 'cricket-auction-pro-shell-v4';
 
 const ASSETS_TO_CACHE = [
   '/',

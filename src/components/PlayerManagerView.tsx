@@ -1,3 +1,4 @@
+import { ask, copyText, Empty, Menu, notify, PageHead, publicLink } from '../ui/kit';
 import { PlayerRecycleBin } from './PlayerRecycleBin';
 import { PlayerAuctionHistory } from './PlayerAuctionHistory';
 import { PlayerCorrections } from './PlayerCorrections';
@@ -34,6 +35,7 @@ import {
   X,
   Copy,
   Users,
+  Share2,
 } from 'lucide-react';
 
 interface PlayerManagerViewProps {
@@ -49,10 +51,14 @@ interface PlayerManagerViewProps {
   onDeletePlayer: (playerId: string) => Promise<void>;
   onNavigateToFormBuilder?: () => void;
   onVerifyPayment?: (playerId: string) => void;
+  onOpenBulkUpload?: () => void;
 }
+
+const roleNames: Record<string, string> = { BATSMAN: 'Batsman', BOWLER: 'Bowler', ALL_ROUNDER: 'All-rounder', WICKET_KEEPER: 'Keeper' };
 
 export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
   teams,
+  onOpenBulkUpload,
   onCorrect,
   customFields = [],
   currency = 'INR',
@@ -95,32 +101,6 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
     }
   };
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleCsvFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target?.result as string;
-      if (text) {
-        const parsed = parseCsvToPlayers(text, players.length);
-        if (parsed.length > 0) {
-          if (onBulkAddPlayers) {
-            onBulkAddPlayers(parsed);
-          } else {
-            parsed.forEach((p) => onAddPlayer(p));
-          }
-          setCsvMessage(`Successfully imported ${parsed.length} players from CSV!`);
-          setTimeout(() => setCsvMessage(null), 4000);
-        } else {
-          alert('Could not parse any valid players from CSV. Please check the template format.');
-        }
-      }
-    };
-    reader.readAsText(file);
-    e.target.value = '';
-  };
 
   // Form State
   const [name, setName] = useState('');
@@ -214,8 +194,9 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
     const matchesRole = roleFilter === 'ALL' || p.role === roleFilter;
     const matchesStatus = statusFilter === 'ALL' || p.status === statusFilter;
     return matchesSearch && matchesRole && matchesStatus;
-  }), [players, searchTerm, roleFilter, statusFilter]);
+  }).sort((a, b) => (a.lotOrder || 0) - (b.lotOrder || 0)), [players, searchTerm, roleFilter, statusFilter]);
   const [visibleCount, setVisibleCount] = useState(48);
+  const [detailPlayerId, setDetailPlayerId] = useState<string | null>(null);
   useEffect(() => setVisibleCount(48), [searchTerm, roleFilter, statusFilter, tournamentId]);
 
   const formatPrice = (val: number) => {
@@ -223,429 +204,92 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
   };
 
   return (
-    <div className="space-y-6">
-      <PlayerRecycleBin key={tournamentId} tournamentId={tournamentId} playerCount={players.length} onRestore={id => onCorrect('RESTORE', id)} />
+    <div className="space-y-5">
+      <PageHead
+        title="Players"
+        count={players.length}
+        actions={<>
+          <Menu label="Share" icon={Share2} items={[
+            { label: 'Copy sign-up link', icon: Link, onClick: () => { void copyText(publicLink('register', tournamentId), 'Sign-up link copied'); } },
+            { label: 'Copy player list link', icon: Copy, onClick: () => { void copyText(publicLink('registrations', tournamentId), 'Player list link copied'); } },
+            { label: 'Open player list', icon: ExternalLink, href: publicLink('registrations', tournamentId) },
+            ...(onNavigateToFormBuilder ? [{ label: 'Edit sign-up form', icon: Sliders, onClick: onNavigateToFormBuilder }] : []),
+          ]} />
+          <Menu label={exportBusy ? 'Preparing…' : 'Excel'} icon={FileSpreadsheet} items={[
+            ...(onOpenBulkUpload ? [{ label: 'Import players', icon: FileUp, onClick: onOpenBulkUpload }] : []),
+            { label: 'Download Excel', icon: Download, disabled: exportBusy, onClick: () => { void runExport(); } },
+            { label: 'Download photos (ZIP)', icon: Download, disabled: exportBusy, onClick: () => { void runExport(true); } },
+          ]} />
+          <button onClick={() => setIsAddModalOpen(true)} className="btn btn-primary"><Plus className="w-4 h-4" />Add player</button>
+        </>}
+      />
       {deleteError && <p role="alert" className="text-sm text-red-300">{deleteError}</p>}
-      <PlayerCorrections tournamentId={tournamentId} players={players} teams={teams} onCorrect={onCorrect} />
-      {/* Top Banner and Quick Stats */}
-      <div className="p-6 rounded-3xl glass-panel border border-white/10 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-black text-white font-display flex items-center gap-2">
-            👥 PLAYER CATALOG & REGISTRATION
-          </h2>
-          <p className="text-xs text-slate-400 mt-1">
-            Unlimited player registration with high-res photo cards and dynamic stats.
-          </p>
-        </div>
+      {exportError && <p role="status" className="text-sm text-amber-300">{exportError}</p>}
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          {/* Hidden File Input for CSV */}
-          <input
-            type="file"
-            ref={fileInputRef}
-            accept=".csv,text/csv"
-            onChange={handleCsvFileUpload}
-            className="hidden"
-          />
-
-          <button
-            onClick={() => downloadSampleCsvTemplate()}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition-all"
-            title="Download CSV Template to fill your player records"
-          >
-            <Download className="w-3.5 h-3.5 text-gold-400" />
-            CSV Template
-          </button>
-
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/15 text-white border border-white/10 transition-all active:scale-95"
-            title="Upload CSV with hundreds of players"
-          >
-            <FileUp className="w-4 h-4 text-electric-cyan" />
-            Import CSV
-          </button>
-
-          <button
-            onClick={() => void runExport()}
-            disabled={exportBusy}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition-all"
-            title="Download all registration fields and embedded photos as Excel"
-          >
-            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
-            {exportBusy ? 'Preparing…' : 'Download Excel'}
-          </button>
-
-          <button disabled={exportBusy} onClick={() => void runExport(true)} className="px-3 py-2 rounded-xl text-xs bg-white/10 text-white">Download Photos ZIP</button>
-          <button
-            onClick={async () => {
-              try {
-                const url = new URL(window.location.pathname, window.location.origin);
-                url.searchParams.set('mode', 'registrations');
-                url.searchParams.set('tournamentId', tournamentId);
-                await navigator.clipboard.writeText(url.toString());
-                setExportError('✅ Public registrations link copied — anyone can view without login!');
-              } catch {
-                setExportError('Could not copy link.');
-              }
-            }}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 transition-all active:scale-95 shadow-sm"
-            title="Public registration directory link — no login needed"
-          >
-            <Eye className="w-3.5 h-3.5 text-cyan-400" />
-            Share Registrations Link (No Login)
-          </button>
-          {exportError && <p role="status" className="text-xs text-amber-300">{exportError}</p>}
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-black text-xs bg-gold-500 hover:bg-gold-400 text-black shadow-glow-gold active:scale-95 transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            Register Player
-          </button>
+      {/* Search and one-tap filters */}
+      <div className="space-y-2.5">
+        <label className="relative block max-w-md"><span className="sr-only">Search players</span>
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input type="search" placeholder="Search by name" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="field pl-9" />
+        </label>
+        <div className="flex gap-1.5 overflow-x-auto cap-scroll-hide pb-1">
+          {([['ALL', 'All', players.length], ['AVAILABLE', 'Waiting', players.filter(p => p.status === 'AVAILABLE').length], ['SOLD', 'Sold', players.filter(p => p.status === 'SOLD').length], ['UNSOLD', 'Unsold', players.filter(p => p.status === 'UNSOLD').length]] as const).map(([value, label, count]) => <button key={value} onClick={() => setStatusFilter(value)} aria-pressed={statusFilter === value} className={`btn min-h-9 px-3 shrink-0 ${statusFilter === value ? 'bg-white text-black' : 'btn-ghost'}`}>{label} <span className="opacity-60">{count}</span></button>)}
+          <span aria-hidden className="w-px shrink-0 bg-white/10 mx-1" />
+          {([['ALL', 'All roles'], ['BATSMAN', 'Batsman'], ['BOWLER', 'Bowler'], ['ALL_ROUNDER', 'All-rounder'], ['WICKET_KEEPER', 'Keeper']] as const).map(([value, label]) => <button key={value} onClick={() => setRoleFilter(value)} aria-pressed={roleFilter === value} className={`btn min-h-9 px-3 shrink-0 ${roleFilter === value ? 'bg-white text-black' : 'btn-ghost'}`}>{label}</button>)}
         </div>
       </div>
 
-      {/* CSV Success Toast */}
-      {csvMessage && (
-        <div className="p-3.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-2 animate-in fade-in">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-          {csvMessage}
-        </div>
-      )}
-
-      {/* Online Registration Share Hub Banner */}
-      <div className="p-5 rounded-3xl bg-gradient-to-r from-obsidian-900 via-obsidian-850 to-obsidian-900 border border-gold-400/30 shadow-glow-gold flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="p-3 rounded-2xl bg-gold-500/15 border border-gold-400/30 text-gold-400 shadow">
-            <Link className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h4 className="text-base font-black text-white font-display">
-                Player Online Self-Registration Link
-              </h4>
-              <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                ACTIVE
-              </span>
-            </div>
-            <p className="text-xs text-slate-300 mt-0.5">
-              Share this link in WhatsApp groups so players can self-register with photos, cricket stats, and fees.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          <button
-            onClick={() => {
-              const url = `${window.location.origin}${window.location.pathname}?mode=register&tournamentId=${encodeURIComponent(tournamentId)}`;
-              navigator.clipboard.writeText(url);
-              alert('✅ Player registration link copied to clipboard!');
-            }}
-            className="px-4 py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/15 text-white border border-white/10 active:scale-95 transition-all"
-          >
-            Copy Public Link
-          </button>
-
-          {onNavigateToFormBuilder && (
-            <button
-              onClick={onNavigateToFormBuilder}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black bg-gold-500 hover:bg-gold-400 text-black shadow-glow-gold active:scale-95 transition-all"
-            >
-              <Sliders className="w-3.5 h-3.5" />
-              Customize Form (Google Forms)
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Public Registrations Directory Banner (No Login Required) */}
-      <div className="p-5 rounded-3xl bg-gradient-to-r from-obsidian-900 via-obsidian-850 to-obsidian-900 border border-cyan-500/30 shadow-glow-cyan flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="p-3 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 shadow">
-            <Users className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h4 className="text-base font-black text-white font-display">
-                Public Registered Players List
-              </h4>
-              <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                NO LOGIN REQUIRED • જાહેર લિંક
-              </span>
-            </div>
-            <p className="text-xs text-slate-300 mt-0.5">
-              Share this link so players, team owners, and spectators can see who and how many have registered without needing an account.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          <button
-            onClick={() => {
-              const url = `${window.location.origin}${window.location.pathname}?mode=registrations&tournamentId=${encodeURIComponent(tournamentId)}`;
-              navigator.clipboard.writeText(url);
-              setExportError('✅ Public registrations link copied — anyone can view without login!');
-              alert('✅ Public registrations link copied! Anyone can view without login.');
-            }}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-200 border border-cyan-500/40 active:scale-95 transition-all"
-          >
-            <Copy className="w-3.5 h-3.5" />
-            Copy Public Link
-          </button>
-
-          <a
-            href={`/?mode=registrations&tournamentId=${encodeURIComponent(tournamentId)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-md transition-all active:scale-95"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-            Preview List ↗
-          </a>
-        </div>
-      </div>
-
-      <p className="text-sm text-emerald-400">All Registered Players ({players.length}) • Automatically approved</p>
-
-      {/* Filter and Search Bar */}
-      <div className="p-4 rounded-2xl glass-panel border border-white/10 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-2 bg-obsidian-900 border border-white/10 px-3.5 py-2 rounded-xl w-full sm:w-72">
-          <Search className="w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search player name..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="bg-transparent text-xs text-white placeholder-slate-500 focus:outline-none w-full"
-          />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-1.5 text-xs text-slate-400">
-            <Filter className="w-3.5 h-3.5" />
-            <span>Role:</span>
-            <select
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              className="bg-obsidian-900 border border-white/10 rounded-lg px-2.5 py-1 text-white font-semibold text-xs"
-            >
-              <option value="ALL">All Roles</option>
-              <option value="BATSMAN">Batsman</option>
-              <option value="BOWLER">Bowler</option>
-              <option value="ALL_ROUNDER">All-Rounder</option>
-              <option value="WICKET_KEEPER">Wicket Keeper</option>
-            </select>
-          </div>
-
-          <div className="flex items-center gap-1.5 text-xs text-slate-400">
-            <span>Status:</span>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-obsidian-900 border border-white/10 rounded-lg px-2.5 py-1 text-white font-semibold text-xs"
-            >
-              <option value="ALL">All Status</option>
-              <option value="AVAILABLE">Available</option>
-              <option value="SOLD">Sold</option>
-              <option value="UNSOLD">Unsold</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Players Grid or Empty State */}
-      {filteredPlayers.length > visibleCount && <button onClick={() => setVisibleCount(n => n + 48)} className="px-4 py-2 rounded-xl bg-white/10 text-sm">Show more players ({Math.min(visibleCount, filteredPlayers.length)} of {filteredPlayers.length})</button>}
       {filteredPlayers.length === 0 ? (
-        <div className="p-12 lg:p-16 rounded-3xl glass-panel border border-white/10 text-center space-y-4 max-w-xl mx-auto my-6">
-          <div className="w-20 h-20 rounded-3xl bg-gold-500/10 border border-gold-400/20 mx-auto flex items-center justify-center text-3xl shadow-glow-gold">
-            🏏
-          </div>
-          <h3 className="text-2xl font-black text-white font-display">
-            No Players Found
-          </h3>
-          <p className="text-xs text-slate-400 leading-relaxed">
-            No players have been added to your live auction yet. Share the registration link with players, import via CSV, or add players manually.
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-            {onNavigateToFormBuilder && (
-              <button
-                onClick={onNavigateToFormBuilder}
-                className="px-4 py-2.5 rounded-xl text-xs font-black bg-gold-500 hover:bg-gold-400 text-black shadow-glow-gold active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
-              >
-                <Link className="w-3.5 h-3.5" />
-                View Registration Link & QR
-              </button>
-            )}
-            <button
-              onClick={() => setIsAddModalOpen(true)}
-              className="px-4 py-2.5 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/15 text-white border border-white/10 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Add New Player
-            </button>
-          </div>
-        </div>
+        <Empty icon={Users} title={players.length ? 'No match' : 'No players yet'} actions={!players.length && <>
+          <button onClick={() => setIsAddModalOpen(true)} className="btn btn-primary"><Plus className="w-4 h-4" />Add player</button>
+          {onOpenBulkUpload && <button onClick={onOpenBulkUpload} className="btn btn-ghost"><FileUp className="w-4 h-4" />Import Excel</button>}
+          <button onClick={() => { void copyText(publicLink('register', tournamentId), 'Sign-up link copied'); }} className="btn btn-ghost"><Link className="w-4 h-4" />Copy sign-up link</button>
+        </>} />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {filteredPlayers.slice(0, visibleCount).map((player) => (
-          <div
-            key={player.id}
-            className="rounded-2xl border border-white/10 bg-obsidian-900/80 p-4 flex flex-col justify-between hover:border-gold-400/40 transition-all group"
-          >
-            <div>
-              <div className="relative w-full h-44 rounded-xl overflow-hidden mb-3 bg-obsidian-950">
-                <img decoding="async" loading="lazy"
-                  src={player.photoUrl || "/player-placeholder.svg"}
-                  alt={player.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-black bg-obsidian-950/80 backdrop-blur-md text-white border border-white/10">
-                  LOT #{player.lotOrder}
-                </span>
-                {player.category === 'MARQUEE' && (
-                  <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-gold-500 text-black shadow">
-                    ★ MARQUEE
-                  </span>
-                )}
-                {/* Status Badge */}
-                <div className="absolute bottom-2 left-2">
-                  {player.status === 'SOLD' && (
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500 text-black flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> SOLD
-                    </span>
-                  )}
-                  {player.status === 'UNSOLD' && (
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-500 text-white flex items-center gap-1">
-                      <XCircle className="w-3 h-3" /> UNSOLD
-                    </span>
-                  )}
-                  {player.status === 'AVAILABLE' && (
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/80 text-white flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> UPCOMING
-                    </span>
-                  )}
-                </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3">
+          {filteredPlayers.slice(0, visibleCount).map((player) => {
+            const soldTeam = teams.find((team) => team.id === player.soldToTeamId);
+            return <article key={player.id} className="tile flex flex-col">
+              <div className="relative aspect-[4/3] overflow-hidden bg-obsidian-950">
+                <img decoding="async" loading="lazy" src={player.photoUrl || '/player-placeholder.svg'} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                <span className="absolute top-1.5 left-1.5 rounded-md bg-obsidian-950/85 px-1.5 py-0.5 text-[11px] font-extrabold text-white">{player.category === 'MARQUEE' ? '★ ' : ''}#{player.lotOrder}</span>
+                {player.status !== 'AVAILABLE' && <span className={`absolute top-1.5 right-1.5 rounded-md px-1.5 py-0.5 text-[11px] font-extrabold uppercase ${player.status === 'SOLD' ? 'bg-emerald-500 text-black' : player.status === 'UNSOLD' ? 'bg-red-500 text-white' : 'bg-gold-500 text-black'}`}>{player.status === 'SOLD' ? 'Sold' : player.status === 'UNSOLD' ? 'Unsold' : 'On block'}</span>}
               </div>
-
-              <h4 className="text-lg font-black text-white truncate font-display">{player.name}</h4>
-              <p className="text-xs text-gold-400 font-semibold mb-2">{player.role}</p>
-
-              <div className="grid grid-cols-3 gap-1 text-center py-2 border-t border-white/5 text-[11px]">
-                <div className="bg-white/[0.02] p-1 rounded-lg">
-                  <span className="text-slate-400 block text-[9px]">RUNS</span>
-                  <span className="font-bold text-white">{player.stats.runs}</span>
-                </div>
-                <div className="bg-white/[0.02] p-1 rounded-lg">
-                  <span className="text-slate-400 block text-[9px]">WKTS</span>
-                  <span className="font-bold text-electric-cyan">{player.stats.wickets}</span>
-                </div>
-                <div className="bg-white/[0.02] p-1 rounded-lg">
-                  <span className="text-slate-400 block text-[9px]">S.R.</span>
-                  <span className="font-bold text-emerald-400">{player.stats.strikeRate}</span>
-                </div>
-              </div>
-              <details className="mt-3 border-t border-white/10 pt-2 text-xs">
-                <summary className="cursor-pointer text-amber-300">Full registration details & photos</summary>
-                <div className="space-y-2 mt-3 break-words">
-                  {Object.entries(player).filter(([k]) => !['photoUrl', 'paymentScreenshotUrl', 'customData', 'stats'].includes(k)).map(([k, v]) => <p key={k}><span className="text-slate-400">{k}: </span>{String(v ?? '')}</p>)}
-                  {Object.entries(player.customData || {}).map(([k, v]) => <div key={k}><span className="text-slate-400">{customFields.find(f => f.id === k)?.label || k}: </span>{typeof v === 'string' && (v.startsWith('data:image/') || /^\/api\/tournaments\/.+\/media\/custom\//.test(v)) ? <a href={v} download={`${player.id}_${k}.png`} className="text-amber-300">Download uploaded image</a> : <span>{typeof v === 'object' ? JSON.stringify(v) : String(v ?? '')}</span>}</div>)}
-                  {player.photoUrl && <a href={player.photoUrl} download={`${player.id}_player-photo`} className="block text-amber-300">Download player photo</a>}
-                  {player.paymentScreenshotUrl && <a href={player.paymentScreenshotUrl} download={`${player.id}_payment-receipt`} className="block text-amber-300">Download payment screenshot<img decoding="async" src={player.paymentScreenshotUrl} alt="Payment screenshot" loading="lazy" className="mt-2 max-h-64 rounded-lg" /></a>}
-                </div>
-              </details>
-              <PlayerAuctionHistory tournamentId={tournamentId} playerId={player.id} />
-              {/* Custom Form Data Preview */}
-              {player.customData && Object.keys(player.customData).length > 0 && (
-                <div className="mt-2.5 pt-2 border-t border-white/5 space-y-1">
-                  {player.customData.jersey_size && (
-                    <div className="flex justify-between text-[10px] text-slate-400">
-                      <span>Jersey:</span>
-                      <span className="font-bold text-white font-mono">{player.customData.jersey_size}</span>
-                    </div>
-                  )}
-                  {player.customData.player_city && (
-                    <div className="flex justify-between text-[10px] text-slate-400">
-                      <span>City:</span>
-                      <span className="font-bold text-white">{player.customData.player_city}</span>
-                    </div>
-                  )}
-                  {player.mobile && (
-                    <div className="flex justify-between text-[10px] text-slate-400">
-                      <span>Mobile:</span>
-                      <span className="font-mono text-slate-300">{player.mobile}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div className="mt-3 pt-3 border-t border-white/10 space-y-2">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">
-                    {player.status === 'SOLD' ? 'Sold Price' : 'Base Price'}
-                  </span>
-                  <span className="text-sm font-black text-white font-mono">
-                    {player.status === 'SOLD' ? formatPrice(player.soldPrice || 0) : formatPrice(player.basePrice)}
+              <div className="p-3 flex-1 flex flex-col">
+                <h2 className="font-display text-2xl font-extrabold uppercase leading-none text-white truncate">{player.name}</h2>
+                <p className="mt-1 text-xs font-semibold text-slate-400 truncate">{roleNames[player.role] || player.role}{player.status === 'SOLD' && soldTeam ? ` · ${soldTeam.shortCode || soldTeam.name}` : ''}</p>
+                <div className="mt-2 flex items-center justify-between gap-1">
+                  <span className="score text-xl text-white truncate">{formatPrice(player.status === 'SOLD' ? player.soldPrice || 0 : player.basePrice)}</span>
+                  <span className="flex shrink-0">
+                    {player.paymentScreenshotUrl && <button type="button" onClick={() => setSelectedReceiptPlayer(player)} aria-label={`Payment receipt of ${player.name}`} title="Payment receipt" className={`btn-icon w-8 h-8 ${player.paymentStatus === 'VERIFIED' ? 'text-emerald-400' : 'text-amber-300'}`}><Eye className="w-4 h-4" /></button>}
+                    <button type="button" onClick={() => setDetailPlayerId(detailPlayerId === player.id ? null : player.id)} aria-expanded={detailPlayerId === player.id} aria-label={`Details of ${player.name}`} title="Details" className="btn-icon w-8 h-8"><Sliders className="w-4 h-4" /></button>
+                    <button disabled={!!deletingPlayer} onClick={() => void removePlayer(player.id)} aria-label={`Move ${player.name} to recycle bin`} title="Move to recycle bin" className="btn-icon w-8 h-8 hover:text-red-300"><Trash2 className="w-4 h-4" /></button>
                   </span>
                 </div>
-                <button
-                  disabled={!!deletingPlayer}
-                  onClick={() => void removePlayer(player.id)}
-                  className="p-2 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                  title="Move to Recycle Bin"
-                  aria-label={`Move ${player.name} to Recycle Bin`}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                {player.paymentStatus && player.paymentStatus !== 'EXEMPT' && player.paymentStatus !== 'VERIFIED' && !player.paymentScreenshotUrl && <p className="mt-1 text-[11px] font-bold text-amber-300">Fee pending</p>}
+                {detailPlayerId === player.id && <div className="cap-rise mt-2 pt-2 border-t border-white/10 space-y-1 text-xs break-words">
+                  {[['Mobile', player.mobile], ['Email', player.email], ['City', player.city], ['Batting', player.battingStyle], ['Bowling', player.bowlingStyle], ['Matches', player.stats.matches], ['Runs', player.stats.runs], ['Wickets', player.stats.wickets], ['Strike rate', player.stats.strikeRate], ['Base price', formatPrice(player.basePrice)], ['UTR', player.paymentUtr]].filter(([, value]) => value !== undefined && value !== '').map(([label, value]) => <p key={String(label)} className="flex justify-between gap-2"><span className="text-slate-400">{label}</span><span className="font-semibold text-white text-right">{String(value)}</span></p>)}
+                  {Object.entries(player.customData || {}).map(([key, value]) => <p key={key} className="flex justify-between gap-2"><span className="text-slate-400">{customFields.find(f => f.id === key)?.label || key}</span>{typeof value === 'string' && (value.startsWith('data:image/') || /^\/api\/tournaments\/.+\/media\/custom\//.test(value)) ? <a href={value} download={`${player.id}_${key}.png`} className="font-bold text-gold-400">Download</a> : <span className="font-semibold text-white text-right">{typeof value === 'object' ? JSON.stringify(value) : String(value ?? '')}</span>}</p>)}
+                  {player.photoUrl && !player.photoUrl.includes('player-placeholder') && <a href={player.photoUrl} download={`${player.id}_player-photo`} className="block pt-1 font-bold text-gold-400">Download photo</a>}
+                  <PlayerAuctionHistory tournamentId={tournamentId} playerId={player.id} />
+                </div>}
               </div>
-
-              {/* Payment Verification Badge & View Receipt */}
-              {(player.paymentScreenshotUrl || player.paymentUtr || player.paymentStatus) && (
-                <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[11px]">
-                  <div className="flex items-center gap-1.5">
-                    <span
-                      className={`w-2 h-2 rounded-full ${
-                        player.paymentStatus === 'PAID' ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
-                      }`}
-                    />
-                    <span className="font-bold text-slate-300">
-                      {player.paymentStatus === 'VERIFIED' ? 'Payment Verified' : player.paymentScreenshotUrl ? 'Receipt Submitted' : 'Fee Pending'}
-                    </span>
-                    {player.paymentUtr && (
-                      <span className="text-[10px] text-slate-500 font-mono hidden sm:inline">
-                        (UTR: {player.paymentUtr.slice(0, 6)}..)
-                      </span>
-                    )}
-                  </div>
-                  {player.paymentScreenshotUrl && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedReceiptPlayer(player)}
-                      className="px-2 py-0.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 font-bold text-[10px] transition-all cursor-pointer"
-                      title="Verify payment screenshot and UTR"
-                    >
-                      <Eye className="w-3 h-3" />
-                      <span>Receipt</span>
-                    </button>
-                  )}
-                </div>
-              )}
-
-
-            </div>
-          </div>
-        ))}
+            </article>;
+          })}
         </div>
       )}
+      {filteredPlayers.length > visibleCount && <button onClick={() => setVisibleCount(n => n + 48)} className="btn btn-ghost w-full">Show more ({filteredPlayers.length - visibleCount})</button>}
+
+      <div className="grid gap-3 lg:grid-cols-2 items-start">
+        <PlayerCorrections tournamentId={tournamentId} players={players} teams={teams} onCorrect={onCorrect} />
+        <PlayerRecycleBin key={tournamentId} tournamentId={tournamentId} playerCount={players.length} onRestore={id => onCorrect('RESTORE', id)} />
+      </div>
 
       {/* Add New Player Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-obsidian-950/85 backdrop-blur-md p-4 overflow-y-auto">
           <div className="relative max-w-xl w-full rounded-3xl p-6 bg-obsidian-900 border border-white/10 shadow-2xl my-8">
-            <h3 className="text-2xl font-black text-white font-display mb-1">REGISTER CRICKET PLAYER</h3>
-            <p className="text-xs text-slate-400 mb-6">Fill in player profile, role, base price and upload photo.</p>
+            <h3 className="font-display text-4xl font-extrabold uppercase text-white mb-4">Add player</h3>
 
             <form onSubmit={handleCreatePlayer} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -898,7 +542,7 @@ export const PlayerManagerView: React.FC<PlayerManagerViewProps> = ({
                           type="button"
                           onClick={() => {
                             navigator.clipboard.writeText(selectedReceiptPlayer.paymentUtr || '');
-                            alert('UTR copied to clipboard!');
+                            notify('UTR copied', 'ok');
                           }}
                           className="text-[10px] text-gold-400 hover:underline cursor-pointer"
                         >

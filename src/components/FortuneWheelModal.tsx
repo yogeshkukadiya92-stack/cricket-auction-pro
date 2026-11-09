@@ -290,7 +290,7 @@ export const FortuneWheelModal: React.FC<FortuneWheelModalProps> = ({
         {/* Modal Header */}
         <div className="relative p-5 pb-3 flex items-center justify-between border-b border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-amber-500/20">
+            <div className="w-10 h-10 rounded-xl bg-gold-500 flex items-center justify-center text-slate-950 font-black">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
@@ -303,7 +303,7 @@ export const FortuneWheelModal: React.FC<FortuneWheelModalProps> = ({
                 </span>
               </div>
               <p className="text-xs text-slate-400">
-                Spin the wheel for random team draft order, tie-breakers, or lottery picks
+                
               </p>
             </div>
           </div>
@@ -326,7 +326,7 @@ export const FortuneWheelModal: React.FC<FortuneWheelModalProps> = ({
               }}
               className={`px-3 py-1.5 rounded-lg font-bold transition ${
                 wheelMode === 'TEAMS'
-                  ? 'bg-amber-500 text-slate-950 shadow-md'
+                  ? 'bg-gold-500 text-slate-950 shadow-md'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -339,7 +339,7 @@ export const FortuneWheelModal: React.FC<FortuneWheelModalProps> = ({
               }}
               className={`px-3 py-1.5 rounded-lg font-bold transition ${
                 wheelMode === 'PLAYERS'
-                  ? 'bg-amber-500 text-slate-950 shadow-md'
+                  ? 'bg-gold-500 text-slate-950 shadow-md'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -375,7 +375,7 @@ export const FortuneWheelModal: React.FC<FortuneWheelModalProps> = ({
           <div className="relative flex flex-col items-center">
             {/* Pointer Needle at Top */}
             <div className="relative z-20 -mb-3 flex flex-col items-center">
-              <div className="w-0 h-0 border-l-[14px] border-l-transparent border-r-[14px] border-r-transparent border-t-[22px] border-t-amber-400 drop-shadow-[0_4px_8px_rgba(245,158,11,0.6)] animate-bounce" />
+              <div className="w-0 h-0 border-l-[14px] border-l-transparent border-r-[14px] border-r-transparent border-t-[22px] border-t-amber-400 drop-shadow-[0_4px_8px_rgba(245,158,11,0.6)] " />
             </div>
 
             {/* Canvas Wheel */}
@@ -393,7 +393,7 @@ export const FortuneWheelModal: React.FC<FortuneWheelModalProps> = ({
             <button
               onClick={spinWheel}
               disabled={isSpinning || availableSectors.length === 0}
-              className="mt-5 px-8 py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 disabled:opacity-50 text-slate-950 font-black rounded-2xl shadow-xl shadow-amber-500/25 text-sm uppercase tracking-wider flex items-center gap-2 transition active:scale-95 cursor-pointer"
+              className="mt-5 px-8 py-3 bg-gold-500 hover:bg-gold-400 disabled:opacity-50 text-slate-950 font-black rounded-2xl shadow-xl shadow-amber-500/25 text-sm uppercase tracking-wider flex items-center gap-2 transition active:scale-95 cursor-pointer"
             >
               <RotateCw className={`w-4 h-4 ${isSpinning ? 'animate-spin' : ''}`} />
               <span>{isSpinning ? 'Spinning...' : 'SPIN THE WHEEL'}</span>
@@ -404,7 +404,7 @@ export const FortuneWheelModal: React.FC<FortuneWheelModalProps> = ({
           <div className="w-full md:w-64 space-y-4">
             {winner ? (
               <div className="p-5 bg-gradient-to-b from-amber-500/20 to-slate-950 border-2 border-amber-500/60 rounded-2xl text-center space-y-2.5 animate-zoomIn shadow-xl">
-                <div className="inline-flex p-2 bg-amber-500 text-slate-950 rounded-xl font-bold text-xs uppercase tracking-wider">
+                <div className="inline-flex p-2 bg-gold-500 text-slate-950 rounded-xl font-bold text-xs uppercase tracking-wider">
                   🎉 Selected Winner
                 </div>
 
@@ -422,7 +422,7 @@ export const FortuneWheelModal: React.FC<FortuneWheelModalProps> = ({
                       onSelectPlayer(winner.data);
                       onClose();
                     }}
-                    className="w-full mt-2 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-black transition"
+                    className="w-full mt-2 py-2 bg-gold-500 hover:bg-gold-400 text-slate-950 rounded-xl text-xs font-black transition"
                   >
                     Send to Auction Floor &rarr;
                   </button>

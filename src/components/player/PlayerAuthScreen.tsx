@@ -91,7 +91,7 @@ export const PlayerAuthScreen: React.FC<PlayerAuthScreenProps> = ({ onSignedIn, 
           className="w-full max-w-md preserve-3d transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
         >
           <div className="text-center mb-8">
-            <div className="mx-auto mb-5 w-20 h-20 rounded-3xl bg-gradient-to-br from-gold-400 to-gold-600 grid place-items-center text-4xl shadow-glow-gold animate-float">🏏</div>
+            <div className="mx-auto mb-5 w-20 h-20 rounded-3xl bg-gold-500 grid place-items-center text-4xl shadow-glow-gold animate-float">🏏</div>
             <h1 className="font-display text-3xl font-black tracking-tight bg-gradient-to-r from-gold-400 via-amber-200 to-white bg-clip-text text-transparent">
               Player Login
             </h1>
@@ -171,7 +171,7 @@ export const PlayerAuthScreen: React.FC<PlayerAuthScreenProps> = ({ onSignedIn, 
 const SubmitButton: React.FC<{ id: string; busy: boolean; disabled?: boolean; children: React.ReactNode }> = ({ id, busy, disabled, children }) => (
   <button
     id={id} type="submit" disabled={busy || disabled}
-    className="group relative w-full overflow-hidden rounded-2xl bg-gradient-to-r from-gold-400 to-gold-600 py-4 font-display text-base font-black text-obsidian-950 shadow-glow-gold transition active:scale-[0.98] disabled:opacity-50 disabled:shadow-none"
+    className="group relative w-full overflow-hidden rounded-2xl bg-gold-500 py-4 font-display text-base font-black text-obsidian-950 shadow-glow-gold transition active:scale-[0.98] disabled:opacity-50 disabled:shadow-none"
   >
     <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
     <span className="relative inline-flex items-center justify-center gap-2">

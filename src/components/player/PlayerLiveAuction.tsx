@@ -68,7 +68,7 @@ export const PlayerLiveAuction: React.FC<PlayerLiveAuctionProps> = ({ tournament
   return (
     <div className="relative">
       <div className="sticky top-0 z-50" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-        <div className="flex items-center gap-3 px-4 py-2.5 bg-obsidian-950/80 backdrop-blur-xl border-b border-white/5">
+        <div className="flex items-center gap-3 px-4 py-2.5 bg-obsidian-950/80  border-b border-white/5">
           <button
             type="button"
             id="player-live-back"

@@ -11,6 +11,13 @@ export const CSV_SAMPLE_ROWS = [
   'Mohit Sharma,BOWLER,SET_B,40000,Right Hand,Right Arm Fast Medium,110,95,124,102.0,https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=500,+919876543214',
 ].join('\n');
 
+/** Quotes a CSV value and stops spreadsheet apps from running it as a formula. */
+export function csvCell(value: unknown): string {
+  const text = value == null ? '' : String(value);
+  const safe = /^[=+\-@\t\r]/.test(text) && !/^[+-]?\d[\d\s.,]*$/.test(text) ? `'${text}` : text;
+  return `"${safe.replace(/"/g, '""')}"`;
+}
+
 export function downloadSampleCsvTemplate() {
   const content = `${CSV_SAMPLE_HEADER}\n${CSV_SAMPLE_ROWS}`;
   const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
@@ -26,18 +33,18 @@ export function downloadSampleCsvTemplate() {
 
 export function exportPlayersToCsv(players: Player[]) {
   const rows = players.map((p) => [
-    `"${p.name.replace(/"/g, '""')}"`,
+    csvCell(p.name),
     p.role,
     p.category,
     p.basePrice,
-    `"${(p.battingStyle || '').replace(/"/g, '""')}"`,
-    `"${(p.bowlingStyle || '').replace(/"/g, '""')}"`,
+    csvCell(p.battingStyle),
+    csvCell(p.bowlingStyle),
     p.stats.matches,
     p.stats.runs,
     p.stats.wickets,
     p.stats.strikeRate,
-    `"${p.photoUrl}"`,
-    `"${p.mobile || ''}"`,
+    csvCell(p.photoUrl),
+    csvCell(p.mobile),
     p.status,
     p.soldPrice || '',
   ]);

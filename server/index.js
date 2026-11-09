@@ -30,7 +30,13 @@ app.disable('x-powered-by');
 // Compress large bootstrap responses and static bundles during transfer.
 app.use(compression({ threshold: 1024 }));
 app.set('trust proxy', 1);
+// Backups embed uploaded photos, so a restore can be far larger than a normal save.
+app.use('/api/db/import', express.json({ limit: '200mb' }));
 app.use(express.json({ limit: '6mb' }));
+app.use((_req, res, next) => {
+  res.set({ 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'Permissions-Policy': 'camera=(), microphone=(), geolocation=()' });
+  next();
+});
 app.use(cookieParser());
 const cookieName = '__Host-cap_session';
 const hashToken = (value) => createHash('sha256').update(value).digest('hex');
@@ -105,13 +111,18 @@ async function savePlayerProfile(client, player) {
   await client.query("INSERT INTO player_profiles(mobile,data) VALUES($1,$2) ON CONFLICT(mobile) DO UPDATE SET data=excluded.data,updated_at=now() WHERE excluded.data->>'registeredAt' >= coalesce(player_profiles.data->>'registeredAt','') AND player_profiles.data IS DISTINCT FROM excluded.data", [mobile, data]);
 }
 
+// Each route has its own budget per address. Everyone at a venue often shares one
+// public IP, so a crowd registering must not lock the organizer out of signing in.
+const openRouteLimit = /registration-check|\/register$|player-profile/;
 function limit(req, res, next) {
   const now = Date.now();
-  const key = req.ip;
+  if (rate.size > 50_000) for (const [key, entry] of rate) if (now > entry.reset) rate.delete(key);
+  const route = req.route?.path || req.path;
+  const key = `${req.ip}|${route}`;
   const entry = rate.get(key) || { count: 0, reset: now + 15 * 60_000 };
   if (now > entry.reset) { entry.count = 0; entry.reset = now + 15 * 60_000; }
   rate.set(key, entry);
-  if (++entry.count > 30) return bad(res, 429, 'Too many attempts. Please try later.');
+  if (++entry.count > (openRouteLimit.test(route) ? 600 : 30)) return bad(res, 429, 'Too many attempts. Please try later.');
   next();
 }
 
@@ -203,6 +214,7 @@ app.get('/api/admin/stats', requireUser, requireAdmin, async (_req, res) => {
 });
 
 app.post('/api/admin/toggle-user', requireUser, requireAdmin, async (req, res) => {
+  if (!/^[0-9a-f-]{36}$/i.test(String(req.body?.userId || ''))) return bad(res, 400, 'Invalid organizer');
   const result = await pool.query(`UPDATE organizers SET status=CASE WHEN status='ACTIVE' THEN 'BLOCKED' ELSE 'ACTIVE' END
     WHERE id=$1 AND role='ORGANIZER' RETURNING status`, [req.body?.userId]);
   if (!result.rowCount) return bad(res, 404, 'Organizer not found');
@@ -340,7 +352,8 @@ app.post('/api/db/sync', requireUser, async (req, res) => {
 });
 
 app.delete('/api/tournaments/:id', requireUser, async (req, res) => {
-  await pool.query("DELETE FROM tournaments WHERE id=$1 AND (organizer_id=$2 OR EXISTS (SELECT 1 FROM organizers WHERE id=$2 AND role='ADMIN'))", [req.params.id, req.user.id]);
+  const removed = await pool.query("DELETE FROM tournaments WHERE id=$1 AND (organizer_id=$2 OR EXISTS (SELECT 1 FROM organizers WHERE id=$2 AND role='ADMIN'))", [req.params.id, req.user.id]);
+  if (!removed.rowCount) return bad(res, 404, 'Tournament not found');
   res.json({ success: true });
 });
 for (const [route, table] of [['teams', 'teams'], ['players', 'players']]) {
@@ -460,4 +473,5 @@ mountStaticFrontend(app, dist);
 app.use((error, _req, res, _next) => { if (!error.status || error.status >= 500) console.error(error); bad(res, error.status || 500, error.status ? error.message : 'Server error'); });
 
 await migrate();
+await pool.query('DELETE FROM sessions WHERE expires_at<now()');
 app.listen(Number(process.env.PORT || 3000), '0.0.0.0', () => console.log('Cricket Auction Pro ready'));

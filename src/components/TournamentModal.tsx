@@ -1,3 +1,5 @@
+import { Hint } from '../ui/kit';
+import { notify } from '../ui/kit';
 import { registrationPayment } from '../../shared/registrationPayment.js';
 import React, { useState, useEffect } from 'react';
 import { initialRules } from '../mockData';
@@ -138,7 +140,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        alert('Please choose an image under 5MB');
+        notify('Choose an image under 5 MB.', 'warn');
         return;
       }
       processUploadedImage(file, 360, (dataUrl) => {
@@ -200,18 +202,15 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-gold-500 to-amber-300 p-0.5 shadow-glow-gold flex items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl bg-gold-500 p-0.5 shadow-glow-gold flex items-center justify-center">
               <div className="w-full h-full bg-obsidian-950 rounded-[14px] flex items-center justify-center text-xl">
                 <Trophy className="w-6 h-6 text-gold-400" />
               </div>
             </div>
             <div>
-              <h3 className="text-xl font-black text-white font-display">
-                {isEditing ? 'EDIT TOURNAMENT' : 'CREATE NEW TOURNAMENT'}
+              <h3 className="text-4xl font-extrabold uppercase leading-none text-white font-display">
+                {isEditing ? 'Edit tournament' : 'New tournament'}
               </h3>
-              <p className="text-xs text-slate-400">
-                Configure brand identity, sponsors, venue, base price, and team budgets.
-              </p>
             </div>
           </div>
           <button
@@ -234,13 +233,13 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
           <div className="p-4 sm:p-5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
             <h4 className="text-xs font-black uppercase tracking-wider text-gold-400 flex items-center gap-2">
               <Sparkles className="w-3.5 h-3.5" />
-              1. Brand Identity & Sport Type
+              Basics
             </h4>
 
             {/* Sport Preset Selector */}
             <div>
               <label className="text-xs font-bold text-slate-300 block mb-1.5">
-                Select Sport Category
+                Sport
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                 {[
@@ -256,7 +255,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
                     onClick={() => setSportType(item.id as any)}
                     className={`p-2 rounded-xl text-xs font-bold transition-all border text-center ${
                       sportType === item.id
-                        ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md font-black'
+                        ? 'bg-gold-500 text-slate-950 border-amber-400 shadow-md font-black'
                         : 'bg-slate-950/80 text-slate-400 border-slate-800 hover:text-white hover:bg-slate-900'
                     }`}
                   >
@@ -315,7 +314,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
                   className="w-full bg-obsidian-950 border border-white/10 text-white text-sm px-4 py-2.5 rounded-xl focus:border-gold-400 focus:outline-none font-bold"
                 >
                   <option value="UPCOMING">🟡 UPCOMING</option>
-                  <option value="LIVE">🟢 LIVE AUCTION ACTIVE</option>
+                  <option value="LIVE">Live</option>
                   <option value="COMPLETED">⚪ COMPLETED</option>
                 </select>
               </div>
@@ -324,7 +323,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
             {/* Tournament Logo (PNG Upload / Preview) */}
             <div className="pt-2 border-t border-white/5">
               <label className="text-xs font-bold text-slate-300 block mb-2">
-                Tournament Logo (Upload PNG or pick emoji)
+                Logo
               </label>
 
               <div className="flex flex-col sm:flex-row items-center gap-4">
@@ -347,7 +346,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
                 <div className="flex-1 w-full space-y-2">
                   <label className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-dashed border-gold-400/50 bg-gold-500/[0.04] hover:bg-gold-500/[0.08] cursor-pointer transition-all text-xs font-bold text-gold-400">
                     <Upload className="w-4 h-4" />
-                    <span>Upload Transparent PNG Tournament Logo</span>
+                    <span>Upload logo</span>
                     <input
                       type="file"
                       accept="image/png,image/jpeg,image/webp,image/svg+xml"
@@ -358,7 +357,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
 
                   {/* Preset Emojis */}
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[11px] text-slate-400 font-semibold mr-1">Or choose icon:</span>
+                    <span className="text-[11px] text-slate-400 font-semibold mr-1">Or pick:</span>
                     {presetEmojis.map((emoji) => (
                       <button
                         key={emoji}
@@ -380,11 +379,8 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
           </div>
 
           {/* Section 2: Sponsorships */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
-            <h4 className="text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-2">
-              <Award className="w-3.5 h-3.5" />
-              2. Sponsorship & Title Partners
-            </h4>
+          <details className="p-4 sm:p-5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4 group">
+            <summary className="cursor-pointer min-h-6 text-sm font-bold text-slate-200">Sponsors (optional)</summary>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -413,36 +409,32 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
                 />
               </div>
             </div>
-          </div>
+          </details>
 
           {/* Section 3: Auction Economy & Team Rules */}
           <div className="p-4 sm:p-5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
             <h4 className="text-xs font-black uppercase tracking-wider text-emerald-400 flex items-center gap-2">
               <DollarSign className="w-3.5 h-3.5" />
-              3. Auction Economy & Teams Allocation
+              Auction
             </h4>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="tournament-min-players" className="text-xs font-bold text-slate-300 block mb-1">Minimum required players per team *</label>
+                <label htmlFor="tournament-min-players" className="text-xs font-bold text-slate-300 block mb-1">Min squad *</label>
                 <input id="tournament-min-players" type="number" min="1" step="1" required value={minPlayersPerTeam} onChange={(e) => setMinPlayersPerTeam(Number(e.target.value))} className="w-full bg-obsidian-950 border border-white/10 text-white font-bold text-sm px-4 py-2.5 rounded-xl" />
-                <p className="text-[10px] text-slate-400 mt-1">Used to reserve the remaining squad budget.</p>
               </div>
               <div>
-                <label htmlFor="tournament-max-players" className="text-xs font-bold text-slate-300 block mb-1">Maximum players per team *</label>
+                <label htmlFor="tournament-max-players" className="text-xs font-bold text-slate-300 block mb-1">Max squad *</label>
                 <input id="tournament-max-players" type="number" min={minPlayersPerTeam} step="1" required value={maxPlayersPerTeam} onChange={(e) => setMaxPlayersPerTeam(Number(e.target.value))} className="w-full bg-obsidian-950 border border-white/10 text-white font-bold text-sm px-4 py-2.5 rounded-xl" />
-                <p className="text-[10px] text-slate-400 mt-1">Bidding stops with “Squad complete” when this limit is reached.</p>
               </div>
             </div>
             <div>
-              <label htmlFor="tournament-player-reserve" className="text-xs font-bold text-slate-300 block mb-1">Minimum amount per remaining player (₹) *</label>
+              <label htmlFor="tournament-player-reserve" className="text-xs font-bold text-slate-300 block mb-1">Keep per empty squad slot * <Hint text="Money a team must keep for each player it still needs. Maximum bid = purse left minus this amount." /></label>
               <input id="tournament-player-reserve" type="number" min="1" step="1" required value={minimumPlayerReserve} onChange={(e) => setMinimumPlayerReserve(Number(e.target.value))} className="w-full bg-obsidian-950 border border-white/10 text-white font-mono font-bold text-sm px-4 py-2.5 rounded-xl" />
-              <p className="text-[10px] text-slate-400 mt-1">Reserves money for the remaining minimum squad slots. Set required squad size in Rules → Min Players / Team.</p>
             </div>
             <div>
-              <label htmlFor="tournament-bid-increment" className="text-xs font-bold text-slate-300 block mb-1">Bid increase by (₹) *</label>
+              <label htmlFor="tournament-bid-increment" className="text-xs font-bold text-slate-300 block mb-1">Bid goes up by * <Hint text="Added on every bid. The first bid is the player's base price." /></label>
               <input id="tournament-bid-increment" type="number" min="1" step="1" required value={bidIncrement} onChange={(e) => setBidIncrement(Number(e.target.value))} className="w-full bg-obsidian-950 border border-white/10 text-white font-mono font-bold text-sm px-4 py-2.5 rounded-xl" />
-              <p className="text-[10px] text-slate-400 mt-1">Each click adds this amount: e.g. 5000, 10000, 50000 or 100000. Opening bid uses the player's base price.</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -500,11 +492,8 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
           </div>
 
           {/* Section 4: Ground, Venue & Dates */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
-            <h4 className="text-xs font-black uppercase tracking-wider text-electric-cyan flex items-center gap-2">
-              <MapPin className="w-3.5 h-3.5" />
-              4. Ground, Venue & Tournament Dates
-            </h4>
+          <details className="p-4 sm:p-5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4 group">
+            <summary className="cursor-pointer min-h-6 text-sm font-bold text-slate-200">Venue and dates (optional)</summary>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -568,7 +557,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
                 </select>
               </div>
             </div>
-          </div>
+          </details>
 
           {/* Section 5: Player Registration & UPI / GPay */}
           <div className="p-4 sm:p-5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
@@ -590,20 +579,17 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
 
             <label className="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer">
               <input type="checkbox" checked={paymentEnabled} onChange={(e) => setPaymentEnabled(e.target.checked)} className="rounded border-white/20 text-gold-500 focus:ring-0 w-4 h-4" />
-              <span>Enable Registration Payment</span>
+              <span>Collect a sign-up fee</span>
             </label>
-            <p className="text-[11px] text-slate-400">When off, payment details, entry fee, QR code and receipt upload are hidden from the public form. Public registration stays independent.</p>
 
             {(
               <>
               <div hidden={!paymentEnabled}>
-              <p className="text-[11px] text-slate-400 mb-2">To enable direct Google Pay, enter the receiver's valid UPI ID below. The registration fee will be prefilled; a mobile number alone cannot create the payment link.</p>
-              <label htmlFor="payment-requirement" className="text-xs font-bold text-slate-300 block mb-1">Payment requirement</label>
+              <label htmlFor="payment-requirement" className="text-xs font-bold text-slate-300 block mb-1">Payment</label>
               <select id="payment-requirement" value={paymentMandatory ? 'required' : 'optional'} onChange={(e) => setPaymentMandatory(e.target.value === 'required')} className="w-full bg-obsidian-950 border border-white/10 text-white text-sm px-4 py-2.5 rounded-xl">
                 <option value="optional">Not compulsory</option>
-                <option value="required">Compulsory — payment screenshot required</option>
+                <option value="required">Compulsory (receipt required)</option>
               </select>
-              <p className="text-[11px] text-slate-400 mt-2">{paymentMandatory ? 'Players must upload a payment screenshot before submitting registration.' : 'Players can submit registration without a payment screenshot.'}</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
@@ -680,7 +666,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
             </button>
             <button
               type="submit"
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-gold-500 to-amber-400 text-black hover:from-gold-400 hover:to-amber-300 shadow-glow-gold transition-all active:scale-95"
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold bg-gold-500 text-black hover:bg-gold-400 shadow-glow-gold transition-all active:scale-95"
             >
               <CheckCircle2 className="w-4 h-4" />
               <span>{isEditing ? 'Save Changes' : 'Create Tournament'}</span>
