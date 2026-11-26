@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Ban, ChevronDown, ChevronUp, Gavel, Search, SkipForward, Undo2 } from 'lucide-react';
-import { getBidBudget } from '../../shared/auctionBudget.js';
+import { getBidBudget, withSlotReserve } from '../../shared/auctionBudget.js';
 import { AuctionRules, Player, Team } from '../types';
 import { formatAuctionPrice } from '../utils/currency';
 import { ask } from '../ui/kit';
@@ -23,6 +23,12 @@ export function StageBidControls({ teams, players, rules, currentPlayer, current
   ).sort((a, b) => a.lotOrder - b.lotOrder) : [];
   const price = (value: number) => formatAuctionPrice(value, rules.currency);
   const nextBid = currentBid > 0 ? currentBid + (rules.bidIncrement || currentPlayer?.basePrice || 20000) : currentPlayer?.basePrice || 0;
+  // Each unfilled squad slot keeps at least the reserve (or this player's base price) booked.
+  const budgetRules = withSlotReserve(rules, currentPlayer?.basePrice);
+  const budgets = teams.map(team => getBidBudget(team, players, budgetRules));
+  const highestMax = budgets.reduce((max, budget) => Math.max(max, budget.squadComplete ? 0 : budget.maxBid), 0);
+  const maxReached = !!currentPlayer && currentBid > 0 && nextBid > highestMax;
+  const blockBid = (team: Team, maxBid: number) => ask({ title: 'Maximum bid reached', body: `${team.name} has reached its maximum bid of ${price(maxBid)}. No more bids can be placed for this team.`, confirmLabel: 'OK' });
   return <section aria-label="Auction controls" className="panel p-3">
     <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="w-full flex items-center justify-between gap-2 min-h-8 px-1 text-sm font-bold text-slate-300">
       <span role="status">{busy ? 'Saving…' : currentPlayer ? <>Next bid <strong className="text-gold-400">{price(nextBid)}</strong></> : 'Draw a player'}</span>
@@ -48,15 +54,17 @@ export function StageBidControls({ teams, players, rules, currentPlayer, current
         </div>}
         {search && currentBid > 0 && <p role="status" className="text-xs text-amber-300">Finish or undo the current bidding before selecting another player.</p>}
       </div>}
-      <div className="grid grid-cols-3 sm:grid-cols-4 xl:grid-cols-6 gap-1.5">{teams.map((team) => {
-        const budget = getBidBudget(team, players, rules);
-        const overBudget = (rules.minimumPlayerReserve || !rules.allowNegativePurse) && nextBid > budget.maxBid;
+      {currentPlayer && <p role="status" className={`text-xs font-bold px-1 ${maxReached ? 'text-red-300' : 'text-slate-400'}`}>{maxReached ? 'Maximum bid reached. No more bids can be placed.' : <>Maximum bid <span className="text-white">{price(highestMax)}</span> · {price(budgetRules.minimumPlayerReserve)} kept booked for each remaining squad slot</>}</p>}
+      <div className="grid grid-cols-3 sm:grid-cols-4 xl:grid-cols-6 gap-1.5">{teams.map((team, index) => {
+        const budget = budgets[index];
+        const overBudget = nextBid > budget.maxBid;
         const leading = leadingTeam?.id === team.id;
-        const disabled = busy || !currentPlayer || nextBid <= 0 || budget.squadComplete || !!overBudget || leading;
-        return <button key={team.id} type="button" disabled={disabled} aria-label={`Bid ${price(nextBid)} for ${team.name}`} onClick={() => onBid(team, nextBid)} className={`tile p-2 text-center transition-colors enabled:hover:bg-obsidian-800 ${leading ? '!border-gold-400' : 'disabled:opacity-40'}`}>
+        const disabled = busy || !currentPlayer || nextBid <= 0 || budget.squadComplete || leading;
+        return <button key={team.id} type="button" disabled={disabled} aria-label={`Bid ${price(nextBid)} for ${team.name}`} onClick={() => overBudget ? blockBid(team, budget.maxBid) : onBid(team, nextBid)} className={`tile p-2 text-center transition-colors enabled:hover:bg-obsidian-800 ${leading ? '!border-gold-400' : 'disabled:opacity-40'}`}>
           <TeamLogo logo={team.logo} name={team.name} className="w-7 h-7 mx-auto text-xl" />
           <span className="block font-display text-lg font-extrabold leading-tight text-white truncate">{team.shortCode || team.name}</span>
-          <span className="block caption text-[11px] text-slate-400 truncate">{budget.squadComplete ? 'Squad full' : overBudget ? 'Over limit' : price(team.remainingPurse)}</span>
+          <span className="block caption text-[11px] text-slate-400 truncate">{budget.squadComplete ? 'Squad full' : price(team.remainingPurse)}</span>
+          {!budget.squadComplete && <span className={`block caption text-[11px] font-bold truncate ${overBudget ? 'text-red-300' : 'text-gold-400'}`}>Max {price(budget.maxBid)}</span>}
         </button>;
       })}</div>
       <div className="grid grid-cols-4 gap-1.5">

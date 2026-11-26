@@ -1,3 +1,8 @@
+// Each unfilled squad slot keeps the reserve booked, or the current player's base price when no reserve is set.
+export function withSlotReserve(rules, basePrice) {
+  return { ...rules, minimumPlayerReserve: rules.minimumPlayerReserve || basePrice || 0 };
+}
+
 // Reserve the cost of filling the required squad after buying this player.
 export function getBidBudget(team, players, rules) {
   const bought = players.filter(p => p.status === 'SOLD' && p.soldToTeamId === team.id).length;

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Ban, Check, Gavel, Keyboard, ListOrdered, Search, Shield, Shuffle, Sparkles, Undo2, Users, X, Zap } from 'lucide-react';
-import { getBidBudget } from '../../shared/auctionBudget.js';
+import { getBidBudget, withSlotReserve } from '../../shared/auctionBudget.js';
 import { AuctionRules, Player, Team } from '../types';
 import { sounds } from '../soundEffects';
 import { formatAuctionPrice } from '../utils/currency';
@@ -56,11 +56,14 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
   const hasBid = currentBid > 0 && !!leadingTeam;
   const locked = busy || !!isSold || !!isUnsold;
 
+  const budgetRules = withSlotReserve(rules, currentPlayer?.basePrice);
+  const highestMax = allTeams.reduce((max, team) => { const b = getBidBudget(team, allPlayers, budgetRules); return b.squadComplete ? max : Math.max(max, b.maxBid); }, 0);
+  const maxReached = !!currentPlayer && currentBid > 0 && nextBid > highestMax;
   const blockReason = (team: Team) => {
-    const budget = getBidBudget(team, allPlayers, rules);
+    const budget = getBidBudget(team, allPlayers, budgetRules);
     if (leadingTeam?.id === team.id) return 'Leading';
     if (budget.squadComplete) return 'Squad full';
-    if ((rules.minimumPlayerReserve || !rules.allowNegativePurse) && nextBid > budget.maxBid) return 'Over limit';
+    if (nextBid > budget.maxBid) return 'Over limit';
     return '';
   };
 
@@ -71,7 +74,7 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
       return;
     }
     const reason = blockReason(team);
-    if (reason === 'Over limit') { notify(`${team.name} can bid up to ${price(getBidBudget(team, allPlayers, rules).maxBid)}.`, 'warn'); return; }
+    if (reason === 'Over limit') { ask({ title: 'Maximum bid reached', body: `${team.name} has reached its maximum bid of ${price(getBidBudget(team, allPlayers, budgetRules).maxBid)}. No more bids can be placed for this team.`, confirmLabel: 'OK' }); return; }
     if (reason) return;
     sounds.playBidSound();
     onPlaceBid(team, nextBid);
@@ -157,13 +160,15 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
             : <button onClick={() => setCustomOpen(true)} className="btn btn-ghost min-h-9 px-3">Custom</button>}
         </div>
 
+        <p role="status" className={`text-xs font-bold ${maxReached ? 'text-red-300' : 'text-slate-400'}`}>{maxReached ? 'Maximum bid reached. No more bids can be placed.' : <>Maximum bid <span className="text-white">{price(highestMax)}</span> · {price(budgetRules.minimumPlayerReserve)} kept booked for each remaining squad slot</>}</p>
+
         {/* Team tiles: one tap places the bid */}
         <section aria-label="Tap a team to bid" className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2.5">
           {allTeams.map((team, index) => {
-            const budget = getBidBudget(team, allPlayers, rules);
+            const budget = getBidBudget(team, allPlayers, budgetRules);
             const reason = blockReason(team);
             const leading = reason === 'Leading';
-            return <button key={team.id} onClick={() => bid(team)} disabled={locked || !!reason} aria-label={`Bid ${price(nextBid)} for ${team.name}`}
+            return <button key={team.id} onClick={() => bid(team)} disabled={locked || (!!reason && reason !== 'Over limit')} aria-label={`Bid ${price(nextBid)} for ${team.name}`}
               className={`relative tile text-left p-3 min-h-[104px] transition-colors enabled:hover:bg-obsidian-800 enabled:active:translate-y-px ${leading ? '!border-gold-400 disabled:opacity-100' : 'disabled:opacity-40'}`}>
               <span aria-hidden className="absolute inset-y-0 left-0 w-1.5" style={{ backgroundColor: team.colorHex }} />
               <span className="flex items-center gap-2 pl-1.5">

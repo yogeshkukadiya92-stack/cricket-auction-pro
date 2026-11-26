@@ -1,7 +1,7 @@
 import { patchAuctionPlayers, patchAuctionTeams } from './auctionPatches.js';
 import { mediaColumns, projectMedia, compactLiveState } from './recordMedia.js';
 import { randomUUID } from 'node:crypto';
-import { getBidBudget } from '../shared/auctionBudget.js';
+import { getBidBudget, withSlotReserve } from '../shared/auctionBudget.js';
 
 export function registerAuctionRoutes(app, { pool, requireUser, owns }) {
 // Auction commands serialize on the tournament row, so two devices cannot
@@ -85,9 +85,9 @@ app.post('/api/tournaments/:id/auction', requireUser, async (req, res) => {
           const team = teams.find(t => t.id === entry.teamId);
           const amount = entry.amount;
           if (!team || !Number.isFinite(amount) || amount < player.basePrice || amount <= state.currentBid) fail('Bid must exceed the current bid and meet the base price');
-          const budget = getBidBudget(team, players, rules);
+          const budget = getBidBudget(team, players, withSlotReserve(rules, player.basePrice));
           if (budget.squadComplete) fail(`Squad complete — ${team.name} has reached the maximum of ${rules.maxPlayersPerTeam || 15} players`);
-          if ((rules.minimumPlayerReserve || !rules.allowNegativePurse) && amount > budget.maxBid) fail(`Maximum bid is ${budget.maxBid}; ${budget.reserve} must remain reserved for the squad`);
+          if (amount > budget.maxBid) fail(`Maximum bid reached. Maximum bid is ${budget.maxBid}; ${budget.reserve} must remain reserved for the squad`);
           if (players.filter(p => p.status === 'SOLD' && p.soldToTeamId === team.id).length >= (rules.maxPlayersPerTeam || 15)) fail('Squad complete — no further players or bids allowed');
           const record = { id: batch ? entry.id : randomUUID(), playerId: player.id, teamId: team.id, teamName: team.name, amount, timestamp: Date.now() };
           state = { ...state, currentBid: amount, leadingTeam: team, bidsHistory: [record, ...(state.bidsHistory || [])] };
@@ -99,9 +99,9 @@ app.post('/api/tournaments/:id/auction', requireUser, async (req, res) => {
         if (body.action === 'SOLD') {
           const winner = teams.find(t => t.id === state.leadingTeam?.id);
           if (!winner || !state.currentBid || body.amount !== state.currentBid || body.teamId !== winner.id) fail('Winning bid changed; review it before marking sold');
-          const budget = getBidBudget(winner, players, rules);
+          const budget = getBidBudget(winner, players, withSlotReserve(rules, player.basePrice));
           if (budget.squadComplete) fail("Squad complete — no further players or bids allowed");
-          if ((rules.minimumPlayerReserve || !rules.allowNegativePurse) && state.currentBid > budget.maxBid) fail(`Winning bid exceeds the current maximum of ${budget.maxBid}; undo the bid or update squad rules`);
+          if (state.currentBid > budget.maxBid) fail(`Winning bid exceeds the current maximum of ${budget.maxBid}; undo the bid or update squad rules`);
           if (budget.bought >= (rules.maxPlayersPerTeam || 15)) fail('Squad complete — no further players or bids allowed');
           const sold = { ...player, status: 'SOLD', soldToTeamId: winner.id, soldPrice: state.currentBid };
           const updatedTeam = { ...winner, remainingPurse: winner.remainingPurse - state.currentBid };
