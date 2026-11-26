@@ -1,3 +1,4 @@
+import { cacheSnapshot, loadSnapshot } from './services/auctionCache';
 import { changedRecords } from '../shared/recordChanges.js';
 import { requestJson, createJsonPoller } from '../shared/requestJson.js';
 import { lazyWithRecovery as lazy } from './utils/lazyWithRecovery';
@@ -92,7 +93,8 @@ function AppContent() {
   };
 
   const handleLogout = async () => {
-    try { await dbService.flushSync(); } catch { setSaveMessage('Save your pending changes before signing out.'); return; }
+    if (settling.current) { setSaveMessage('Wait for the auction sync before signing out.'); return; }
+    try { await dbService.flushSync(); await flushBids(); } catch { setSaveMessage('Save your pending changes before signing out.'); return; }
     try {
       const response = await fetch('/api/auth/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
       if (!response.ok && response.status !== 401) throw new Error('Sign out failed');
@@ -290,7 +292,7 @@ function AppContent() {
     setDataReady(false);
     setDataError('');
     dbService.setScope(currentUser.id);
-    dbService.flushSync().then(() => dbService.fetchBootstrapData()).then((data) => {
+    dbService.flushSync().then(() => loadSnapshot('auction-roster:' + currentUser.id, () => dbService.fetchBootstrapData())).then((data) => {
       if (cancelled) return;
       if (!data?.success) throw new Error('Could not load your tournaments');
       serverTournaments.current = JSON.stringify(data.tournaments || []);
@@ -325,6 +327,14 @@ function AppContent() {
     try { sessionStorage.setItem(`cap_place_${currentUser.id}`, JSON.stringify({ id: activeTournamentId, view: viewMode })); } catch { /* private mode */ }
   }, [dataReady, currentUser?.id, activeTournamentId, viewMode]);
 
+  const bidKey = JSON.stringify(['auction-bids', currentUser?.id, activeTournamentId]);
+  const currentScope = useRef(bidKey);
+  currentScope.current = bidKey;
+  const auctionRevision = useRef('');
+  const [queuedCount, setQueuedCount] = useState(0);
+  const readBids = (): { revision: string; bids: BidRecord[] } =>
+    JSON.parse(sessionStorage.getItem(bidKey) || '{"revision":"","bids":[]}');
+
   // Persist changes only after the organizer's server data has loaded.
   useEffect(() => {
     const value = JSON.stringify(tournaments);
@@ -344,8 +354,16 @@ function AppContent() {
     setLiveReady(false);
     setLoadedLiveTournamentId('');
     let cancelled = false;
-    dbService.flushSync().then(() => requestJson(`/api/tournaments/${encodeURIComponent(activeTournamentId)}/live`)).then(data => data.liveState).then(state => {
+    dbService.flushSync().then(() => loadSnapshot<{ liveState: any }>(bidKey + '/live', () => requestJson(`/api/tournaments/${encodeURIComponent(activeTournamentId)}/live`))).then(data => data.liveState).then(state => {
       if (cancelled) return;
+      auctionRevision.current = state.revision || '';
+      const pending = readBids().bids;
+      const latest = pending[pending.length - 1];
+      setQueuedCount(pending.length);
+      if (latest && latest.playerId === state.currentPlayerId) {
+        state = { ...state, currentBid: latest.amount, leadingTeam: teams.find(team => team.id === latest.teamId),
+          bidsHistory: [...pending].reverse().concat((state.bidsHistory || []).filter((bid: BidRecord) => !pending.some(item => item.id === bid.id))) };
+      }
       setCurrentPlayerId(state.currentPlayerId || '');
       setCurrentBid(state.currentBid || 0);
       setLeadingTeam(state.leadingTeam || null);
@@ -498,6 +516,8 @@ function AppContent() {
 
   const applyAuctionSnapshot = (data: any, id: string) => {
     const state = data.liveState || {};
+    auctionRevision.current = state.revision || '';
+    cacheSnapshot(bidKey + '/live', { liveState: state });
     consumeAuctionEvent(state.lastEvent);
     setCurrentPlayerId(state.currentPlayerId || '');
     setCurrentBid(state.currentBid || 0);
@@ -505,6 +525,27 @@ function AppContent() {
     setBidsHistory(state.bidsHistory || []);
     if (data.teams) setTeams(prev => { const next = [...prev.filter(t => t.tournamentId !== id), ...data.teams]; serverTeams.current = JSON.stringify(next); return next; });
     if (data.players) setPlayers(prev => { const next = [...prev.filter(p => p.tournamentId !== id), ...data.players]; serverPlayers.current = JSON.stringify(next); return next; });
+  };
+
+  const flushBids = async () => {
+    const queue = readBids();
+    if (!queue.bids.length) return;
+    const path = '/api/tournaments/' + encodeURIComponent(activeTournamentId);
+    try {
+      const result = await requestJson(path + '/auction', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'BID_BATCH', playerId: queue.bids[0].playerId, ...queue }),
+      });
+      sessionStorage.removeItem(bidKey);
+      if (currentScope.current === bidKey) { setQueuedCount(0); applyAuctionSnapshot(result, activeTournamentId); }
+    } catch (error) {
+      if ((error as { status?: number }).status === 409) {
+        const result = await requestJson(path + '/live');
+        sessionStorage.removeItem(bidKey);
+        if (currentScope.current === bidKey) { setQueuedCount(0); applyAuctionSnapshot(result, activeTournamentId); }
+      }
+      throw error;
+    }
   };
 
   const runAuctionCommand = async (action: string, extra: Record<string, unknown> = {}) => {
@@ -515,6 +556,8 @@ function AppContent() {
     mutationRevision.current++;
     try {
       await dbService.flushSync();
+      await flushBids();
+      if (currentScope.current !== bidKey || action === 'SYNC') return;
       const data = await requestJson(`/api/tournaments/${encodeURIComponent(id)}/auction`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action, playerId: currentPlayerId, ...extra }),
@@ -523,7 +566,30 @@ function AppContent() {
       } catch (error) { notify((error as Error).message, 'warn'); }
     finally { settling.current = false; setAuctionBusy(false); }
   };
-  const handlePlaceBid = (team: Team, amount: number) => { void runAuctionCommand('BID', { teamId: team.id, amount }); };
+  useEffect(() => {
+    if (!liveReady || loadedLiveTournamentId !== activeTournamentId) return;
+    const sync = () => { if (readBids().bids.length) void runAuctionCommand('SYNC'); };
+    const timer = window.setInterval(sync, 10000);
+    window.addEventListener('online', sync);
+    return () => { window.clearInterval(timer); window.removeEventListener('online', sync); };
+  }, [bidKey, liveReady, loadedLiveTournamentId]);
+
+  const handlePlaceBid = (team: Team, amount: number) => {
+    if (settling.current || !liveReady || loadedLiveTournamentId !== activeTournamentId) return;
+    try {
+      const queue = readBids();
+      if (amount <= (queue.bids[queue.bids.length - 1]?.amount ?? currentBid)) return;
+      const record = { id: crypto.randomUUID(), playerId: currentPlayerId, teamId: team.id, teamName: team.name, amount, timestamp: Date.now() };
+      if (!queue.bids.length) queue.revision = auctionRevision.current;
+      queue.bids.push(record);
+      sessionStorage.setItem(bidKey, JSON.stringify(queue));
+      mutationRevision.current++;
+      setQueuedCount(queue.bids.length);
+      setCurrentBid(amount);
+      setLeadingTeam(team);
+      setBidsHistory(prev => [record, ...prev]);
+    } catch { notify('Browser could not save the bid. Please retry.', 'warn'); }
+  };
   const handleSold = () => { void runAuctionCommand('SOLD', { teamId: leadingTeam?.id, amount: currentBid }); };
   const handleUnsold = () => { void runAuctionCommand('UNSOLD'); };
   const handleUndoBid = () => { void runAuctionCommand('UNDO'); };
@@ -537,7 +603,7 @@ function AppContent() {
     const poll = createJsonPoller();
     let controller: AbortController | undefined;
     const refresh = async () => {
-      if (cancelled || refreshing || document.visibilityState === 'hidden' || settling.current || dbService.hasPending()) return;
+      if (cancelled || refreshing || document.visibilityState === 'hidden' || settling.current || readBids().bids.length || dbService.hasPending()) return;
       refreshing = true;
       try {
         const revision = mutationRevision.current;
@@ -546,7 +612,7 @@ function AppContent() {
         controller = new AbortController();
         const data = await poll(`/api/tournaments/${encodeURIComponent(activeTournamentId)}/snapshot?${query}`, { cache: 'no-store', signal: controller.signal }, 10000);
         if (!data) return;
-        if (!cancelled && revision === mutationRevision.current && !settling.current && !dbService.hasPending()) {
+        if (!cancelled && revision === mutationRevision.current && !settling.current && !readBids().bids.length && !dbService.hasPending()) {
           applyAuctionSnapshot(data, activeTournamentId);
           if (data.versions) snapshotVersions.current[activeTournamentId] = data.versions;
         }
@@ -710,6 +776,7 @@ function AppContent() {
     mutationRevision.current++;
     try {
       await dbService.flushSync();
+      await flushBids();
       const response = await fetch(`/api/tournaments/${encodeURIComponent(activeTournamentId)}/player-correction`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, playerId, teamId, amount }) });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Correction failed');
@@ -845,6 +912,7 @@ function AppContent() {
       onOpenWheel={() => setIsFortuneWheelOpen(true)}
       onLogout={handleLogout}
     >
+        {queuedCount > 0 && <div role="status" className="mb-2 text-sm text-amber-300">{queuedCount} local bid(s) awaiting server sync</div>}
         {saveMessage && <div role="status" className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-400/30 bg-amber-950/60 px-4 py-2.5 text-sm text-amber-100">{saveMessage}<button onClick={() => dbService.flushSync().catch(() => {})} className="font-bold underline">Retry</button></div>}
         {viewMode === 'ADMIN_PANEL' && currentUser.role === 'ADMIN' && (
           <AdminPanelView

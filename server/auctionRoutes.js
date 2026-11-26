@@ -23,7 +23,7 @@ app.post('/api/tournaments/:id/auction', requireUser, async (req, res) => {
         const selected = await client.query("SELECT data->>'status' AS status, data->>'approvalStatus' AS approval FROM players WHERE tournament_id=$1 AND id=$2", [req.params.id, command.playerId]);
         const player = selected.rows[0];
         if (!player || !['AVAILABLE', 'IN_AUCTION'].includes(player.status) || (player.approval && player.approval !== 'APPROVED')) throw Object.assign(new Error('Player is not available for auction'), { status: 409 });
-        state = { tournamentId: req.params.id, currentPlayerId: command.playerId, currentBid: 0, leadingTeam: null, bidsHistory: [] };
+        state = { revision: randomUUID(), tournamentId: req.params.id, currentPlayerId: command.playerId, currentBid: 0, leadingTeam: null, bidsHistory: [] };
         await client.query('INSERT INTO tournament_live_state(tournament_id,data) VALUES($1,$2) ON CONFLICT(tournament_id) DO UPDATE SET data=excluded.data', [req.params.id, state]);
       }
       await client.query('COMMIT');
@@ -71,16 +71,27 @@ app.post('/api/tournaments/:id/auction', requireUser, async (req, res) => {
       if (!eligible(player) || body.playerId !== player.id) fail('Auction lot changed; refresh and try again');
       const settings = await client.query("SELECT data->'rules' AS rules FROM tournaments WHERE id=$1", [req.params.id]);
       const rules = settings.rows[0]?.rules || {};
-      if (body.action === 'BID') {
-        const team = teams.find(t => t.id === body.teamId);
-        const amount = body.amount;
-        if (!team || !Number.isFinite(amount) || amount < player.basePrice || amount <= state.currentBid) fail('Bid must exceed the current bid and meet the base price');
-        const budget = getBidBudget(team, players, rules);
-        if (budget.squadComplete) fail(`Squad complete — ${team.name} has reached the maximum of ${rules.maxPlayersPerTeam || 15} players`);
-        if ((rules.minimumPlayerReserve || !rules.allowNegativePurse) && amount > budget.maxBid) fail(`Maximum bid is ${budget.maxBid}; ${budget.reserve} must remain reserved for the squad`);
-        if (players.filter(p => p.status === 'SOLD' && p.soldToTeamId === team.id).length >= (rules.maxPlayersPerTeam || 15)) fail('Squad complete — no further players or bids allowed');
-        const record = { id: randomUUID(), playerId: player.id, teamId: team.id, teamName: team.name, amount, timestamp: Date.now() };
-        state = { ...state, currentBid: amount, leadingTeam: team, bidsHistory: [record, ...(state.bidsHistory || [])] };
+      if (body.action === 'BID' || body.action === 'BID_BATCH') {
+        const batch = body.action === 'BID_BATCH';
+        const entries = batch ? body.bids : [body];
+        if (!Array.isArray(entries) || !entries.length) fail('No bids to save');
+        if (batch && entries.every(entry => state.bidsHistory.some(record => record.id === entry.id))) {
+          await client.query('COMMIT');
+          return res.json({ success: true, liveState: state });
+        }
+        if (batch && body.revision !== (state.revision || '')) fail('Auction changed on another device. Review the latest bid.');
+        for (const entry of entries) {
+          if (batch && (typeof entry.id !== 'string' || entry.playerId !== player.id)) fail('Invalid queued bid');
+          const team = teams.find(t => t.id === entry.teamId);
+          const amount = entry.amount;
+          if (!team || !Number.isFinite(amount) || amount < player.basePrice || amount <= state.currentBid) fail('Bid must exceed the current bid and meet the base price');
+          const budget = getBidBudget(team, players, rules);
+          if (budget.squadComplete) fail(`Squad complete — ${team.name} has reached the maximum of ${rules.maxPlayersPerTeam || 15} players`);
+          if ((rules.minimumPlayerReserve || !rules.allowNegativePurse) && amount > budget.maxBid) fail(`Maximum bid is ${budget.maxBid}; ${budget.reserve} must remain reserved for the squad`);
+          if (players.filter(p => p.status === 'SOLD' && p.soldToTeamId === team.id).length >= (rules.maxPlayersPerTeam || 15)) fail('Squad complete — no further players or bids allowed');
+          const record = { id: batch ? entry.id : randomUUID(), playerId: player.id, teamId: team.id, teamName: team.name, amount, timestamp: Date.now() };
+          state = { ...state, currentBid: amount, leadingTeam: team, bidsHistory: [record, ...(state.bidsHistory || [])] };
+        }
       } else if (body.action === 'UNDO') {
         const history = (state.bidsHistory || []).slice(1), previous = history[0];
         state = { ...state, bidsHistory: history, currentBid: previous?.amount || 0, leadingTeam: teams.find(t => t.id === previous?.teamId) || null };
@@ -108,6 +119,7 @@ app.post('/api/tournaments/:id/auction', requireUser, async (req, res) => {
         state = { currentPlayerId: next?.id || '', currentBid: 0, leadingTeam: null, bidsHistory: [], lastEvent };
       } else throw Object.assign(new Error('Unknown auction command'), { status: 400 });
     }
+    state.revision = randomUUID();
     state.tournamentId = req.params.id;
     await client.query('INSERT INTO tournament_live_state(tournament_id,data) VALUES($1,$2) ON CONFLICT(tournament_id) DO UPDATE SET data=excluded.data', [req.params.id, state]);
     await client.query('COMMIT');
