@@ -5,9 +5,10 @@ import { Shield, Sparkles, Award, Zap } from 'lucide-react';
 interface PlayerCard3DProps {
   player: Player;
   isBigStage?: boolean;
+  showUnsold?: boolean;
 }
 
-export const PlayerCard3D: React.FC<PlayerCard3DProps> = ({ player, isBigStage = false }) => {
+export const PlayerCard3D: React.FC<PlayerCard3DProps> = ({ player, isBigStage = false, showUnsold = false }) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const [rotateX, setRotateX] = useState(0);
   const [rotateY, setRotateY] = useState(0);
@@ -114,6 +115,11 @@ export const PlayerCard3D: React.FC<PlayerCard3DProps> = ({ player, isBigStage =
             className="w-full h-full object-cover object-top sm:object-center transition-transform duration-500 "
             loading="lazy"
           />
+          {showUnsold && (
+            <div role="status" className="pointer-events-none absolute inset-0 z-10 grid place-items-center bg-black/35">
+              <span className="cap-stamp rounded-xl border-4 border-red-500 bg-black/75 px-4 py-1 font-display text-4xl font-black text-red-400">UNSOLD</span>
+            </div>
+          )}
           {/* Subtle bottom edge blend only (No heavy dark overlays) */}
           <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-obsidian-950 via-obsidian-950/40 to-transparent pointer-events-none" />
         </div>

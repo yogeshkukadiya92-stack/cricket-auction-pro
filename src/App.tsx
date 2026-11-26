@@ -218,7 +218,8 @@ function AppContent() {
 
   // Overlays
   const [isSold, setIsSold] = useState(false);
-  const [isUnsold, setIsUnsold] = useState(false);
+  const [unsoldPlayer, setUnsoldPlayer] = useState<Player | null>(null);
+  const isUnsold = Boolean(unsoldPlayer);
   const [lastSoldInfo, setLastSoldInfo] = useState<{ player: Player; team: Team; price: number } | null>(null);
 
   // Social Poster Modal State
@@ -407,8 +408,8 @@ function AppContent() {
           setTimeout(() => setIsSold(false), 3800);
           break;
         case 'MARK_UNSOLD':
-          setIsUnsold(true);
-          setTimeout(() => setIsUnsold(false), 2800);
+          setUnsoldPlayer(action.payload.player);
+          setTimeout(() => setUnsoldPlayer(null), 2800);
           break;
         case 'UNDO_BID':
           setBidsHistory(prev => prev.slice(1));
@@ -511,7 +512,7 @@ function AppContent() {
       setIsSold(true);
       setTimeout(() => { setIsSold(false); setLastSoldInfo(null); }, Math.max(0, 3800 - elapsed));
     } else if (event.type === 'UNSOLD' && elapsed < 2800) {
-      setIsUnsold(true); setTimeout(() => setIsUnsold(false), Math.max(0, 2800 - elapsed));
+      setUnsoldPlayer(event.player); setTimeout(() => setUnsoldPlayer(null), Math.max(0, 2800 - elapsed));
     }
   };
 
@@ -994,7 +995,7 @@ function AppContent() {
             bidsHistory={bidsHistory}
             allTeams={activeTeams}
             isSold={isSold}
-            isUnsold={isUnsold}
+            unsoldPlayer={unsoldPlayer}
             lastSoldInfo={lastSoldInfo}
             allPlayers={activePlayers}
             rules={rules}

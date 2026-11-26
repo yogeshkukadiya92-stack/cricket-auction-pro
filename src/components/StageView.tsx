@@ -22,7 +22,7 @@ interface StageViewProps {
   bidsHistory: BidRecord[];
   allTeams: Team[];
   isSold: boolean;
-  isUnsold: boolean;
+  unsoldPlayer: Player | null;
   lastSoldInfo: { player: Player; team: Team; price: number } | null;
   onSelectPlayer?: (player: Player) => void;
   onNextPlayer?: () => void;
@@ -39,12 +39,13 @@ const clock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds
 
 export const StageView: React.FC<StageViewProps> = ({
   tournamentName = 'Live Auction', tournamentId, timerSeconds = 15, currency = 'INR', currentPlayer, currentBid, leadingTeam, bidsHistory, allTeams,
-  isSold, isUnsold, lastSoldInfo, allPlayers = [], rules, auctionBusy = false, onPlaceBid, onSold, onUnsold, onUndoBid, onNextPlayer, onSelectPlayer,
+  isSold, unsoldPlayer, lastSoldInfo, allPlayers = [], rules, auctionBusy = false, onPlaceBid, onSold, onUnsold, onUndoBid, onNextPlayer, onSelectPlayer,
 }) => {
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [timeLeft, setTimeLeft] = useState(timerSeconds);
   const [running, setRunning] = useState(false);
+  const isUnsold = Boolean(unsoldPlayer);
   const price = (value: number) => formatAuctionPrice(value, currency);
 
   useEffect(() => { setTimeLeft(timerSeconds); setRunning(false); }, [currentPlayer?.id, timerSeconds]);
@@ -78,7 +79,7 @@ export const StageView: React.FC<StageViewProps> = ({
     return () => cancelAnimationFrame(frameId);
   }, [isSold, lastSoldInfo]);
 
-  const displayPlayer = isSold && lastSoldInfo ? lastSoldInfo.player : currentPlayer;
+  const displayPlayer = isSold && lastSoldInfo ? lastSoldInfo.player : unsoldPlayer ?? currentPlayer;
   const soldCount = allPlayers.filter((p) => p.status === 'SOLD').length;
 
   if (summaryOpen) return <StageAuctionSummary players={allPlayers} teams={allTeams} tournamentName={tournamentName} currency={currency} onBack={() => setSummaryOpen(false)} />;
@@ -110,7 +111,7 @@ export const StageView: React.FC<StageViewProps> = ({
       {toolbar}
       <div className="panel pitch-stripes overflow-hidden grid lg:grid-cols-[minmax(320px,0.8fr)_minmax(0,1.4fr)]">
         <div className="stage-grid p-4 sm:p-6 flex items-center justify-center border-b lg:border-b-0 lg:border-r border-white/10">
-          <PlayerCard3D player={displayPlayer} isBigStage />
+          <PlayerCard3D player={displayPlayer} showUnsold={isUnsold && !isSold} isBigStage />
         </div>
         <div className="flex flex-col min-w-0">
           <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-white/10">
@@ -152,12 +153,6 @@ export const StageView: React.FC<StageViewProps> = ({
         </div>
       </div>}
 
-      {isUnsold && <div className="fixed inset-0 z-50 grid place-items-center p-6 text-center bg-obsidian-950/90 backdrop-blur-sm">
-        <div>
-          <p className="cap-stamp inline-block rounded-2xl border-[6px] border-red-500 px-8 py-2 font-display text-[clamp(2.5rem,6vw,5.5rem)] font-black uppercase leading-tight text-red-400">Unsold</p>
-          <h2 className="mt-6 font-display text-5xl font-extrabold text-white">{displayPlayer.name}</h2>
-        </div>
-      </div>}
     </div>
   );
 };
