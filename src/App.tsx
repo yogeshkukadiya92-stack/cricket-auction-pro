@@ -1,3 +1,4 @@
+import { getBidBudget, withSlotReserve } from '../shared/auctionBudget.js';
 import { cacheSnapshot, loadSnapshot } from './services/auctionCache';
 import { changedRecords } from '../shared/recordChanges.js';
 import { requestJson, createJsonPoller } from '../shared/requestJson.js';
@@ -576,6 +577,12 @@ function AppContent() {
 
   const handlePlaceBid = (team: Team, amount: number) => {
     if (settling.current || !liveReady || loadedLiveTournamentId !== activeTournamentId) return;
+    if (!currentPlayer) return;
+    const budget = getBidBudget(team, activePlayers, withSlotReserve(rules, currentPlayer.basePrice));
+    if (budget.squadComplete || amount > budget.maxBid) {
+      notify(budget.squadComplete ? 'Squad full. No further bids allowed.' : 'Bid exceeds the team maximum.', 'warn');
+      return;
+    }
     try {
       const queue = readBids();
       if (amount <= (queue.bids[queue.bids.length - 1]?.amount ?? currentBid)) return;
@@ -1016,6 +1023,7 @@ function AppContent() {
             onSelectPlayer={handleSelectPlayer}
             onRandomDraw={handleRandomDraw}
             onOpenFortuneWheel={() => setIsFortuneWheelOpen(true)}
+            onReverseSale={(player, newStatus) => void runAuctionCommand('REVERSE_SALE', { soldPlayerId: player.id, amount: player.soldPrice, teamId: player.soldToTeamId, newStatus })}
             onLaunchAcceleratedRound={handleLaunchAcceleratedRound}
             busy={auctionBusy || !liveReady}
             onOpenPlayers={() => selectViewMode('PLAYERS')}

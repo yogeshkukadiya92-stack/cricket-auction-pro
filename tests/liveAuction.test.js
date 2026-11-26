@@ -42,8 +42,41 @@ test('auction rehearsal: bid, undo, safe selection, sold once, unsold, recall an
   assert.equal((await command('SOLD',{teamId:'k11',amount:100})).status,200);
   assert.equal(teams[0].remainingPurse,900);assert.equal(players.find(p=>p.id==='p1').status,'SOLD');assert.equal(state.currentPlayerId,'p2','The next lot follows lot order');
   assert.equal((await command('SOLD',{playerId:'p1',teamId:'k11',amount:100})).status,409);assert.equal(teams[0].remainingPurse,900);
+  const reverse = { soldPlayerId: 'p1', teamId: 'k11', amount: 100, newStatus: 'AVAILABLE' };
+  assert.equal((await command('REVERSE_SALE', { ...reverse, amount: 200 })).status, 409);
+  assert.equal((await command('REVERSE_SALE', reverse)).status, 200);
+  assert.equal(state.currentPlayerId, 'p2');
+  assert.equal(teams[0].remainingPurse, 1000);
+  assert.equal(players.find(p => p.id === 'p1').soldToTeamId, undefined);
+  assert.equal((await command('REVERSE_SALE', reverse)).status, 409);
+  assert.equal(teams[0].remainingPurse, 1000);
+  await command('SELECT', { playerId: 'p1' });
+  await command('BID', { teamId: 'k11', amount: 100 });
+  await command('SOLD', { teamId: 'k11', amount: 100 });
+  assert.equal((await command('REVERSE_SALE', { ...reverse, newStatus: 'UNSOLD' })).status, 200);
+  assert.equal(players.find(p => p.id === 'p1').status, 'UNSOLD');
   assert.equal((await command('UNSOLD')).status,200);assert.equal(players.find(p=>p.id==='p2').status,'UNSOLD');
   await command('ACCELERATE',{discountPercent:50});assert.equal(players.find(p=>p.id==='p2').basePrice,50);
-  await command('UNSOLD');await command('ACCELERATE',{discountPercent:50});assert.equal(players.find(p=>p.id==='p2').basePrice,50,'Repeat rounds do not compound the discount');
+  assert.ok(players.every(p => p.status === 'AVAILABLE'));
+  await command('UNSOLD');await command('UNSOLD');await command('ACCELERATE',{discountPercent:50});assert.equal(players.find(p=>p.id==='p2').basePrice,50,'Repeat rounds do not compound the discount');
   await command('RESET');assert.equal(teams[0].remainingPurse,1000);assert.ok(players.every(p=>p.status==='AVAILABLE'));assert.equal(players.find(p=>p.id==='p2').basePrice,100,'Reset restores the original base price');assert.equal(players.find(p=>p.id==='p1').photoUrl,'/one.png');
+  rules.maxPlayersPerTeam = 1;
+  rules.minPlayersPerTeam = 1;
+  await command('SELECT', { playerId: 'p1' });
+  for (const newStatus of ['AVAILABLE', 'UNSOLD']) {
+    assert.equal((await command('BID', { teamId: 'k11', amount: 1001 })).status, 409);
+    assert.equal((await command('BID', { teamId: 'k11', amount: 1000 })).status, 200);
+    assert.equal((await command('SOLD', { teamId: 'k11', amount: 1000 })).status, 200);
+    assert.equal(teams[0].remainingPurse, 0);
+    assert.equal((await command('BID', { teamId: 'k11', amount: 100 })).status, 409);
+    const correction = { soldPlayerId: 'p1', teamId: 'k11', amount: 1000, newStatus };
+    assert.equal((await command('REVERSE_SALE', correction)).status, 200);
+    assert.equal((await command('REVERSE_SALE', correction)).status, 409);
+    assert.equal(teams[0].remainingPurse, 1000);
+    assert.equal(players.filter(p => p.status === 'SOLD' && p.soldToTeamId === 'k11').length, 0);
+    assert.equal((await command('BID', { teamId: 'k11', amount: 1000 })).status, 200);
+    await command('UNDO');
+    if (newStatus === 'AVAILABLE') await command('SELECT', { playerId: 'p1' });
+  }
+
 });

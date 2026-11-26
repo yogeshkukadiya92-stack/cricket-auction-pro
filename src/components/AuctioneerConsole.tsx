@@ -20,6 +20,7 @@ interface AuctioneerConsoleProps {
   isUnsold?: boolean;
   lastSoldInfo?: { player: Player; team: Team; price: number } | null;
   onPlaceBid: (team: Team, newAmount: number) => void;
+  onReverseSale: (player: Player, status: 'AVAILABLE' | 'UNSOLD') => void;
   onSold: () => void;
   onUnsold: () => void;
   onUndoBid: () => void;
@@ -35,7 +36,7 @@ const roleName: Record<string, string> = { BATSMAN: 'Batsman', BOWLER: 'Bowler',
 
 export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
   currentPlayer, currentBid, leadingTeam, allTeams, allPlayers, rules, busy = false, isSold, isUnsold, lastSoldInfo,
-  onPlaceBid, onSold, onUnsold, onUndoBid, onSelectPlayer, onRandomDraw, onOpenFortuneWheel, onLaunchAcceleratedRound, onOpenPlayers, onOpenTeams,
+  onReverseSale, onPlaceBid, onSold, onUnsold, onUndoBid, onSelectPlayer, onRandomDraw, onOpenFortuneWheel, onLaunchAcceleratedRound, onOpenPlayers, onOpenTeams,
 }) => {
   const baseStep = rules.bidIncrement || currentPlayer?.basePrice || 20000;
   const [multiplier, setMultiplier] = useState(1);
@@ -44,10 +45,20 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
   const [queueOpen, setQueueOpen] = useState(false);
   const [roundOpen, setRoundOpen] = useState(false);
 
+  const [saleId, setSaleId] = useState('');
+  const soldPlayers = allPlayers.filter(player => player.status === 'SOLD');
+  const selectedSale = soldPlayers.find(player => player.id === saleId);
+  const correctSale = async (status: 'AVAILABLE' | 'UNSOLD') => {
+    if (!selectedSale || busy) return;
+    const team = allTeams.find(team => team.id === selectedSale.soldToTeamId);
+    if (!await ask({ title: 'Reverse this sale?', body: `Move ${selectedSale.name} to ${status.toLowerCase()} and return ${price(selectedSale.soldPrice || 0)} to ${team?.name || 'the winning team'}.`, confirmLabel: 'Reverse sale' })) return;
+    onReverseSale(selectedSale, status);
+  };
+
   const price = (value: number) => formatAuctionPrice(value, rules.currency);
   const available = useMemo(() => allPlayers.filter((p) => (!p.approvalStatus || p.approvalStatus === 'APPROVED') && (p.status === 'AVAILABLE' || p.status === 'IN_AUCTION')).sort((a, b) => (a.lotOrder || 0) - (b.lotOrder || 0)), [allPlayers]);
   const unsoldCount = allPlayers.filter((p) => p.status === 'UNSOLD').length;
-  const soldCount = allPlayers.filter((p) => p.status === 'SOLD').length;
+  const soldCount = soldPlayers.length;
 
   useEffect(() => { setMultiplier(1); setCustom(''); setCustomOpen(false); }, [currentPlayer?.id]);
 
@@ -189,9 +200,21 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
             <button onClick={() => onSelectPlayer(available[0])} disabled={busy} className="btn btn-primary min-h-12 text-base"><Gavel className="w-5 h-5" />Call lot {available[0].lotOrder || 1}</button>
             <button onClick={onRandomDraw} disabled={busy} className="btn btn-ghost min-h-12"><Shuffle className="w-4 h-4" />Random</button>
           </>}
-          {!available.length && unsoldCount > 0 && onLaunchAcceleratedRound && <button onClick={() => setRoundOpen(true)} className="btn btn-primary min-h-12 text-base"><Zap className="w-5 h-5" />Start unsold round</button>}
+          {!available.length && unsoldCount > 0 && onLaunchAcceleratedRound && <button onClick={() => setRoundOpen(true)} className="btn btn-primary min-h-12 text-base"><Zap className="w-5 h-5" />Start next round with all unsold players</button>}
         </div>
       </div>}
+
+      {soldCount > 0 && <details className="panel p-4">
+        <summary className="cursor-pointer font-bold">Correct a sold player</summary>
+        <label className="block mt-3">Sold player<select className="field mt-1" value={selectedSale?.id || ''} onChange={e => setSaleId(e.target.value)}>
+          <option value="">Select player</option>
+          {soldPlayers.map(p => <option key={p.id} value={p.id}>{p.name} · {allTeams.find(t => t.id === p.soldToTeamId)?.name} · {price(p.soldPrice || 0)}</option>)}
+        </select></label>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button disabled={!selectedSale || busy} className="btn btn-ghost" onClick={() => void correctSale('AVAILABLE')}>Make available now</button>
+          <button disabled={!selectedSale || busy} className="btn btn-ghost" onClick={() => void correctSale('UNSOLD')}>Mark unsold</button>
+        </div>
+      </details>}
 
       {/* Always-reachable hammer bar */}
       {currentPlayer && <div className="fixed z-30 inset-x-0 bottom-[calc(72px+env(safe-area-inset-bottom))] md:bottom-0 md:left-16 xl:left-56 border-t border-white/10 bg-obsidian-900/95 backdrop-blur-lg p-2.5 sm:p-3">
@@ -208,7 +231,7 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
           <h2 id="round-title" className="font-display text-3xl font-extrabold text-white">Unsold round</h2>
           <p className="mt-1 text-sm text-slate-300">{unsoldCount} {unsoldCount === 1 ? 'player returns' : 'players return'}. Choose a base price cut.</p>
           <div className="mt-4 grid grid-cols-4 gap-2">
-            {[0, 10, 25, 50].map((percent) => <button key={percent} onClick={() => { setRoundOpen(false); onLaunchAcceleratedRound?.(percent); }} className="btn btn-ghost min-h-14 text-base">{percent === 0 ? 'None' : `−${percent}%`}</button>)}
+            {[0, 10, 25, 50].map((percent) => <button key={percent} onClick={() => { setRoundOpen(false); onLaunchAcceleratedRound?.(percent); }} className="btn btn-ghost min-h-14 text-base">{percent === 0 ? 'Keep base price' : `−${percent}%`}</button>)}
           </div>
         </div>
       </div>}

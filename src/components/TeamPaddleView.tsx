@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CheckCircle2, Hand, Shield } from 'lucide-react';
-import { getBidBudget } from '../../shared/auctionBudget.js';
+import { getBidBudget, withSlotReserve } from '../../shared/auctionBudget.js';
 import { AuctionRules, Player, Team } from '../types';
 import { sounds } from '../soundEffects';
 import { formatAuctionPrice } from '../utils/currency';
@@ -27,8 +27,8 @@ export const TeamPaddleView: React.FC<TeamPaddleViewProps> = ({ allTeams, curren
   const price = (value: number) => formatAuctionPrice(value, rules.currency);
   const squad = allPlayers.filter((p) => p.status === 'SOLD' && p.soldToTeamId === team.id);
   const nextBid = currentBid === 0 ? currentPlayer?.basePrice || 0 : currentBid + (rules.bidIncrement || currentPlayer?.basePrice || 20000);
-  const budget = getBidBudget(team, allPlayers, rules);
-  const biddable = !!currentPlayer && ['AVAILABLE', 'IN_AUCTION'].includes(currentPlayer.status) && !budget.squadComplete && (!(rules.minimumPlayerReserve || !rules.allowNegativePurse) || nextBid <= budget.maxBid);
+  const budget = getBidBudget(team, allPlayers, withSlotReserve(rules, currentPlayer?.basePrice));
+  const biddable = !!currentPlayer && ['AVAILABLE', 'IN_AUCTION'].includes(currentPlayer.status) && !budget.squadComplete && nextBid <= budget.maxBid;
   const leading = leadingTeam?.id === team.id;
 
   return (

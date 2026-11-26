@@ -53,6 +53,21 @@ app.post('/api/tournaments/:id/auction', requireUser, async (req, res) => {
       });
       await patchAuctionPlayers(client, req.params.id, players.filter(p => recalledIds.has(p.id)));
       state = { currentPlayerId: recalled[0].id, currentBid: 0, leadingTeam: null, bidsHistory: [] };
+    } else if (body.action === 'REVERSE_SALE') {
+      const player = players.find(p => p.id === body.soldPlayerId);
+      if (!player || player.status !== 'SOLD' || player.soldToTeamId !== body.teamId || player.soldPrice !== body.amount) fail('Sale changed. Review the player before correcting it.');
+      if (!['AVAILABLE', 'UNSOLD'].includes(body.newStatus)) fail('Choose Available or Unsold');
+      const { soldPrice, soldToTeamId, ...record } = player;
+      const team = teams.find(t => t.id === soldToTeamId);
+      if (!team || !Number.isFinite(team.remainingPurse) || !Number.isFinite(soldPrice) || soldPrice < 0) fail('Sale or purse details are missing');
+      const corrected = { ...record, status: body.newStatus };
+      const refunded = { ...team, remainingPurse: team.remainingPurse + soldPrice };
+      await patchAuctionPlayers(client, req.params.id, [corrected]);
+      await patchAuctionTeams(client, req.params.id, [refunded]);
+      players = players.map(p => p.id === player.id ? corrected : p);
+      teams = teams.map(t => t.id === team.id ? refunded : t);
+      if (state.lastEvent?.player?.id === player.id) delete state.lastEvent;
+      if (!state.currentPlayerId && eligible(corrected)) state.currentPlayerId = corrected.id;
     } else if (body.action === 'RESET') {
       players = players.map(p => {
         const { soldPrice, soldToTeamId, originalBasePrice, originalCategory, ...rest } = p;
@@ -123,7 +138,7 @@ app.post('/api/tournaments/:id/auction', requireUser, async (req, res) => {
     state.tournamentId = req.params.id;
     await client.query('INSERT INTO tournament_live_state(tournament_id,data) VALUES($1,$2) ON CONFLICT(tournament_id) DO UPDATE SET data=excluded.data', [req.params.id, state]);
     await client.query('COMMIT');
-    const changesPlayers = ['SOLD', 'UNSOLD', 'RESET', 'ACCELERATE'].includes(body.action);
+    const changesPlayers = ['SOLD', 'UNSOLD', 'RESET', 'ACCELERATE', 'REVERSE_SALE'].includes(body.action);
     res.json({ success: true, liveState: state, ...(changesPlayers ? { players, teams } : {}) });
   } catch (error) { await client.query('ROLLBACK'); throw error; }
   finally { client.release(); }
