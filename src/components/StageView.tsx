@@ -93,9 +93,9 @@ export const StageView: React.FC<StageViewProps> = ({
   </div>;
 
   if (!displayPlayer) {
-    return <div className="auction-stage space-y-4">
+    return <div className="auction-stage">
       {toolbar}
-      <div className="panel pitch-stripes min-h-[52vh] grid place-items-center p-8 text-center">
+      <div className="stage-main panel pitch-stripes min-h-[40vh] grid place-items-center p-8 text-center">
         <div>
           <p className="text-sm font-extrabold text-gold-400">{tournamentName}</p>
           <h1 className="mt-2 font-display text-[clamp(2rem,4vw,3.5rem)] font-black leading-tight text-white">Next lot<br />coming up</h1>
@@ -107,19 +107,19 @@ export const StageView: React.FC<StageViewProps> = ({
 
   const urgent = running && timeLeft <= 5;
   return (
-    <div className="auction-stage relative space-y-4">
+    <div className="auction-stage relative">
       {toolbar}
-      <div className="panel pitch-stripes overflow-hidden grid lg:grid-cols-[minmax(320px,0.8fr)_minmax(0,1.4fr)]">
-        <div className="stage-grid p-4 sm:p-6 flex items-center justify-center border-b lg:border-b-0 lg:border-r border-white/10">
+      <div className="stage-main panel pitch-stripes overflow-hidden grid lg:grid-cols-[minmax(320px,0.8fr)_minmax(0,1.4fr)]">
+        <div className="stage-grid min-h-0 p-4 sm:p-6 flex items-center justify-center border-b lg:border-b-0 lg:border-r border-white/10">
           <PlayerCard3D player={displayPlayer} showUnsold={isUnsold && !isSold} isBigStage />
         </div>
-        <div className="flex flex-col min-w-0">
+        <div className="flex flex-col min-w-0 min-h-0">
           <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-white/10">
             <span className="inline-flex items-center gap-2 text-sm font-extrabold text-red-400"><span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />Live<span className="hidden sm:inline text-slate-400 normal-case font-semibold tracking-normal truncate">· {tournamentName}</span></span>
             <span role="timer" aria-label="Time left" className={`inline-flex items-center gap-2 score text-4xl leading-tight ${urgent ? 'text-red-400' : 'text-white'}`}><Timer className="w-6 h-6" />{clock(timeLeft)}</span>
           </div>
 
-          <div className="relative flex-1 p-5 sm:p-8 flex flex-col justify-center min-h-64 transition-colors duration-300" style={leadingTeam ? { backgroundColor: `${leadingTeam.colorHex}26` } : undefined}>
+          <div className="relative flex-1 p-5 sm:p-8 flex flex-col justify-center min-h-0 overflow-hidden transition-colors duration-300" style={leadingTeam ? { backgroundColor: `${leadingTeam.colorHex}26` } : undefined}>
             <p className="text-sm font-extrabold text-slate-300">{currentBid > 0 ? 'Highest bid' : 'Base price'}</p>
             <p key={currentBid} className="cap-bid score leading-tight text-white text-[clamp(2.75rem,5.5vw,5.5rem)] truncate">{price(currentBid > 0 ? currentBid : displayPlayer.basePrice)}</p>
             {leadingTeam

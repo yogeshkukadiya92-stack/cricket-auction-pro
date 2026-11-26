@@ -283,7 +283,7 @@ function AppContent() {
       finally { window.clearTimeout(timeout); refreshing = false; }
     };
     void refresh();
-    const timer = setInterval(refresh, 2000);
+    const timer = setInterval(refresh, ['STAGE', 'OBS', 'PADDLE', 'AUCTIONEER'].includes(viewMode) ? 1000 : 2000);
     return () => { cancelled = true; controller?.abort(); clearInterval(timer); };
   }, [viewMode]);
 
@@ -529,25 +529,54 @@ function AppContent() {
     if (data.players) setPlayers(prev => { const next = [...prev.filter(p => p.tournamentId !== id), ...data.players]; serverPlayers.current = JSON.stringify(next); return next; });
   };
 
-  const flushBids = async () => {
+  // Sends queued bids in the background. Bids placed while a request is in flight
+  // stay queued (with the new revision) and go out right after, so the UI never waits.
+  const bidFlight = useRef<Promise<void> | null>(null);
+  const flushBids = async (): Promise<void> => {
+    while (bidFlight.current) { try { await bidFlight.current; } catch { /* retried below */ } }
     const queue = readBids();
     if (!queue.bids.length) return;
+    const scope = bidKey;
+    const sentIds = new Set(queue.bids.map(b => b.id));
     const path = '/api/tournaments/' + encodeURIComponent(activeTournamentId);
-    try {
-      const result = await requestJson(path + '/auction', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'BID_BATCH', playerId: queue.bids[0].playerId, ...queue }),
-      });
-      sessionStorage.removeItem(bidKey);
-      if (currentScope.current === bidKey) { setQueuedCount(0); applyAuctionSnapshot(result, activeTournamentId); }
-    } catch (error) {
-      if ((error as { status?: number }).status === 409) {
-        const result = await requestJson(path + '/live');
-        sessionStorage.removeItem(bidKey);
-        if (currentScope.current === bidKey) { setQueuedCount(0); applyAuctionSnapshot(result, activeTournamentId); }
+    const settle = (result: any) => {
+      const rest = readBids().bids.filter(b => !sentIds.has(b.id));
+      if (rest.length && result?.liveState) {
+        auctionRevision.current = result.liveState.revision || '';
+        sessionStorage.setItem(scope, JSON.stringify({ revision: auctionRevision.current, bids: rest }));
+        if (currentScope.current === scope) setQueuedCount(rest.length);
+        return true;
       }
-      throw error;
-    }
+      sessionStorage.removeItem(scope);
+      if (currentScope.current === scope) { setQueuedCount(0); applyAuctionSnapshot(result, activeTournamentId); }
+      return false;
+    };
+    const run = (async () => {
+      try {
+        const result = await requestJson(path + '/auction', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'BID_BATCH', playerId: queue.bids[0].playerId, ...queue }),
+        });
+        if (settle(result)) { bidFlight.current = null; await flushBids(); }
+      } catch (error) {
+        if ((error as { status?: number }).status === 409) {
+          const result = await requestJson(path + '/live');
+          sessionStorage.removeItem(scope);
+          if (currentScope.current === scope) { setQueuedCount(0); applyAuctionSnapshot(result, activeTournamentId); }
+        }
+        throw error;
+      }
+    })();
+    bidFlight.current = run;
+    try { await run; } finally { if (bidFlight.current === run) bidFlight.current = null; }
+  };
+  const bidTimer = useRef<number | undefined>(undefined);
+  const scheduleBidPush = () => {
+    window.clearTimeout(bidTimer.current);
+    bidTimer.current = window.setTimeout(() => {
+      if (settling.current) return;
+      flushBids().catch(error => notify((error as Error).message, 'warn'));
+    }, 120);
   };
 
   const runAuctionCommand = async (action: string, extra: Record<string, unknown> = {}) => {
@@ -570,8 +599,8 @@ function AppContent() {
   };
   useEffect(() => {
     if (!liveReady || loadedLiveTournamentId !== activeTournamentId) return;
-    const sync = () => { if (readBids().bids.length) void runAuctionCommand('SYNC'); };
-    const timer = window.setInterval(sync, 10000);
+    const sync = () => { if (readBids().bids.length && !settling.current) flushBids().catch(() => { /* retried on next tick */ }); };
+    const timer = window.setInterval(sync, 3000);
     window.addEventListener('online', sync);
     return () => { window.clearInterval(timer); window.removeEventListener('online', sync); };
   }, [bidKey, liveReady, loadedLiveTournamentId]);
@@ -596,6 +625,7 @@ function AppContent() {
       setCurrentBid(amount);
       setLeadingTeam(team);
       setBidsHistory(prev => [record, ...prev]);
+      scheduleBidPush();
     } catch { notify('Browser could not save the bid. Please retry.', 'warn'); }
   };
   const handleSold = () => { void runAuctionCommand('SOLD', { teamId: leadingTeam?.id, amount: currentBid }); };

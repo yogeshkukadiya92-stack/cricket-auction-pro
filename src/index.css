@@ -71,7 +71,20 @@
 :fullscreen .stage-mode .stage-share { display: none; }
 :fullscreen .stage-mode > div { padding-left: 0; }
 :fullscreen .stage-mode main { max-width: none; padding: clamp(12px, 2vw, 32px); }
-:fullscreen .auction-stage { min-height: calc(100dvh - 64px); }
+:fullscreen .stage-mode main { padding-bottom: clamp(12px, 2vw, 32px); }
+
+/* Stage always fits one screen (TV / projector): no page scroll. */
+.auction-stage { display: flex; flex-direction: column; gap: 12px; }
+.auction-stage > .panel { flex-shrink: 0; }
+@media (min-width: 1024px) {
+  .auction-stage { height: calc(100dvh - var(--stage-offset, 150px)); min-height: 520px; }
+  .auction-stage > .stage-main { flex: 1 1 auto; min-height: 0; }
+  .auction-stage .stage-main > * { min-height: 0; }
+  .auction-stage .stage-grid, .auction-stage .stage-card-wrap { height: 100%; }
+  .auction-stage .stage-card { height: 100%; max-height: 520px; min-height: 0; }
+  .auction-stage > section[aria-label="Auction controls"] { max-height: 42%; overflow-y: auto; }
+}
+:fullscreen .auction-stage { --stage-offset: 4vw; height: calc(100dvh - var(--stage-offset)); }
 
 /* ---------- Motion ---------- */
 @keyframes cap-rise {

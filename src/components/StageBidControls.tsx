@@ -65,6 +65,7 @@ export function StageBidControls({ teams, players, rules, currentPlayer, current
           <span className="block font-display text-lg font-extrabold leading-tight text-white truncate">{team.shortCode || team.name}</span>
           <span className="block caption text-[11px] text-slate-400 truncate">{budget.squadComplete ? 'Squad full' : price(team.remainingPurse)}</span>
           {!budget.squadComplete && <span className={`block caption text-[11px] font-bold truncate ${overBudget ? 'text-red-300' : 'text-gold-400'}`}>Max {price(budget.maxBid)}</span>}
+          {!budget.squadComplete && <span className="block caption text-[11px] font-bold text-sky-300 truncate">Need {Math.max(0, (rules.minPlayersPerTeam || 0) - budget.bought)} · Got {budget.bought}</span>}
         </button>;
       })}</div>
       <div className="grid grid-cols-4 gap-1.5">

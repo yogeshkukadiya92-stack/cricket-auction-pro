@@ -61,14 +61,14 @@ export const PlayerCard3D: React.FC<PlayerCard3DProps> = ({ player, isBigStage =
 
   return (
     <div
-      className="perspective-1000 w-full flex justify-center py-2 select-none"
+      className={`perspective-1000 w-full flex justify-center py-2 select-none ${isBigStage ? 'stage-card-wrap' : ''}`}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
     >
       <div
         ref={cardRef}
-        className={`relative rounded-3xl transition-transform duration-150 ease-out preserve-3d overflow-hidden ${
-          isBigStage ? 'w-full max-w-[400px] h-[min(500px,62vh)] min-h-[420px]' : 'w-full max-w-[340px] h-[480px]'
+        className={`relative rounded-3xl transition-transform duration-150 ease-out preserve-3d overflow-hidden flex flex-col ${
+          isBigStage ? 'stage-card w-full max-w-[400px] h-[min(500px,62vh)] min-h-[420px]' : 'w-full max-w-[340px] h-[480px]'
         } ${
           isMarquee
             ? 'border-2 border-gold-400/80 shadow-glow-gold'
@@ -88,7 +88,7 @@ export const PlayerCard3D: React.FC<PlayerCard3DProps> = ({ player, isBigStage =
         />
 
         {/* Top Floating Badge Bar */}
-        <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between">
+        <div className="relative z-20 shrink-0 px-4 pt-4 pb-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span
               className={`px-3 py-1 rounded-full text-xs font-bold text-white shadow-lg flex items-center gap-1.5 ${roleInfo.color}`}
@@ -108,11 +108,17 @@ export const PlayerCard3D: React.FC<PlayerCard3DProps> = ({ player, isBigStage =
         </div>
 
         {/* Player Portrait Container - Full & Clear Visibility */}
-        <div className="relative w-full h-[78%] overflow-hidden bg-gradient-to-b from-obsidian-900 to-obsidian-950">
+        <div className="relative flex-1 min-h-0 mx-3 overflow-hidden rounded-2xl border border-white/15 bg-obsidian-950 shadow-inner">
+          <img
+            aria-hidden="true"
+            src={player.photoUrl || "/player-placeholder.svg"}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover scale-110 blur-xl opacity-40"
+          />
           <img
             src={player.photoUrl || "/player-placeholder.svg"}
             alt={player.name}
-            className="w-full h-full object-cover object-top sm:object-center transition-transform duration-500 "
+            className="relative w-full h-full object-contain"
             loading="lazy"
           />
           {showUnsold && (
@@ -120,13 +126,11 @@ export const PlayerCard3D: React.FC<PlayerCard3DProps> = ({ player, isBigStage =
               <span className="cap-stamp rounded-xl border-4 border-red-500 bg-black/75 px-4 py-1 font-display text-4xl font-black text-red-400">UNSOLD</span>
             </div>
           )}
-          {/* Subtle bottom edge blend only (No heavy dark overlays) */}
-          <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-obsidian-950 via-obsidian-950/40 to-transparent pointer-events-none" />
         </div>
 
         {/* Player Details & Key Stats Floating Glassmorphic Card */}
-        <div className="absolute bottom-0 inset-x-0 p-3 sm:p-4 z-20 flex flex-col justify-end">
-          <div className="p-3.5 rounded-2xl bg-obsidian-950/85  border border-white/10 shadow-2xl space-y-2">
+        <div className="relative shrink-0 p-3 z-20">
+          <div className="p-3 rounded-2xl bg-obsidian-950/85 border border-white/10 shadow-2xl space-y-2">
             <div className="space-y-0.5">
               <h3 className="text-3xl sm:text-4xl font-extrabold leading-tight text-white font-display truncate">
                 {player.name}

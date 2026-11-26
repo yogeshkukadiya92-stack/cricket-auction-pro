@@ -3,8 +3,9 @@ import { PageHead } from '../ui/kit';
 import { formatAuctionPrice } from '../utils/currency';
 import React from 'react';
 import { Player, Team, AuctionRules } from '../types';
-import { Camera, Printer, Trophy, Users, Wallet, Zap, Shield, Sparkles, FileSpreadsheet, Download } from 'lucide-react';
+import { Camera, Printer, Trophy, Users, Wallet, Zap, Shield, Sparkles, FileSpreadsheet, Download, Share2, Loader2 } from 'lucide-react';
 import { TeamLogo } from './TeamLogo';
+import { shareTeamSquadImage } from '../utils/teamSquadImage';
 
 interface SquadSummaryViewProps {
   teams: Team[];
@@ -21,6 +22,18 @@ export const SquadSummaryView: React.FC<SquadSummaryViewProps> = ({
 }) => {
   const formatPrice = (val: number) => {
     return formatAuctionPrice(val, rules.currency);
+  };
+
+  const [sharingId, setSharingId] = React.useState<string | null>(null);
+  const handleShareTeam = async (team: Team, squad: Player[]) => {
+    setSharingId(team.id);
+    try {
+      await shareTeamSquadImage(team, squad, formatPrice);
+    } catch (e) {
+      alert('Could not create team image. Please try again.');
+    } finally {
+      setSharingId(null);
+    }
   };
 
   const soldPlayers = players.filter((p) => p.status === 'SOLD');
@@ -107,9 +120,20 @@ export const SquadSummaryView: React.FC<SquadSummaryViewProps> = ({
                       <p className="caption text-[11px] text-slate-400">{team.ownerName}</p>
                     </div>
                   </div>
-                  <span className="text-xs font-mono font-bold px-2 py-1 rounded bg-white/5 text-slate-300">
-                    {team.shortCode}
-                  </span>
+                  <div className="flex items-center gap-2 print:hidden">
+                    <button
+                      onClick={() => handleShareTeam(team, squad)}
+                      disabled={sharingId === team.id || squad.length === 0}
+                      title="Share squad image on WhatsApp"
+                      className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg bg-[#25D366]/15 text-[#25D366] border border-[#25D366]/30 hover:bg-[#25D366]/25 disabled:opacity-40"
+                    >
+                      {sharingId === team.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Share2 className="w-3.5 h-3.5" />}
+                      WhatsApp
+                    </button>
+                    <span className="text-xs font-mono font-bold px-2 py-1 rounded bg-white/5 text-slate-300">
+                      {team.shortCode}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Team Purse Stats */}
