@@ -910,6 +910,7 @@ function AppContent() {
             onUnsold={handleUnsold}
             onUndoBid={handleUndoBid}
             onNextPlayer={handleRandomDraw}
+            onSelectPlayer={handleSelectPlayer}
           />
         )}
 

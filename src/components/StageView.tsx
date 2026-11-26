@@ -24,6 +24,7 @@ interface StageViewProps {
   isSold: boolean;
   isUnsold: boolean;
   lastSoldInfo: { player: Player; team: Team; price: number } | null;
+  onSelectPlayer?: (player: Player) => void;
   onNextPlayer?: () => void;
   allPlayers?: Player[];
   rules?: AuctionRules;
@@ -38,7 +39,7 @@ const clock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds
 
 export const StageView: React.FC<StageViewProps> = ({
   tournamentName = 'Live Auction', tournamentId, timerSeconds = 15, currency = 'INR', currentPlayer, currentBid, leadingTeam, bidsHistory, allTeams,
-  isSold, isUnsold, lastSoldInfo, allPlayers = [], rules, auctionBusy = false, onPlaceBid, onSold, onUnsold, onUndoBid, onNextPlayer,
+  isSold, isUnsold, lastSoldInfo, allPlayers = [], rules, auctionBusy = false, onPlaceBid, onSold, onUnsold, onUndoBid, onNextPlayer, onSelectPlayer,
 }) => {
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -82,7 +83,7 @@ export const StageView: React.FC<StageViewProps> = ({
 
   if (summaryOpen) return <StageAuctionSummary players={allPlayers} teams={allTeams} tournamentName={tournamentName} currency={currency} onBack={() => setSummaryOpen(false)} />;
 
-  const controls = rules && onPlaceBid ? <StageBidControls teams={allTeams} players={allPlayers} rules={rules} currentPlayer={currentPlayer} currentBid={currentBid} leadingTeam={leadingTeam} busy={auctionBusy || isSold || isUnsold} onBid={onPlaceBid} onSold={onSold} onUnsold={onUnsold} onUndo={onUndoBid} onNext={onNextPlayer} /> : null;
+  const controls = rules && onPlaceBid ? <StageBidControls key={tournamentId} tournamentId={tournamentId} onSelectPlayer={onSelectPlayer} teams={allTeams} players={allPlayers} rules={rules} currentPlayer={currentPlayer} currentBid={currentBid} leadingTeam={leadingTeam} busy={auctionBusy || isSold || isUnsold} onBid={onPlaceBid} onSold={onSold} onUnsold={onUnsold} onUndo={onUndoBid} onNext={onNextPlayer} /> : null;
 
   const toolbar = <div className="stage-share flex flex-wrap items-center justify-end gap-2">
     <button onClick={() => setSummaryOpen(true)} className="btn btn-ghost"><ListChecks className="w-4 h-4" />{soldCount}/{allPlayers.length} sold</button>
