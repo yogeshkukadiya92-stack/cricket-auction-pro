@@ -24,6 +24,6 @@ export function registerBootstrapMedia(app, { pool, requireUser, owns }) {
     const result = await pool.query('SELECT data->>$3 AS image FROM players WHERE tournament_id=$1 AND id=$2', [req.params.id, req.params.playerId, req.params.field]);
     const image = decodeDataImage(await compressUploadedImage(result.rows[0]?.image));
     if (!image) return res.sendStatus(404);
-    res.set('Cache-Control', 'private, no-store').type(image.mime).send(image.buffer);
+    res.set('Cache-Control', req.params.field === 'photoUrl' ? 'private, max-age=300' : 'private, no-store').type(image.mime).send(image.buffer);
   });
 }

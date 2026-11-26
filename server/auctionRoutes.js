@@ -15,6 +15,20 @@ app.post('/api/tournaments/:id/auction', requireUser, async (req, res) => {
     const live = await client.query('SELECT data FROM tournament_live_state WHERE tournament_id=$1', [req.params.id]);
     let state = compactLiveState(live.rows[0]?.data, req.params.id);
     if (!state.currentPlayerId) state = { ...state, currentPlayerId: '', currentBid: 0, leadingTeam: null, bidsHistory: [] };
+    const command = req.body || {};
+    // Selection needs one eligible record, not every player and team (and their media).
+    if (command.action === 'SELECT') {
+      if (command.playerId !== state.currentPlayerId) {
+        if (state.currentBid > 0) throw Object.assign(new Error('Finish or undo the current bidding before switching players or starting another round'), { status: 409 });
+        const selected = await client.query("SELECT data->>'status' AS status, data->>'approvalStatus' AS approval FROM players WHERE tournament_id=$1 AND id=$2", [req.params.id, command.playerId]);
+        const player = selected.rows[0];
+        if (!player || !['AVAILABLE', 'IN_AUCTION'].includes(player.status) || (player.approval && player.approval !== 'APPROVED')) throw Object.assign(new Error('Player is not available for auction'), { status: 409 });
+        state = { tournamentId: req.params.id, currentPlayerId: command.playerId, currentBid: 0, leadingTeam: null, bidsHistory: [] };
+        await client.query('INSERT INTO tournament_live_state(tournament_id,data) VALUES($1,$2) ON CONFLICT(tournament_id) DO UPDATE SET data=excluded.data', [req.params.id, state]);
+      }
+      await client.query('COMMIT');
+      return res.json({ success: true, liveState: state });
+    }
     const playerRows = await client.query(`SELECT ${mediaColumns('players')} FROM players WHERE tournament_id=$1`, [req.params.id]);
     const teamRows = await client.query(`SELECT ${mediaColumns('teams')} FROM teams WHERE tournament_id=$1`, [req.params.id]);
     // Lots run in lot order, whatever order the database returns rows in.

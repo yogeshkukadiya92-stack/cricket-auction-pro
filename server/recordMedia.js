@@ -70,7 +70,7 @@ async function sendImage(req, res, pool, kind, id) {
   kind === 'tournaments' ? [id, req.params.field] : [req.params.id, id, req.params.field]);
   const image = decodeDataImage(await compressUploadedImage(row.rows[0]?.image));
   if (!image) return res.sendStatus(404);
-  res.set({ 'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff' }).type(image.mime).send(image.buffer);
+  res.set({ 'Cache-Control': ['logo', 'logoUrl'].includes(req.params.field) ? 'private, max-age=300' : 'private, no-store', 'X-Content-Type-Options': 'nosniff' }).type(image.mime).send(image.buffer);
 }
 
 export function registerRecordMedia(app, { pool, requireUser, owns }) {

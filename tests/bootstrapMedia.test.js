@@ -34,6 +34,6 @@ test('player media requires authentication, tournament ownership and field allow
   const response = await fetch(url, { headers: { 'x-test-user': 'owner' } });
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('content-type'), 'image/png');
-  assert.equal(response.headers.get('cache-control'), 'private, no-store');
+  assert.equal(response.headers.get('cache-control'), 'private, max-age=300');
   assert.deepEqual(Buffer.from(await response.arrayBuffer()), Buffer.from('AAAA', 'base64'));
 });

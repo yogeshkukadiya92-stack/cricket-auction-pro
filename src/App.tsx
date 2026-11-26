@@ -460,6 +460,17 @@ function AppContent() {
   const activeTeams = useMemo(() => teams.filter(t => !t.tournamentId || t.tournamentId === tournament.id), [teams, tournament.id]);
   const activePlayers = useMemo(() => players.filter(p => !p.tournamentId || p.tournamentId === tournament.id), [players, tournament.id]);
 
+  // Prepare the random draw while the current lot is on screen. Reuse the same
+  // candidate on click so its photo is already in the browser cache.
+  const nextDrawPlayer = useMemo(() => {
+    const available = activePlayers.filter(p => p.id !== currentPlayerId && (!p.approvalStatus || p.approvalStatus === 'APPROVED') && ['AVAILABLE', 'IN_AUCTION'].includes(p.status));
+    return available[Math.floor(Math.random() * available.length)];
+  }, [activePlayers, currentPlayerId]);
+  useEffect(() => {
+    if (!nextDrawPlayer?.photoUrl || !['STAGE', 'AUCTIONEER'].includes(viewMode)) return;
+    const image = new Image();
+    image.src = nextDrawPlayer.photoUrl;
+  }, [nextDrawPlayer?.photoUrl, viewMode]);
   const currentPlayer = activePlayers.find((p) => p.id === currentPlayerId) || null;
 
   const consumeAuctionEvent = (event: any) => {
@@ -547,8 +558,7 @@ function AppContent() {
       notify('All players have been auctioned. See Squads for the results.');
       return;
     }
-    const randomIndex = Math.floor(Math.random() * unAuctioned.length);
-    handleSelectPlayer(unAuctioned[randomIndex]);
+    handleSelectPlayer(nextDrawPlayer || unAuctioned[0]);
   };
 
   // Reset Auction for current tournament

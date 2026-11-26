@@ -14,6 +14,7 @@ test('auction rehearsal: bid, undo, safe selection, sold once, unsold, recall an
       if(sql==='COMMIT')return{rows:[]};
       if(sql==='ROLLBACK'){({players,teams,state}=before);return{rows:[]};}
       if(sql.includes("data->'rules'"))return{rows:[{rules}]};
+      if(sql.includes("AS approval FROM players"))return{rows:players.filter(p=>p.id===values[1]).map(p=>({status:p.status,approval:p.approvalStatus}))};
       if(sql.startsWith('SELECT')&&sql.includes('FROM players'))return{rows:players.map(data=>({data:structuredClone(data)}))};
       if(sql.startsWith('SELECT')&&sql.includes('FROM teams'))return{rows:teams.map(data=>({data:structuredClone(data)}))};
       if(sql.startsWith('SELECT')&&sql.includes('FROM tournament_live_state'))return{rows:[{data:structuredClone(state)}]};
