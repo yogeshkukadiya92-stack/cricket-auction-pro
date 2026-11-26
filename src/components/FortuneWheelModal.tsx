@@ -283,7 +283,7 @@ export const FortuneWheelModal: React.FC<FortuneWheelModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
-      <div className="relative w-full max-w-2xl bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border border-amber-500/30 rounded-3xl shadow-2xl overflow-hidden text-white flex flex-col max-h-[90vh]">
+      <div role="dialog" aria-modal="true" aria-label="Interactive Fortune Wheel" className="relative w-full max-w-2xl bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border border-amber-500/30 rounded-3xl shadow-2xl overflow-hidden text-white flex flex-col max-h-[90vh]">
         {/* Glow ambient header */}
         <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-80 h-32 bg-amber-500/20 blur-3xl rounded-full pointer-events-none" />
 

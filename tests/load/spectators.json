@@ -1,0 +1,10 @@
+[{
+  "name": "spectator",
+  "weight": 1,
+  "steps": [{
+    "name": "open-auction",
+    "path": "/api/public/tournaments/fixture/summary",
+    "expectedStatus": 200,
+    "bodyContains": "\"rosterVersion\""
+  }]
+}]

@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { sendConditionalJson } from './conditionalJson.js';
+import { prepareConditionalJson, sendPreparedJson } from './conditionalJson.js';
 import { publicProjection, publicImageProjection, publicImageUrl } from './publicDirectoryRoutes.js';
 
 const tournamentFields = ['id','name','season','year','city','ground','status','rules','registrationOpen'];
@@ -21,9 +21,9 @@ export function registerPublicSummaryRoutes(app, { pool }) {
     const snapshot = await entry.snapshot;
     if (!snapshot) return res.status(404).json({ error: 'Tournament not found' });
     res.set('Cache-Control', 'no-store');
-    const { rosterVersion, liveState } = snapshot;
+    const { rosterVersion } = snapshot;
     const unchangedRoster = req.query.rosterVersion === rosterVersion;
-    return sendConditionalJson(req, res, unchangedRoster ? { success: true, rosterVersion, liveState } : snapshot);
+    return sendPreparedJson(req, res, unchangedRoster ? snapshot.delta : snapshot.full);
   });
 
   async function loadSummary(id) {
@@ -42,10 +42,11 @@ export function registerPublicSummaryRoutes(app, { pool }) {
   const teams = teamRows.rows.map(({ data: t }) => ({ id: t.id, name: t.name, shortCode: t.shortCode, logo: t.logo, colorHex: t.colorHex, totalPurse: t.totalPurse, remainingPurse: t.remainingPurse }));
   const players = playerRows.rows.filter(({ data: p }) => !p.approvalStatus || p.approvalStatus === 'APPROVED').map(({ data: p }) => ({ id: p.id, name: p.name, photoUrl: p.photoUrl, role: p.role, status: p.status, soldToTeamId: p.soldToTeamId, soldPrice: p.soldPrice, basePrice: p.basePrice, category: p.category, lotOrder: p.lotOrder, battingStyle: p.battingStyle, bowlingStyle: p.bowlingStyle, stats: p.stats || { matches: 0, runs: 0, wickets: 0, strikeRate: 0 } }));
   const registrationPlayers = playerRows.rows.map(({ data: p }) => ({ id: p.id, name: p.name, photoUrl: p.photoUrl, role: p.role, approvalStatus: p.approvalStatus || 'APPROVED', status: p.status, basePrice: p.basePrice, soldPrice: p.soldPrice, soldToTeamId: p.soldToTeamId }));
-  const registrationStats = { total: playerRows.rows.length, pending: 0, approved: players.length, rejected: 0 };
+  const registrationStats = { total: playerRows.rows.length, pending: registrationPlayers.filter(p => p.approvalStatus === 'PENDING').length, approved: players.length, rejected: registrationPlayers.filter(p => p.approvalStatus === 'REJECTED').length };
   const state = liveRows.rows[0]?.data || {};
   const roster = { tournament, teams, players, registrationPlayers, registrationStats };
   const rosterVersion = createHash('sha256').update(JSON.stringify(roster)).digest('base64url');
-  return { success: true, ...roster, rosterVersion, liveState: { currentPlayerId: state.currentPlayerId || '', currentBid: state.currentBid || 0, leadingTeam: state.leadingTeam ? { id: state.leadingTeam.id } : null, bidsHistory: (state.bidsHistory || []).slice(0, 10).map(b => ({ id: b.id, playerId: b.playerId, teamId: b.teamId, teamName: teams.find(t => t.id === b.teamId)?.name || b.teamName, amount: b.amount, timestamp: b.timestamp })), lastEvent: state.lastEvent ? { id: state.lastEvent.id, type: state.lastEvent.type, timestamp: state.lastEvent.timestamp, price: state.lastEvent.price, player: players.find(p => p.id === state.lastEvent.player?.id) || null, team: teams.find(t => t.id === state.lastEvent.team?.id) || null } : null } };
+  const summary = { success: true, ...roster, rosterVersion, liveState: { currentPlayerId: state.currentPlayerId || '', currentBid: state.currentBid || 0, leadingTeam: state.leadingTeam ? { id: state.leadingTeam.id } : null, bidsHistory: (state.bidsHistory || []).slice(0, 10).map(b => ({ id: b.id, playerId: b.playerId, teamId: b.teamId, teamName: teams.find(t => t.id === b.teamId)?.name || b.teamName, amount: b.amount, timestamp: b.timestamp })), lastEvent: state.lastEvent ? { id: state.lastEvent.id, type: state.lastEvent.type, timestamp: state.lastEvent.timestamp, price: state.lastEvent.price, player: players.find(p => p.id === state.lastEvent.player?.id) || null, team: teams.find(t => t.id === state.lastEvent.team?.id) || null } : null } };
+  return { rosterVersion, full: prepareConditionalJson(summary), delta: prepareConditionalJson({ success: true, rosterVersion, liveState: summary.liveState }) };
   }
 }

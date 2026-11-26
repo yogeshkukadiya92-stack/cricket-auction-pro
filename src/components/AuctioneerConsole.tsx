@@ -52,7 +52,7 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
   useEffect(() => { setMultiplier(1); setCustom(''); setCustomOpen(false); }, [currentPlayer?.id]);
 
   const customAmount = customOpen && custom ? Number(custom) : 0;
-  const nextBid = customAmount > 0 ? customAmount : currentBid > 0 ? currentBid + baseStep * multiplier : currentPlayer?.basePrice || 0;
+  const nextBid = customOpen ? customAmount : currentBid > 0 ? currentBid + baseStep * multiplier : currentPlayer?.basePrice || 0;
   const hasBid = currentBid > 0 && !!leadingTeam;
   const locked = busy || !!isSold || !!isUnsold;
 
@@ -69,6 +69,7 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
 
   const bid = (team: Team) => {
     if (!currentPlayer || locked) return;
+    if (customOpen && !custom.trim()) { notify('Enter a custom bid amount.', 'warn'); return; }
     if (!Number.isFinite(nextBid) || nextBid < currentPlayer.basePrice || nextBid <= currentBid) {
       notify(`Bid must be above ${price(Math.max(currentBid, currentPlayer.basePrice - 1))}.`, 'warn');
       return;
@@ -92,7 +93,7 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
   useEffect(() => {
     const onKey = async (event: KeyboardEvent) => {
       const target = event.target as HTMLElement;
-      if (event.metaKey || event.ctrlKey || event.altKey || queueOpen || roundOpen || document.querySelector('[role="alertdialog"]') || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return;
+      if (event.repeat || event.isComposing || target.isContentEditable || event.metaKey || event.ctrlKey || event.altKey || queueOpen || roundOpen || document.querySelector('[aria-modal="true"], [role="alertdialog"]') || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return;
       const key = event.key.toLowerCase();
       if (/^[1-9]$/.test(key)) { const team = allTeams[Number(key) - 1]; if (team) bid(team); }
       else if (key === 'z' && currentBid > 0 && !locked) onUndoBid();
@@ -117,9 +118,9 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
         <p className="text-sm font-bold text-slate-300"><span className="text-white">{soldCount}</span> sold · <span className="text-white">{available.length}</span> waiting · <span className="text-white">{unsoldCount}</span> unsold</p>
         <div className="flex flex-wrap items-center gap-2">
           <Hint label="Keyboard shortcuts" text={<span className="flex items-start gap-2"><Keyboard className="w-4 h-4 shrink-0" /><span>1–9 bid for team · S sold · U unsold · Z undo · N next player</span></span>} />
-          {onOpenFortuneWheel && <button onClick={onOpenFortuneWheel} className="btn btn-ghost"><Sparkles className="w-4 h-4" />Wheel</button>}
-          {onLaunchAcceleratedRound && unsoldCount > 0 && <button onClick={() => setRoundOpen(true)} disabled={currentBid > 0} className="btn btn-ghost"><Zap className="w-4 h-4" />Unsold round ({unsoldCount})</button>}
-          <button onClick={() => setQueueOpen(true)} disabled={currentBid > 0} className="btn btn-ghost"><ListOrdered className="w-4 h-4" />Pick player</button>
+          {onOpenFortuneWheel && <button onClick={onOpenFortuneWheel} disabled={locked || currentBid > 0} className="btn btn-ghost"><Sparkles className="w-4 h-4" />Wheel</button>}
+          {onLaunchAcceleratedRound && unsoldCount > 0 && <button onClick={() => setRoundOpen(true)} disabled={locked || currentBid > 0} className="btn btn-ghost"><Zap className="w-4 h-4" />Unsold round ({unsoldCount})</button>}
+          <button onClick={() => setQueueOpen(true)} disabled={locked || currentBid > 0} className="btn btn-ghost"><ListOrdered className="w-4 h-4" />Pick player</button>
         </div>
       </div>
 
@@ -193,11 +194,11 @@ export const AuctioneerConsole: React.FC<AuctioneerConsoleProps> = ({
       </div>}
 
       {/* Always-reachable hammer bar */}
-      {currentPlayer && <div className="fixed z-30 inset-x-0 bottom-[72px] md:bottom-0 md:left-16 xl:left-56 border-t border-white/10 bg-obsidian-900/95 backdrop-blur-lg p-2.5 sm:p-3">
+      {currentPlayer && <div className="fixed z-30 inset-x-0 bottom-[calc(72px+env(safe-area-inset-bottom))] md:bottom-0 md:left-16 xl:left-56 border-t border-white/10 bg-obsidian-900/95 backdrop-blur-lg p-2.5 sm:p-3">
         <div className="max-w-[1500px] mx-auto grid grid-cols-[1fr_1fr_2.2fr] sm:flex items-stretch gap-2 sm:justify-end">
           <button onClick={onUndoBid} disabled={locked || currentBid <= 0} className="btn btn-ghost min-h-14 sm:px-5"><Undo2 className="w-5 h-5" /><span className="hidden sm:inline">Undo</span><span className="sm:hidden sr-only">Undo</span></button>
           <button onClick={() => void pass()} disabled={locked} className="btn min-h-14 sm:px-5 bg-red-500/15 border border-red-500/40 text-red-200 hover:bg-red-500/25"><Ban className="w-5 h-5" />Unsold</button>
-          <button onClick={sell} disabled={locked || !hasBid} className="btn min-h-14 sm:min-w-72 bg-emerald-500 hover:bg-emerald-400 text-black text-lg font-extrabold disabled:bg-white/5 disabled:text-slate-500"><Gavel className="w-5 h-5" />SOLD{hasBid ? ` · ${leadingTeam?.shortCode || leadingTeam?.name}` : ''}</button>
+          <button onClick={sell} disabled={locked || !hasBid} className="btn min-h-14 min-w-0 sm:min-w-72 bg-emerald-500 hover:bg-emerald-400 text-black text-lg font-extrabold disabled:bg-white/5 disabled:text-slate-500"><Gavel className="w-5 h-5 shrink-0" /><span className="truncate">SOLD{hasBid ? ` · ${leadingTeam?.shortCode || leadingTeam?.name}` : ''}</span></button>
         </div>
       </div>}
 
