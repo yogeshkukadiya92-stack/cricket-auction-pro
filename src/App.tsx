@@ -254,6 +254,7 @@ function AppContent() {
     if (!id) return;
     let cancelled = false;
     let refreshing = false;
+    let rosterVersion = '';
     const poll = createJsonPoller();
     let controller: AbortController | undefined;
     const refresh = async () => {
@@ -263,9 +264,17 @@ function AppContent() {
       const requestController = controller;
       const timeout = window.setTimeout(() => requestController.abort(), 15000);
       try {
-        const data = await poll(`/api/public/tournaments/${encodeURIComponent(id)}/summary`, { cache: 'no-store', signal: requestController.signal });
+        const data = await poll(`/api/public/tournaments/${encodeURIComponent(id)}/summary${rosterVersion ? '?rosterVersion=' + rosterVersion : ''}`, { cache: 'no-store', signal: requestController.signal });
+        if (cancelled) return;
+        setDataError('');
         if (!data) return;
-        if (!cancelled) { consumeAuctionEvent(data.liveState?.lastEvent); setPublicSummary(data); setDataError(''); }
+        consumeAuctionEvent(data.liveState?.lastEvent);
+        if (data.tournament) {
+          rosterVersion = data.rosterVersion || '';
+          setPublicSummary(data);
+        } else {
+          setPublicSummary(prev => prev && ({ ...prev, liveState: data.liveState }));
+        }
       } catch (err) { if (!cancelled) setDataError(requestController.signal.aborted ? 'Loading took too long. Please retry.' : (err as Error).message); }
       finally { window.clearTimeout(timeout); refreshing = false; }
     };
