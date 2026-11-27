@@ -100,6 +100,45 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
     }
   };
 
+  const [newUser, setNewUser] = useState({ name: '', email: '', password: '' });
+  const [creatingUser, setCreatingUser] = useState(false);
+  const [assigningId, setAssigningId] = useState<string | null>(null);
+  const flash = (message: string) => { setActionMessage(message); setTimeout(() => setActionMessage(null), 3000); };
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreatingUser(true);
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newUser),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Could not create account');
+      flash(`Account created for ${data.user.email}. Share the email and password with them.`);
+      setNewUser({ name: '', email: '', password: '' });
+      fetchUsersAndStats();
+    } catch (err: any) {
+      notify(err.message || 'Could not create account.', 'warn');
+    } finally { setCreatingUser(false); }
+  };
+
+  const handleAssignTournament = async (tournamentId: string, userId: string) => {
+    if (!userId) return;
+    setAssigningId(tournamentId);
+    try {
+      const res = await fetch('/api/admin/assign-tournament', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tournamentId, userId }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Could not assign tournament');
+      flash(`Tournament assigned to ${data.creatorEmail}`);
+      onRefreshData();
+      fetchUsersAndStats();
+    } catch (err: any) {
+      notify(err.message || 'Could not assign tournament.', 'warn');
+    } finally { setAssigningId(null); }
+  };
+
   const handleExportBackup = () => {
     void dbService.exportBackup().then(ok => { if (!ok) setActionMessage('Backup download failed'); });
   };
@@ -393,6 +432,20 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
               </div>
             </div>
 
+            {/* Create account */}
+            <form onSubmit={handleCreateUser} className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 space-y-3">
+              <div>
+                <h3 className="font-bold text-white text-sm">Create organizer account</h3>
+                <p className="text-xs text-slate-400">Make a login for someone, then assign tournaments to them in the Tournaments tab. They never need the admin password.</p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                <input required value={newUser.name} onChange={e => setNewUser({ ...newUser, name: e.target.value })} placeholder="Name" className="field" />
+                <input required type="email" value={newUser.email} onChange={e => setNewUser({ ...newUser, email: e.target.value })} placeholder="Email (login ID)" className="field" />
+                <input required value={newUser.password} onChange={e => setNewUser({ ...newUser, password: e.target.value })} placeholder="Password (5 digits or 12+ chars)" className="field" autoComplete="new-password" />
+                <button type="submit" disabled={creatingUser} className="btn btn-primary">{creatingUser ? 'Creating…' : 'Create account'}</button>
+              </div>
+            </form>
+
             {/* Users Table */}
             <div className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden">
               <div className="overflow-x-auto">
@@ -532,6 +585,19 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
                           {tourney.creatorEmail || 'Platform Admin'}
                         </span>
                       </div>
+                      <label className="flex items-center justify-between gap-2">
+                        <span>Assign to:</span>
+                        <select
+                          value={usersList.find(u => u.email === tourney.creatorEmail)?.id || ''}
+                          disabled={assigningId === tourney.id}
+                          onChange={e => handleAssignTournament(tourney.id, e.target.value)}
+                          onClick={e => e.stopPropagation()}
+                          className="field !py-1 !text-xs max-w-[60%]"
+                        >
+                          <option value="" disabled>Choose account</option>
+                          {usersList.filter(u => u.status === 'ACTIVE').map(u => <option key={u.id} value={u.id}>{u.name} ({u.email})</option>)}
+                        </select>
+                      </label>
                       <div className="flex justify-between">
                         <span>Base Price:</span>
                         <span className="text-white font-semibold">

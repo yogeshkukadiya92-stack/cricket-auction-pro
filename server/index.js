@@ -222,6 +222,34 @@ app.post('/api/admin/toggle-user', requireUser, requireAdmin, async (req, res) =
   res.json({ success: true, status: result.rows[0].status });
 });
 
+app.post('/api/admin/users', requireUser, requireAdmin, limit, async (req, res) => {
+  const name = String(req.body?.name || '').trim();
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  const password = String(req.body?.password || '');
+  if (!name || name.length > 100 || !/^\S+@\S+\.\S+$/.test(email) || email.length > 255 || (!/^\d{5}$/.test(password) && password.length < 12) || password.length > 128) return bad(res, 400, 'Enter a name, valid email and password of exactly 5 digits or at least 12 characters');
+  try {
+    const result = await pool.query("INSERT INTO organizers(id,name,email,password_hash) VALUES($1,$2,$3,$4) RETURNING id,name,email,role,status,created_at", [randomUUID(), name, email, await bcrypt.hash(password, 12)]);
+    const { created_at, ...user } = result.rows[0];
+    res.json({ success: true, user: { ...user, createdAt: created_at, tournamentsCount: 0 } });
+  } catch (error) {
+    if (error.code === '23505') return bad(res, 409, 'Email already registered');
+    throw error;
+  }
+});
+
+app.post('/api/admin/assign-tournament', requireUser, requireAdmin, async (req, res) => {
+  const tournamentId = String(req.body?.tournamentId || '');
+  const userId = String(req.body?.userId || '');
+  if (!tournamentId || tournamentId.length > 160 || !/^[0-9a-f-]{36}$/i.test(userId)) return bad(res, 400, 'Choose a tournament and an account');
+  const owner = await pool.query('SELECT id,email FROM organizers WHERE id=$1', [userId]);
+  if (!owner.rowCount) return bad(res, 404, 'Account not found');
+  const result = await pool.query(`UPDATE tournaments SET organizer_id=$2,
+    data=jsonb_set(jsonb_set(data,'{userId}',to_jsonb($2::text)),'{creatorEmail}',to_jsonb($3::text)), updated_at=now()
+    WHERE id=$1 RETURNING id`, [tournamentId, owner.rows[0].id, owner.rows[0].email]);
+  if (!result.rowCount) return bad(res, 404, 'Tournament not found');
+  res.json({ success: true, userId: owner.rows[0].id, creatorEmail: owner.rows[0].email });
+});
+
 app.get('/api/ping', (_req, res) => res.json({ ok: true }));
 
 registerBootstrapMedia(app, { pool, requireUser, owns });
