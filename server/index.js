@@ -243,9 +243,10 @@ app.post('/api/admin/assign-tournament', requireUser, requireAdmin, async (req, 
   if (!tournamentId || tournamentId.length > 160 || !/^[0-9a-f-]{36}$/i.test(userId)) return bad(res, 400, 'Choose a tournament and an account');
   const owner = await pool.query('SELECT id,email FROM organizers WHERE id=$1', [userId]);
   if (!owner.rowCount) return bad(res, 404, 'Account not found');
-  const result = await pool.query(`UPDATE tournaments SET organizer_id=$2,
-    data=jsonb_set(jsonb_set(data,'{userId}',to_jsonb($2::text)),'{creatorEmail}',to_jsonb($3::text)), updated_at=now()
-    WHERE id=$1 RETURNING id`, [tournamentId, owner.rows[0].id, owner.rows[0].email]);
+  // $2 (uuid column) and $3 (json text) are separate params: Postgres rejects one param used as two types.
+  const result = await pool.query(`UPDATE tournaments SET organizer_id=$2::uuid,
+    data=jsonb_set(jsonb_set(COALESCE(data,'{}'::jsonb),'{userId}',to_jsonb($3::text)),'{creatorEmail}',to_jsonb($4::text)), updated_at=now()
+    WHERE id=$1 RETURNING id`, [tournamentId, owner.rows[0].id, String(owner.rows[0].id), owner.rows[0].email]);
   if (!result.rowCount) return bad(res, 404, 'Tournament not found');
   res.json({ success: true, userId: owner.rows[0].id, creatorEmail: owner.rows[0].email });
 });
