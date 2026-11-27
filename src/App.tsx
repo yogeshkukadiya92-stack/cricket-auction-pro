@@ -85,7 +85,7 @@ function AppContent() {
   // Authentication & Current User State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [authInitialMode, setAuthInitialMode] = useState<'LOGIN' | 'ADMIN_LOGIN'>('LOGIN');
+  const [authInitialMode, setAuthInitialMode] = useState<'LOGIN' | 'REGISTER' | 'ADMIN_LOGIN'>('LOGIN');
 
   const handleLoginSuccess = (user: User) => {
     setCurrentUser(user);
@@ -906,7 +906,7 @@ function AppContent() {
     return <ObsOverlayView timerSeconds={publicSummary.tournament.rules?.timerSeconds} currency={publicSummary.tournament.rules?.currency} currentPlayer={publicSummary.players.find(p => p.id === state.currentPlayerId) || null} currentBid={state.currentBid || 0} leadingTeam={publicSummary.teams.find(t => t.id === state.leadingTeam?.id) || null} bidsHistory={[]} isSold={isSold} isUnsold={isUnsold} lastSoldInfo={lastSoldInfo} />;
   }
   if (!authChecked) return <LoadingScreen />;
-  if (!currentUser) return <LandingScreen onPlayer={enterPlayerMode} onOrganizer={() => { setAuthInitialMode('LOGIN'); setIsAuthModalOpen(true); }} onAdmin={() => { setAuthInitialMode('ADMIN_LOGIN'); setIsAuthModalOpen(true); }}><AuthModal initialMode={authInitialMode} isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onSuccess={handleLoginSuccess} /></LandingScreen>;
+  if (!currentUser) return <LandingScreen onPlayer={enterPlayerMode} onOrganizer={() => { setAuthInitialMode('LOGIN'); setIsAuthModalOpen(true); }} onAdmin={() => { setAuthInitialMode('ADMIN_LOGIN'); setIsAuthModalOpen(true); }} onRegister={() => { setAuthInitialMode('REGISTER'); setIsAuthModalOpen(true); }}><AuthModal initialMode={authInitialMode} isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onSuccess={handleLoginSuccess} /></LandingScreen>;
   if (!dataReady) return <LoadingScreen error={dataError} />;
 
   // Special full-screen transparent view for OBS Studio

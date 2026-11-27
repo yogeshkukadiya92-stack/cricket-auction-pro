@@ -5,11 +5,12 @@ interface LandingScreenProps {
   onPlayer: () => void;
   onOrganizer: () => void;
   onAdmin: () => void;
+  onRegister?: () => void;
   children?: React.ReactNode;
 }
 
 /** Entry screen: choose Player (mobile login) or Organizer (e-mail login). */
-export const LandingScreen: React.FC<LandingScreenProps> = ({ onPlayer, onOrganizer, onAdmin, children }) => (
+export const LandingScreen: React.FC<LandingScreenProps> = ({ onPlayer, onOrganizer, onAdmin, onRegister, children }) => (
   <main className="relative min-h-[100dvh] overflow-hidden bg-obsidian-950 text-white pitch-stripes flex flex-col">
     <header className="relative z-10 flex items-center gap-2.5 px-5 sm:px-10 pt-6">
       <span className="w-9 h-9 rounded-lg bg-gold-500 text-black grid place-items-center"><Gavel className="w-5 h-5" /></span>
@@ -30,6 +31,9 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({ onPlayer, onOrgani
           <span className="flex-1 font-display text-3xl font-extrabold leading-tight">I'm an organizer</span>
           <ArrowRight className="w-6 h-6 transition-transform group-hover:translate-x-1" />
         </button>
+        {onRegister && <button id="landing-organizer-register" type="button" onClick={onRegister} className="w-full min-h-12 rounded-2xl border border-gold-400/50 text-gold-400 hover:bg-gold-500/10 font-bold">
+          New organizer? Create free account &amp; tournament
+        </button>}
         <button id="landing-player-login" type="button" onClick={onPlayer} className="group w-full flex items-center gap-4 rounded-3xl border border-white/15 bg-obsidian-850 hover:bg-obsidian-800 p-5 text-left transition-colors">
           <UserRound className="w-7 h-7 shrink-0 text-gold-400" />
           <span className="flex-1 font-display text-3xl font-extrabold leading-tight">I'm a player</span>
